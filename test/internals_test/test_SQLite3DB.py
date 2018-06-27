@@ -35,7 +35,7 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(len(info), 1)
 
         # Check if the info dict is correct.
-        self.assertEqual(info[0]['column'], 'name')
+        self.assertEqual(info[0]['column_name'], 'name')
         self.assertEqual(info[0]['type'], 'text')
         self.assertEqual(info[0]['cid'], 0)
 
@@ -53,8 +53,8 @@ class TestSQLite3DB(unittest.TestCase):
  
         self.assertEqual(len(info), 2)
 
-        self.assertEqual(name_col['column'], 'name')
-        self.assertEqual(age_col['column'], 'age')
+        self.assertEqual(name_col['column_name'], 'name')
+        self.assertEqual(age_col['column_name'], 'age')
 
         self.assertEqual(name_col['type'], 'text')
         self.assertEqual(age_col['type'], 'integer')
