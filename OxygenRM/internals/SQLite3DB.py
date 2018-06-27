@@ -27,6 +27,11 @@ class SQLite3DB():
 
         return [dict(zip(keys, row)) for row in self.cursor.fetchall()]
 
+    def table_fields_types(self, table_name):
+        info = self.table_info(table_name)
+
+        return {col['column']: col['type'] for col in info}
+
     def drop_all_tables(self):
         pass
 

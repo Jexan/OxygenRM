@@ -34,20 +34,16 @@ class TestSQLite3DB(unittest.TestCase):
 
         self.assertEqual(len(info), 1)
 
+        # Check if the info dict is correct.
         self.assertEqual(info[0]['column'], 'name')
         self.assertEqual(info[0]['type'], 'text')
         self.assertEqual(info[0]['cid'], 0)
 
     def test_table_creation(self):
         db.create_table('test', name='text', age='integer')
-
         info = db.table_info('test')
 
-        self.assertEqual(len(info), 2)
-
-        name_col = []
-        age_col  = []
-
+        # Since dicts are not ordered.
         if info[0]['column'] == 'name':
             name_col = info[0]
             age_col  = info[1]
@@ -55,6 +51,8 @@ class TestSQLite3DB(unittest.TestCase):
             name_col = info[1]
             age_col  = info[0]
  
+        self.assertEqual(len(info), 2)
+
         self.assertEqual(name_col['column'], 'name')
         self.assertEqual(age_col['column'], 'age')
 
@@ -62,6 +60,17 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(age_col['type'], 'integer')
 
         drop_table('test')
+
+    def test_table_fields_types(self):
+        db.create_table('test', name='text', 
+            float='real', blob='blob', number="integer")
+
+        info = db.table_fields_types('test')
+
+        self.assertEqual(info['name'], 'text') 
+        self.assertEqual(info['float'], 'real') 
+        self.assertEqual(info['blob'], 'blob') 
+        self.assertEqual(info['number'], 'integer') 
 
     def test_db_updating(self):
         pass
