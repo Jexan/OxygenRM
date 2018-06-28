@@ -125,6 +125,16 @@ class TestSQLite3DB(unittest.TestCase):
         for row in c.execute('SELECT name, number FROM test'):
             self.assertIn(row['name'], ['t1', 't2', 't4', None])
             self.assertIn(row['number'], [1, None])
+    
+    def test_record_creation_creates_the_records_correctly(self):
+        db.create_table('test', name='text', number='integer')        
+        db.create_many('test', ('number', 'name'), [(1,'t1'), (None, 't2'), (3, None)])
+
+        c = conn.cursor()
+
+        for row in c.execute('SELECT name, number FROM test'):
+            self.assertIn(row['name'], ['t1', 't2', None])
+            self.assertIn(row['number'], [1, 3, None])
             
     def test_table_querying_all(self):
         db.create_table('test', name='text', number='integer')
@@ -140,19 +150,14 @@ class TestSQLite3DB(unittest.TestCase):
 
     def test_table_where_inequality_works_even_with_null_records(self):
         db.create_table('test', id="integer", name="text")
-        db.create('test', id=4, name="t5")
-        db.create('test', id=1, name='t1')
-        db.create('test', id=2, name='t2')
-        db.create('test', id=3)
-        db.create('test', name="t4")
+        db.create_many('test', ('id', 'name'), ((1,'t1'), (2, 't2'), (3, None), (None, 't4')))
     
         fields_with_id_not_3 = list(db.find_where('test', ('id', '!=', 3)))
         # Without the "NOT NULL" added in the method, this would not count the record with the name t6
+        self.assertEqual(len(fields_with_id_not_3), 3)
 
         for field in fields_with_id_not_3:
             self.assertFalse(field['id'] == 3) 
-
-        self.assertEqual(len(fields_with_id_not_3), 4)
 
     def test_table_where_equality_to_null(self):
         db.create_table('test', id="integer", name="text")
@@ -164,11 +169,7 @@ class TestSQLite3DB(unittest.TestCase):
 
     def test_table_where_lte_works(self):
         db.create_table('test', id="integer", name="text")
-
-        db.create('test', id=1, name='t1')
-        db.create('test', id=2, name='t2')
-        db.create('test', id=3)
-        db.create('test', id=5, name="t4")
+        db.create_many('test', ('id', 'name'), [(1,'t1'), (2, 't2'), (3, None), (5, 't4')])
     
         field_with_id_le_than_3 = list(db.find_where('test', ('id', '<=', 3)))
         

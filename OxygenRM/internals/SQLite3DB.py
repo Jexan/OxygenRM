@@ -107,14 +107,11 @@ class SQLite3DB():
             self.drop_table(table)
 
     def create(self, table_name, **values):
-        ''' Creates a new record in the database. 
+        ''' Create a new record in the database. 
 
             Args:
                 table_name: The table to query.
                 **values: The field=value dictionary
-
-            Returns:
-                The created record
         '''
         fields = list(values.keys())
 
@@ -122,7 +119,26 @@ class SQLite3DB():
         values_str = ','.join(['?']*len(fields))
 
         return self.execute('INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str),
-           tuple(values.values()))
+           tuple(values.values()))   
+
+    def create_many(self, table_name, keys, values):
+        ''' Create multiple new records in the database. 
+
+            Args:
+                table_name: The table to query.
+                keys: An iterator to know the keys
+                values: An iterator that yield tuplables iterators, corresponding to the keys.
+
+            Returns:
+                The created record
+        '''
+        fields = list(keys)
+
+        fields_str = ','.join(fields)
+        values_str = ','.join(['?']*len(fields))
+
+        return self.execute_many('INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str),
+           values)
 
     def all(self, table_name, fields=[]):
         ''' Get every record in the table_name. 
@@ -203,6 +219,17 @@ class SQLite3DB():
                    the args to substitute can be passed as a tuple.
         '''
         return self.cursor.execute(query, args)
+
+    def execute_many(self, query, args=()):
+        ''' Run a query multiple times with commit (for Create operations). 
+
+            Args:
+                query: The query to be executed.
+                args: If the query has to be protected from sql injection,
+                   the args to substitute can be passed as an iterator that yields tuples.
+        '''
+        return self.cursor.executemany(query, (tuple(field) for field in args))
+
 
 def where_clause(*conditions, **equals):
     ''' Create a where clause string for SQL.
