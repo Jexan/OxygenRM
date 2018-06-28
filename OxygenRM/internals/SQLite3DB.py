@@ -5,13 +5,15 @@
 import sqlite3
 
 class SQLite3DB():
-    """ Init the connection to the database
+    ''' Init the connection to the database
 
         Args:
             db_name: The path to the sqlite3 database as a string.
-    """
+    '''
     def __init__(self, db_name):
         self.connection = sqlite3.connect(db_name)
+        self.connection.row_factory = sqlite3.Row
+
         self.cursor     = self.connection.cursor()
 
     def create_table(self, table_name, **cols):
@@ -32,22 +34,18 @@ class SQLite3DB():
 
         return True
 
-    def table_info(self, table_name):
+    def table_cols_info(self, table_name):
         ''' Get a table columns info.
 
             Args:
                 table_name: The name of the table to be studied.
 
             Returns:
-                A dict for every column, with the keys and associated values: 
-                'cid', 'column_name', 'type', 'notnull' and 'dflt_value'. 
+                An iterator with every column of the table 
         '''
-        keys = ['cid', 'column_name', 'type', 'notnull', 'dflt_value', 'pk']
         query = "PRAGMA table_info({})".format(table_name)
 
-        self.execute(query)
-
-        return [dict(zip(keys, row)) for row in self.cursor.fetchall()]
+        return self.execute(query)
 
     def table_fields_types(self, table_name):
         ''' Get a table columns info.
@@ -60,18 +58,41 @@ class SQLite3DB():
         '''
         info = self.table_info(table_name)
 
-        return {col['column_name']: col['type'] for col in info}
+        return {col['name']: col['type'] for col in info}
 
+    def get_all_tables(self):
+        ''' Get every table in the database. 
+
+            Returns:
+                An iterable with all the tables names.
+        '''
+        tables = self.execute('SELECT * FROM sqlite_master WHERE type="table"')
+
+        return (table[2] for table in tables)
+
+    def all(self, table_name):
+        ''' Get every record in the table_name. 
+
+            Args:
+                table_name: The table to query.
+
+            Returns:
+                All the records
+        '''
+        return self.execute('SELECT * FROM {}'.format(table_name))
+    
     def drop_all_tables(self):
         pass
-        
+
     def execute(self, query, args=()):
         ''' Run a query and commit the result. 
 
-                Args:
-                    query: The query to be executed.
-                    args: If the query has to be protected from sql injection,
-                       the args to substitute can be passed as a tuple.
+            Args:
+                query: The query to be executed.
+                args: If the query has to be protected from sql injection,
+                   the args to substitute can be passed as a tuple.
         '''
-        self.cursor.execute(query, args)
+        result = self.cursor.execute(query, args)
         self.connection.commit()
+
+        return result
