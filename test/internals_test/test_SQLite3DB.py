@@ -9,8 +9,7 @@ logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 import sqlite3 as sql3
 from OxygenRM.internals.SQLite3DB import *
 
-db_name = 'test/test.db'
-os.unlink(db_name)
+db_name = ':memory:'
 db = SQLite3DB(db_name)
 conn = db.connection
 
@@ -139,34 +138,62 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
 
-    def test_table_where_finds_item(self):
+    def test_table_where_inequality_works_even_with_null_records(self):
+        db.create_table('test', id="integer", name="text")
+        db.create('test', id=4, name="t5")
+        db.create('test', id=1, name='t1')
+        db.create('test', id=2, name='t2')
+        db.create('test', id=3)
+        db.create('test', name="t4")
+    
+        fields_with_id_not_3 = list(db.find_where('test', ('id', '!=', 3)))
+        # Without the "NOT NULL" added in the method, this would not count the record with the name t6
+        self.assertEqual(len(fields_with_id_not_3), 4)
+
+    def test_table_where_equality_to_null(self):
+        db.create_table('test', id="integer", name="text")
+        db.create('test', name="t6")
+
+        field_with_null_val = list(db.find_where('test', id=None))
+        self.assertEqual(field_with_null_val[0]['id'], None)
+        self.assertEqual(field_with_null_val[0]['name'], 't6')
+
+    def test_table_where_lte_works(self):
         db.create_table('test', id="integer", name="text")
 
         db.create('test', id=1, name='t1')
         db.create('test', id=2, name='t2')
         db.create('test', id=3)
         db.create('test', id=5, name="t4")
-        db.create('test', id=4, name="t5")
-        db.create('test', name="t6")
-
-        field_with_id_1 = list(db.find_where('test', id=1))
-        self.assertEqual(len(field_with_id_1), 1)
-        self.assertEqual(field_with_id_1[0]['name'], 't1')
-
+    
         field_with_id_le_than_3 = list(db.find_where('test', ('id', '<=', 3)))
         self.assertEqual(len(field_with_id_le_than_3), 3)
         for row in field_with_id_le_than_3:
             self.assertTrue(row['id'] <= 3)
             self.assertIn(row['name'], ['t1', 't2', None])
 
+    def test_table_where_equality_works(self):
+        db.create_table('test', id="integer", name="text")
 
-        fields_with_id_not_3 = list(db.find_where('test', ('id', '!=', 3)))
-        # Without the "NOT NULL" added in the method, this would not count the record with the name t6
-        self.assertEqual(len(fields_with_id_not_3), 5)
+        db.create('test', id=1, name='t1')
+        db.create('test', id=2, name='t2')
+        db.create('test', id=3)
 
-        field_with_null_val = list(db.find_where('test', id=None))
-        self.assertEqual(field_with_null_val[0]['id'], None)
-        self.assertEqual(field_with_null_val[0]['name'], 't6')
+        field_with_id_1 = list(db.find_where('test', id=1))
+        self.assertEqual(len(field_with_id_1), 1)
+        self.assertEqual(field_with_id_1[0]['name'], 't1')
+
+    def test_table_where_with_two_conditions(self):
+        db.create_table('test', id="integer", name="text", float="real")
+
+        db.create('test', id=1, name='t1', float=3.4)
+        db.create('test', id=2, name='t2', float=.3)
+        db.create('test', id=3)
+        db.create('test', name="t4")
+
+        field_with_two_cond = list(db.find_where('test', ('id', '!=', 3), ('float', '>=', 1)))
+        self.assertEqual(len(field_with_two_cond), 1)
+        self.assertEqual(field_with_two_cond[0]['name'], 't1')
 
     def test_db_updating(self):
         pass

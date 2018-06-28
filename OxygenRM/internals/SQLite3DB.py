@@ -31,7 +31,7 @@ class SQLite3DB():
             Raises:
                 TypeError: If a field passed is not a valid SQLite3 field.
         '''
-        for  column_type in cols.values():
+        for column_type in cols.values():
             if not column_type in ['text', 'integer', 'real', 'blob']:
                 raise TypeError('Invalid column type: {}'.format(column_type))
 
@@ -158,14 +158,18 @@ class SQLite3DB():
         query = 'SELECT * FROM {} WHERE '.format(table_name)
 
         # This assures that inequality doesn't skip over Null valued fields 
-        for field, symbol, value in conditions:
+        for index, (field, symbol, value) in enumerate(conditions):
             if symbol == '!=' and value != None:
-                query += '{} IS NULL OR '.format(field)
+                query += ' ({0} NOT NULL OR {0} != ?) AND'.format(field)
+            elif symbol == '=' and value == None:
+                query += ' {} IS ? AND'.format(field)
+            elif symbol[-1] == '=' and value != None:
+                query += ' ({0} NOT NULL AND {0} {1} ?) AND'.format(field, symbol)
+            else:
+                query += ' {} {} ? AND'.format(field, symbol)
 
-            if symbol == '=' and value == None:
-                conditions.append((field, 'IS', None)) 
-
-        query += ' AND '.join(field + ' ' + symbol + ' ?' for field, symbol, _ in conditions)
+        # Prune any extra AND/OR
+        query = query[:-3]
 
         return self.execute(query, tuple(condition[2] for condition in conditions)) 
 
