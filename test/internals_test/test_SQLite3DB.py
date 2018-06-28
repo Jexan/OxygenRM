@@ -148,6 +148,10 @@ class TestSQLite3DB(unittest.TestCase):
     
         fields_with_id_not_3 = list(db.find_where('test', ('id', '!=', 3)))
         # Without the "NOT NULL" added in the method, this would not count the record with the name t6
+
+        for field in fields_with_id_not_3:
+            self.assertFalse(field['id'] == 3) 
+
         self.assertEqual(len(fields_with_id_not_3), 4)
 
     def test_table_where_equality_to_null(self):
@@ -167,7 +171,9 @@ class TestSQLite3DB(unittest.TestCase):
         db.create('test', id=5, name="t4")
     
         field_with_id_le_than_3 = list(db.find_where('test', ('id', '<=', 3)))
+        
         self.assertEqual(len(field_with_id_le_than_3), 3)
+
         for row in field_with_id_le_than_3:
             self.assertTrue(row['id'] <= 3)
             self.assertIn(row['name'], ['t1', 't2', None])
@@ -195,6 +201,9 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(len(field_with_two_cond), 1)
         self.assertEqual(field_with_two_cond[0]['name'], 't1')
 
+    def table_where_with_no_conditions(self):
+        self.assertRaises(ValueError, db.find_where, 'test')
+
     def test_db_updating(self):
         pass
 
@@ -203,3 +212,29 @@ class TestSQLite3DB(unittest.TestCase):
 
     def test_int_search(self):
         pass
+
+
+class TestSQLite3DBHelpers(unittest.TestCase):
+    def test_select_clause_without_fields_is_select_wildcard(self):
+        expected = 'SELECT * FROM test'
+        self.assertEqual(select_clause('test'), expected)
+
+    def test_select_clause_with_fields(self):
+        expected = 'SELECT field1, field2, field3 FROM test'
+        self.assertEqual(select_clause('test', 'field1', 'field2', 'field3'), expected)
+
+    def test_where_clause_empty_conditions_raises_ValueError(self):
+        self.assertRaises(ValueError, where_clause)
+
+    def test_where_clause_ineq_clauses(self):
+        expected1 = 'WHERE (id NOT NULL OR id != ?) AND (name NOT NULL AND name >= ?)'
+        self.assertEqual(where_clause(('id', '!=', 1), ('name', '>=', 1)), expected1)
+
+    def test_where_clause_eq_to_none_clause(self):
+        expected = 'WHERE id IS ?'
+        self.assertEqual(where_clause(id=None), expected)
+
+    def test_where_clause_eq_to_none_clause(self):
+        expected3 = 'WHERE id IS ?'
+        self.assertEqual(where_clause(id=None), expected3)
+

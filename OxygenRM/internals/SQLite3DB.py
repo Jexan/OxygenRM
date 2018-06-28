@@ -5,6 +5,8 @@
 import sqlite3
 import logging
 
+from itertools import chain
+
 class SQLite3DB():
     ''' Init the connection to the database
 
@@ -143,24 +145,24 @@ class SQLite3DB():
             
             Returns:
                 An iterator with the found records.
-
+    
             Raises:
-                valueError: If no condition is passed.
+                ValueError: If no condition is gotten.
         '''
-        conditions = list(conditions)
+        query = 'SELECT * FROM {} WHERE'.format(table_name)
 
-        if not len(conditions) and not equals:
+        if not conditions and not equals:
             raise ValueError('No conditions passed to WHERE clause')
+
+        conditions = list(conditions)
 
         for field, value in equals.items():
             conditions.append((field, '=', value))
-
-        query = 'SELECT * FROM {} WHERE '.format(table_name)
-
+        
         # This assures that inequality doesn't skip over Null valued fields 
         for index, (field, symbol, value) in enumerate(conditions):
             if symbol == '!=' and value != None:
-                query += ' ({0} NOT NULL OR {0} != ?) AND'.format(field)
+                query += ' ({0} IS NULL OR {0} != ?) AND'.format(field)
             elif symbol == '=' and value == None:
                 query += ' {} IS ? AND'.format(field)
             elif symbol[-1] == '=' and value != None:
@@ -172,6 +174,9 @@ class SQLite3DB():
         query = query[:-3]
 
         return self.execute(query, tuple(condition[2] for condition in conditions)) 
+
+    def update(self):
+        pass
 
     def execute(self, query, args=()):
         ''' Run a query and commit the result. 
@@ -185,3 +190,59 @@ class SQLite3DB():
         self.connection.commit()
 
         return result
+
+def where_clause(*conditions, **equals):
+    ''' Create a where clause string for SQL.
+
+        Args:
+            conditions: Triples with the conditions ('field', 'symbol', 'value')
+            equals: Passing k1:v1, ... is equivalent to passing (k1, '=', v1)
+        
+        Returns:
+            A string with the crafted clause.
+
+        Raises:
+            ValueError: If no condition is gotten.
+    '''
+    if not conditions and not equals:
+        raise ValueError('No conditions passed to WHERE clause')
+
+    conditions_list = list(conditions if conditions else ())
+
+    for field, value in equals.items():
+        conditions_list.append((field, '=', value))
+
+    where_clause_str = 'WHERE'
+    
+    # This assures that inequality doesn't skip over Null valued fields 
+    for index, condition in enumerate(conditions_list):
+        field, symbol, value = condition
+        separator = 'AND' if len(condition) == 3 else condition[3]
+
+        if symbol == '!=' and value != None:
+            where_clause_str += ' ({0} NOT NULL OR {0} != ?) AND'.format(field)
+        elif symbol == '=' and value == None:
+            where_clause_str += ' {} IS ? AND'.format(field)
+        elif symbol[-1] == '=' and value != None:
+            where_clause_str += ' ({0} NOT NULL AND {0} {1} ?) AND'.format(field, symbol)
+        else:
+            where_clause_str += ' {} {} ? AND'.format(field, symbol)
+
+    # Prune any extra AND/OR
+    where_clause_str = where_clause_str[:-4]
+
+    return where_clause_str
+
+def select_clause(table_name, *fields):
+    ''' Create a select from clause string for SQL.
+
+        Args:
+            table_name: The table to select from as string.
+            *fields: The fields to select. 
+        
+        Returns:
+            A string with the crafted clause.
+    '''
+    fields_str = ', '.join(fields) if fields else '*'
+
+    return 'SELECT {} FROM {}'.format(fields_str, table_name)
