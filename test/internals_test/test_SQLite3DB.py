@@ -227,14 +227,18 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         self.assertRaises(ValueError, where_clause)
 
     def test_where_clause_ineq_clauses(self):
-        expected1 = 'WHERE (id NOT NULL OR id != ?) AND (name NOT NULL AND name >= ?)'
-        self.assertEqual(where_clause(('id', '!=', 1), ('name', '>=', 1)), expected1)
+        expected1 = 'WHERE (id IS NULL OR id != ?) AND (name NOT NULL AND name >= ?)'
+        result = where_clause(('id', '!=', 1), ('name', '>=', 1))
+        self.assertEqual(result[0], expected1)
+        self.assertEqual(result[1], (1,1))
 
     def test_where_clause_eq_to_none_clause(self):
         expected = 'WHERE id IS ?'
-        self.assertEqual(where_clause(id=None), expected)
+        self.assertEqual(where_clause(id=None)[0], expected)
 
     def test_where_clause_eq_to_none_clause(self):
-        expected3 = 'WHERE id IS ?'
-        self.assertEqual(where_clause(id=None), expected3)
+        expected = 'WHERE id IS ?'
+        result = where_clause(id=None)
+        self.assertEqual(result[0], expected)
+        self.assertEqual(result[1], (None,))
 

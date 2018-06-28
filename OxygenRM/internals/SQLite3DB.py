@@ -55,7 +55,7 @@ class SQLite3DB():
         '''
         query = "PRAGMA table_info({})".format(table_name)
 
-        return self.execute(query)
+        return self.execute_without_saving(query)
 
     def table_fields_types(self, table_name):
         ''' Get a table columns info.
@@ -76,7 +76,7 @@ class SQLite3DB():
             Returns:
                 An iterable with all the tables names.
         '''
-        tables = self.execute('SELECT * FROM sqlite_master WHERE type="table"')
+        tables = self.execute_without_saving('SELECT * FROM sqlite_master WHERE type="table"')
 
         return (table['name'] for table in tables)
 
@@ -124,7 +124,7 @@ class SQLite3DB():
         return self.execute('INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str),
            tuple(values.values()))
 
-    def all(self, table_name):
+    def all(self, table_name, fields=[]):
         ''' Get every record in the table_name. 
 
             Args:
@@ -133,14 +133,15 @@ class SQLite3DB():
             Returns:
                 All the records
         '''
-        return self.execute('SELECT * FROM {}'.format(table_name))
+        return self.execute_without_saving(select_clause(table_name, *fields))
     
-    def find_where(self, table_name, *conditions, **equals):
+    def find_where(self, table_name, *conditions, fields=[], **equals):
         ''' Get every record that fullfills the passed conditions. 
 
             Args:
                 table_name: The table to query.
                 *conditions: Triples with the conditions ('field', 'symbol', 'value')
+                *fields: A list of the fields to select.
                 **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
             
             Returns:
@@ -149,47 +150,40 @@ class SQLite3DB():
             Raises:
                 ValueError: If no condition is gotten.
         '''
-        query = 'SELECT * FROM {} WHERE'.format(table_name)
+        where_info =  where_clause(*conditions, **equals)
+        query = '{} {}'.format(select_clause(table_name, *fields), where_info[0])
 
-        if not conditions and not equals:
-            raise ValueError('No conditions passed to WHERE clause')
-
-        conditions = list(conditions)
-
-        for field, value in equals.items():
-            conditions.append((field, '=', value))
-        
-        # This assures that inequality doesn't skip over Null valued fields 
-        for index, (field, symbol, value) in enumerate(conditions):
-            if symbol == '!=' and value != None:
-                query += ' ({0} IS NULL OR {0} != ?) AND'.format(field)
-            elif symbol == '=' and value == None:
-                query += ' {} IS ? AND'.format(field)
-            elif symbol[-1] == '=' and value != None:
-                query += ' ({0} NOT NULL AND {0} {1} ?) AND'.format(field, symbol)
-            else:
-                query += ' {} {} ? AND'.format(field, symbol)
-
-        # Prune any extra AND/OR
-        query = query[:-3]
-
-        return self.execute(query, tuple(condition[2] for condition in conditions)) 
+        return self.execute_without_saving(query, where_info[1]) 
 
     def update(self):
         pass
 
     def execute(self, query, args=()):
-        ''' Run a query and commit the result. 
+        ''' Run a query and commit (for Create, Update, Delete operations). 
+
+            Args:
+                query: The query to be executed.
+                args: If the query has to be protected from sql injection,
+                   the args to substitute can be passed as a tuple.
+
+            Returns:
+                The query result.
+        '''
+        result = self.cursor.execute(query, args)
+
+        self.connection.commit()
+
+        return result
+
+    def execute_without_saving(self, query, args=()):
+        ''' Run a query without commit (for Read operations). 
 
             Args:
                 query: The query to be executed.
                 args: If the query has to be protected from sql injection,
                    the args to substitute can be passed as a tuple.
         '''
-        result = self.cursor.execute(query, args)
-        self.connection.commit()
-
-        return result
+        return self.cursor.execute(query, args)
 
 def where_clause(*conditions, **equals):
     ''' Create a where clause string for SQL.
@@ -199,7 +193,7 @@ def where_clause(*conditions, **equals):
             equals: Passing k1:v1, ... is equivalent to passing (k1, '=', v1)
         
         Returns:
-            A string with the crafted clause.
+            A string with the crafted clause and the values.
 
         Raises:
             ValueError: If no condition is gotten.
@@ -220,7 +214,7 @@ def where_clause(*conditions, **equals):
         separator = 'AND' if len(condition) == 3 else condition[3]
 
         if symbol == '!=' and value != None:
-            where_clause_str += ' ({0} NOT NULL OR {0} != ?) AND'.format(field)
+            where_clause_str += ' ({0} IS NULL OR {0} != ?) AND'.format(field)
         elif symbol == '=' and value == None:
             where_clause_str += ' {} IS ? AND'.format(field)
         elif symbol[-1] == '=' and value != None:
@@ -231,7 +225,8 @@ def where_clause(*conditions, **equals):
     # Prune any extra AND/OR
     where_clause_str = where_clause_str[:-4]
 
-    return where_clause_str
+    logging.debug(conditions_list)
+    return where_clause_str, tuple(condition[2] for condition in conditions_list)
 
 def select_clause(table_name, *fields):
     ''' Create a select from clause string for SQL.
