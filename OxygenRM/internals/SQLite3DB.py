@@ -27,7 +27,14 @@ class SQLite3DB():
             
             Returns:
                 True
+
+            Raises:
+                TypeError: If a field passed is not a valid SQLite3 field.
         '''
+        for  column_type in cols.values():
+            if not column_type in ['text', 'integer', 'real', 'blob']:
+                raise TypeError('Invalid column type: {}'.format(column_type))
+
         cols_parentheses = ','.join(col_name + ' ' + col_type for col_name, col_type in cols.items())
         query = 'CREATE TABLE {} ({})'.format(table_name, cols_parentheses) 
 
@@ -71,6 +78,32 @@ class SQLite3DB():
 
         return (table['name'] for table in tables)
 
+    def drop_table(self, table_name):
+        ''' Drop a table from the database.
+
+            Args:
+                table_name: The name of the table to be dropped.
+        '''
+        return self.execute('DROP TABLE IF EXISTS {}'.format(table_name))
+
+    def table_exists(self, table_name):
+        ''' Check if a table exist in the database.
+
+            Args:
+                table_name: The name of the table to be checked.
+
+            Returns:
+                A boolean indicating wheter the given table exists.
+        '''
+        return any(table == table_name for table in self.get_all_tables())
+
+    def drop_all_tables(self):
+        ''' Drop all the tables in the database.
+        '''
+        # We better transform the iterator to list if we don't want messy behaviour.
+        for table in list(self.get_all_tables()):
+            self.drop_table(table)
+
     def create(self, table_name, **values):
         ''' Creates a new record in the database. 
 
@@ -100,31 +133,8 @@ class SQLite3DB():
         '''
         return self.execute('SELECT * FROM {}'.format(table_name))
     
-    def drop_table(self, table_name):
-        ''' Drop a table from the database.
-
-            Args:
-                table_name: The name of the table to be dropped.
-        '''
-        return self.execute('DROP TABLE IF EXISTS {}'.format(table_name))
-
-    def table_exists(self, table_name):
-        ''' Check if a table exist in the database.
-
-            Args:
-                table_name: The name of the table to be checked.
-
-            Returns:
-                A boolean indicating wheter the given table exists.
-        '''
-        return any(table == table_name for table in self.get_all_tables())
-
-    def drop_all_tables(self):
-        ''' Drop all the tables in the database.
-        '''
-        # We better transform the iterator to list if we don't want messy behaviour.
-        for table in list(self.get_all_tables()):
-            self.drop_table(table)
+    def find_where(self, table_name):
+        pass
 
     def execute(self, query, args=()):
         ''' Run a query and commit the result. 
