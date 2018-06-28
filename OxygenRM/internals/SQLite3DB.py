@@ -141,14 +141,14 @@ class SQLite3DB():
             Args:
                 table_name: The table to query.
                 *conditions: Triples with the conditions ('field', 'symbol', 'value')
-                *fields: A list of the fields to select.
+                fields: A list of the fields to select.
                 **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
             
             Returns:
                 An iterator with the found records.
     
             Raises:
-                ValueError: If no condition is gotten.
+                ValueError: If no condition is passed.
         '''
         where_info =  where_clause(*conditions, **equals)
         query = '{} {}'.format(select_clause(table_name, *fields), where_info[0])
@@ -157,6 +157,25 @@ class SQLite3DB():
 
     def update(self):
         pass
+
+    def delete_where(self, table_name, *conditions, **equals):
+        ''' Delete every record that fullfil the given conditions.
+
+            Args:
+                table_name: The table to query.
+                *conditions: Triples with the conditions ('field', 'symbol', 'value')
+                **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
+            
+            Returns:
+                An iterator with the found records.
+    
+            Raises:
+                ValueError: If no condition is passed.
+        '''
+        where_info = where_clause(*conditions, **equals)
+        query = 'DELETE FROM {} {}'.format(table_name, where_info[0])
+
+        return self.execute(query, where_info[1])
 
     def execute(self, query, args=()):
         ''' Run a query and commit (for Create, Update, Delete operations). 
@@ -196,7 +215,7 @@ def where_clause(*conditions, **equals):
             A string with the crafted clause and the values.
 
         Raises:
-            ValueError: If no condition is gotten.
+            ValueError: If no condition is passed.
     '''
     if not conditions and not equals:
         raise ValueError('No conditions passed to WHERE clause')

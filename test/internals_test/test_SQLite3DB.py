@@ -201,16 +201,39 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(len(field_with_two_cond), 1)
         self.assertEqual(field_with_two_cond[0]['name'], 't1')
 
-    def table_where_with_no_conditions(self):
+    def table_where_with_no_conditions_raises_valueerror(self):
         self.assertRaises(ValueError, db.find_where, 'test')
 
+    def test_db_deletion_equality(self):
+        db.create_table('test', id="integer", name="text")
+
+        db.create('test', id=1, name='t1')
+        db.create('test', name="t2")
+
+        db.delete_where('test', id=2)
+        self.assertEqual(len(list(db.all('test'))), 2)
+
+        db.delete_where('test', name='t1')
+        rows = list(db.all('test'))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['name'], 't2')
+
+    def test_db_deletion_null(self):
+        db.create_table('test', id="integer", name="text")
+        db.create('test', name='t1')
+        db.create('test', id=4, name="t5")
+        db.create('test', id=2, name='t2')
+        db.create('test', id=3)
+        db.create('test', name="t4")
+
+        db.delete_where('test', id=None)
+
+        rows = list(db.all('test'))
+        self.assertEqual(len(rows), 3)
+        for row in rows:
+            self.assertNotEqual(row['id'], None)
+    
     def test_db_updating(self):
-        pass
-
-    def test_db_deletion(self):
-        pass
-
-    def test_int_search(self):
         pass
 
 
