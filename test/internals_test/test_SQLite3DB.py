@@ -85,12 +85,30 @@ class TestSQLite3DB(unittest.TestCase):
         drop_table('test2')
 
     def test_record_creation(self):
-        pass
+        db.create_table('test', name="text", number="integer")
+        
+        db.create('test', name="t1", number=1)
+        db.create('test', name="t2", number=1)
+        db.create('test', number=1)
+        db.create('test', name="t4")
 
+        c = conn.cursor()
+
+        for row in c.execute('SELECT name, number FROM test'):
+            self.assertIn(row['name'], ['t1', 't2', 't4', None])
+            self.assertIn(row['number'], [1, None])
+            
     def test_table_querying_all(self):
-        db.create_table('test', text='text', n="integer")
+        db.create_table('test', name="text", number="integer")
 
         self.assertEqual(len(list(db.all('test'))), 0)
+        
+        db.create('test', name="t1", number=1)
+        self.assertEqual(len(list(db.all('test'))), 1)
+
+        created = db.all('test').fetchone()
+        self.assertEqual(created['name'], 't1')
+        self.assertEqual(created['number'], 1)
 
     def test_db_updating(self):
         pass

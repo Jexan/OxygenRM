@@ -56,7 +56,7 @@ class SQLite3DB():
             Returns:
                 A dict with column names as keys and column types as values.
         '''
-        info = self.table_info(table_name)
+        info = self.table_cols_info(table_name)
 
         return {col['name']: col['type'] for col in info}
 
@@ -69,6 +69,24 @@ class SQLite3DB():
         tables = self.execute('SELECT * FROM sqlite_master WHERE type="table"')
 
         return (table[2] for table in tables)
+
+    def create(self, table_name, **values):
+        ''' Creates a new record in the database. 
+
+            Args:
+                table_name: The table to query.
+                **values: The field=value dictionary
+
+            Returns:
+                The created record
+        '''
+        fields = list(values.keys())
+
+        fields_str = ','.join(fields)
+        values_str = ','.join(['?']*len(fields))
+
+        return self.execute('INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str),
+           tuple(values.values()))
 
     def all(self, table_name):
         ''' Get every record in the table_name. 
