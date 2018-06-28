@@ -2,6 +2,9 @@
 
 import unittest
 import os
+import logging
+
+logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 
 import sqlite3 as sql3
 from OxygenRM.internals.SQLite3DB import *
@@ -23,12 +26,12 @@ def create_table(table, **cols):
 
 class TestSQLite3DB(unittest.TestCase):
     def tearDown(self):
-        drop_table('test')
+        db.drop_all_tables()
 
-    def test_db_initializes(self):
+    def test_db_initializes_connection(self):
         self.assertIsInstance(conn, sql3.Connection)
     
-    def test_table_cols_info(self):
+    def test_table_cols_info_queries_info_correctly(self):
         create_table('test', name= 'name', type='text')
         info = list(db.table_cols_info('test'))
 
@@ -39,7 +42,7 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(info[0]['type'], 'text')
         self.assertEqual(info[0]['cid'], 0)
 
-    def test_table_creation(self):
+    def test_table_creation_creates_table_and_cols(self):
         db.create_table('test', name='text', age='integer')
         info = list(db.table_cols_info('test'))
 
@@ -59,9 +62,7 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(name_col['type'], 'text')
         self.assertEqual(age_col['type'], 'integer')
 
-        drop_table('test')
-
-    def test_table_fields_types(self):
+    def test_table_fields_types_returns_every_field_with_his_type(self):
         db.create_table('test', name='text', 
             float='real', blob='blob', number="integer")
 
@@ -72,7 +73,7 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(info['blob'], 'blob') 
         self.assertEqual(info['number'], 'integer') 
 
-    def test_get_database_tables(self):
+    def test_get_database_tables_lists_every_table(self):
         db.create_table('test', name="text")
         db.create_table('test2', float='real')
 
@@ -81,10 +82,39 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(len(info), 2)
         self.assertIn('test', info)
         self.assertIn('test2', info)
+    
+    def test_table_existence_detects_whether_a_table_exists(self):
+        self.assertFalse(db.table_exists('test'))
 
-        drop_table('test2')
+        db.create_table('test', name="text")
 
-    def test_record_creation(self):
+        self.assertTrue(db.table_exists('test'))
+
+    def test_table_drop(self):
+        self.assertEqual(len(list(db.get_all_tables())), 0)
+        db.create_table('test', t="text")
+
+        self.assertEqual(len(list(db.get_all_tables())), 1)
+
+        db.drop_table('test')
+        self.assertEqual(len(list(db.get_all_tables())), 0)
+
+    def test_drop_all_tables_drops_every_table(self):
+        self.assertEqual(len(list(db.get_all_tables())), 0)
+        db.create_table('test1', t="text")
+        db.create_table('test2', t="text")
+        db.create_table('test3', t="text")
+        db.create_table('test4', t="text")
+        db.create_table('test5', t="text")
+        db.create_table('test6', t="text")
+
+        self.assertEqual(len(list(db.get_all_tables())), 6)
+
+        db.drop_all_tables()
+
+        self.assertEqual(len(list(db.get_all_tables())), 0)
+
+    def test_record_creation_creates_the_records_correctly(self):
         db.create_table('test', name="text", number="integer")
         
         db.create('test', name="t1", number=1)

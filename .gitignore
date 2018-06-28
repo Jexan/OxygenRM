@@ -2,5 +2,6 @@ __pycache__
 
 *.egg*
 *.db
+*.log
 
 OxygenRM Spec.py
