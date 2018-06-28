@@ -139,6 +139,35 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
 
+    def test_table_where_finds_item(self):
+        db.create_table('test', id="integer", name="text")
+
+        db.create('test', id=1, name='t1')
+        db.create('test', id=2, name='t2')
+        db.create('test', id=3)
+        db.create('test', id=5, name="t4")
+        db.create('test', id=4, name="t5")
+        db.create('test', name="t6")
+
+        field_with_id_1 = list(db.find_where('test', id=1))
+        self.assertEqual(len(field_with_id_1), 1)
+        self.assertEqual(field_with_id_1[0]['name'], 't1')
+
+        field_with_id_le_than_3 = list(db.find_where('test', ('id', '<=', 3)))
+        self.assertEqual(len(field_with_id_le_than_3), 3)
+        for row in field_with_id_le_than_3:
+            self.assertTrue(row['id'] <= 3)
+            self.assertIn(row['name'], ['t1', 't2', None])
+
+
+        fields_with_id_not_3 = list(db.find_where('test', ('id', '!=', 3)))
+        # Without the "NOT NULL" added in the method, this would not count the record with the name t6
+        self.assertEqual(len(fields_with_id_not_3), 5)
+
+        field_with_null_val = list(db.find_where('test', id=None))
+        self.assertEqual(field_with_null_val[0]['id'], None)
+        self.assertEqual(field_with_null_val[0]['name'], 't6')
+
     def test_db_updating(self):
         pass
 

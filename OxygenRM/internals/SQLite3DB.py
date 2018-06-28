@@ -133,8 +133,41 @@ class SQLite3DB():
         '''
         return self.execute('SELECT * FROM {}'.format(table_name))
     
-    def find_where(self, table_name):
-        pass
+    def find_where(self, table_name, *conditions, **equals):
+        ''' Get every record that fullfills the passed conditions. 
+
+            Args:
+                table_name: The table to query.
+                *conditions: Triples with the conditions ('field', 'symbol', 'value')
+                **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
+            
+            Returns:
+                An iterator with the found records.
+
+            Raises:
+                valueError: If no condition is passed.
+        '''
+        conditions = list(conditions)
+
+        if not len(conditions) and not equals:
+            raise ValueError('No conditions passed to WHERE clause')
+
+        for field, value in equals.items():
+            conditions.append((field, '=', value))
+
+        query = 'SELECT * FROM {} WHERE '.format(table_name)
+
+        # This assures that inequality doesn't skip over Null valued fields 
+        for field, symbol, value in conditions:
+            if symbol == '!=' and value != None:
+                query += '{} IS NULL OR '.format(field)
+
+            if symbol == '=' and value == None:
+                conditions.append((field, 'IS', None)) 
+
+        query += ' AND '.join(field + ' ' + symbol + ' ?' for field, symbol, _ in conditions)
+
+        return self.execute(query, tuple(condition[2] for condition in conditions)) 
 
     def execute(self, query, args=()):
         ''' Run a query and commit the result. 
