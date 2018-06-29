@@ -1,5 +1,6 @@
 import unittest
 from OxygenRM.internals.SQL_builders import *
+from collections import OrderedDict
 
 class TestSQLite3DBHelpers(unittest.TestCase):
     def test_select_clause_without_fields_is_select_all(self):
@@ -28,3 +29,17 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         result = where_clause(id=None)
         self.assertEqual(result[0], expected)
         self.assertEqual(result[1], (None,))
+
+    def test_update_clause_with_one(self):
+        expected = "UPDATE test SET a = ?"
+        result   = update_clause('test', {'a':1})
+        
+        self.assertEqual(result.query, expected)
+        self.assertEqual(result.args, (1,))
+
+    def test_update_clause_with_many(self):
+        expected = "UPDATE test SET a = ?, b = ?, c = ?"
+        result   = update_clause('test', OrderedDict((('a', 1), ('b', 2), ('c', 3))))
+        
+        self.assertEqual(result.query, expected)
+        self.assertEqual(result.args, (1,2,3))

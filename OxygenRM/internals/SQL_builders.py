@@ -8,7 +8,7 @@ from collections import namedtuple
 '''
 SQLInfo = namedtuple('SQLInfo', ['query', 'args'])
 
-def update_clause(changes):
+def update_clause(table_name, changes):
     ''' Create an update (with no where condition) clause string for SQL.
 
         Args:
@@ -18,7 +18,7 @@ def update_clause(changes):
             A string with the crafted clause and the values.
 
     '''
-    set_query = 'SET ' + ','.join(field +  ' = ?' for field in changes.keys())
+    set_query = 'SET ' + ', '.join(field +  ' = ?' for field in changes.keys())
     return SQLInfo('UPDATE {} {}'.format(table_name, set_query), tuple(changes.values()))
 
 def where_clause(*conditions, **equals):

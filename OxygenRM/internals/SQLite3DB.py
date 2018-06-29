@@ -5,7 +5,6 @@
 import sqlite3
 import logging
 
-from itertools import chain 
 from OxygenRM.internals.SQL_builders import *
 
 class SQLite3DB():
@@ -168,9 +167,9 @@ class SQLite3DB():
                 ValueError: If no condition is passed.
         '''
         where_info =  where_clause(*conditions, **equals)
-        query = '{} {}'.format(select_clause(table_name, *fields), where_info[0])
+        query = '{} {}'.format(select_clause(table_name, *fields), where_info.query)
 
-        return self.execute_without_saving(query, where_info[1]) 
+        return self.execute_without_saving(query, where_info.args) 
 
     def update_where(self, table_name, changes, *conditions, **equals):
         ''' Update records who fulfills the conditions (or every record if no condition is given) 
@@ -188,14 +187,12 @@ class SQLite3DB():
             See also:
                 SQLite3DB.update
         '''
-        where_info = where_clause(*conditions, **equals)
-        query_args = tuple(chain(changes.values(), where_info[1]))
+        update = update_clause(table_name, changes) 
+        where = where_clause(*conditions, **equals)
 
-        query = 'UPDATE {} SET {} {}'.format(
-            table_name, ','.join(field +  ' = ?' for field in changes.keys()), where_info[0]
-        )
+        query = update.query + ' ' + where.query
 
-        return self.execute(query, query_args)
+        return self.execute(query, update.args + where.args)
 
     def update_all(self, table_name, changes):
         ''' Update every record with the proposed changes.
@@ -207,8 +204,7 @@ class SQLite3DB():
             See also:
                 SQLite3DB.update_where
         '''
-        query = 'UPDATE {} SET {}'.format(table_name, ','.join(field +  ' = ?' for field in changes.keys()))
-        return self.execute(query, tuple(changes.values()))
+        return self.execute(*update_clause(table_name, changes))
 
     def delete_where(self, table_name, *conditions, **equals):
         ''' Delete every record that fullfil the given conditions.
@@ -225,9 +221,9 @@ class SQLite3DB():
                 ValueError: If no condition is passed.
         '''
         where_info = where_clause(*conditions, **equals)
-        query = 'DELETE FROM {} {}'.format(table_name, where_info[0])
+        query = 'DELETE FROM {} {}'.format(table_name, where_info.query)
 
-        return self.execute(query, where_info[1])
+        return self.execute(query, where_info.args)
 
     def execute(self, query, args=()):
         ''' Run a query and commit (for Create, Update, Delete operations). 
