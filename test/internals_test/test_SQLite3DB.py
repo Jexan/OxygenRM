@@ -258,6 +258,15 @@ class TestSQLite3DB(unittest.TestCase):
         for row in db.all('test'):
             self.assertEqual(row['number'], -1)
 
+    def test_update_all(self):
+        db.create_table('test', id='integer')
+        db.create_many('test', ('id',), ((1,) for _ in range(10)))
+
+        db.update_all('test', {'id':0})
+        for row in db.all('test'):
+            self.assertEqual(row['id'], 0)
+        
+
 class TestSQLite3DBHelpers(unittest.TestCase):
     def test_select_clause_without_fields_is_select_wildcard(self):
         expected = 'SELECT * FROM test'

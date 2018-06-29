@@ -136,9 +136,9 @@ class SQLite3DB():
 
         fields_str = ','.join(fields)
         values_str = ','.join(['?']*len(fields))
+        query = 'INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str)
 
-        return self.execute_many('INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str),
-           values)
+        return self.execute_many(query, values)
 
     def all(self, table_name, fields=[]):
         ''' Get every record in the table_name. 
@@ -176,7 +176,7 @@ class SQLite3DB():
             with the proposed changes.
 
             Args:
-                table_name: The table to query.
+                table_name: The table to change.
                 changes: A dict with the keys specifying the fields and the values, the new values.
                 *conditions: Triples with the conditions ('field', 'symbol', 'value')
                 **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
@@ -194,9 +194,20 @@ class SQLite3DB():
             table_name, ','.join(field +  ' = ?' for field in changes.keys()), where_info[0]
         )
 
-        result = self.execute(query, query_args)
-        [logging.debug(i) for i in result]
-        return result
+        return self.execute(query, query_args)
+
+    def update_all(self, table_name, changes):
+        ''' Update every record with the proposed changes.
+
+            Args:
+                table_name: The table to change.
+                changes: A dict with the keys specifying the fields and the values, the new values.
+
+            See also:
+                SQLite3DB.update_where
+        '''
+        query = 'UPDATE {} SET {}'.format(table_name, ','.join(field +  ' = ?' for field in changes.keys()))
+        return self.execute(query, tuple(changes.values()))
 
     def delete_where(self, table_name, *conditions, **equals):
         ''' Delete every record that fullfil the given conditions.
