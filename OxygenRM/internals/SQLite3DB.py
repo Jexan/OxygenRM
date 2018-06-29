@@ -5,7 +5,8 @@
 import sqlite3
 import logging
 
-from itertools import chain
+from itertools import chain 
+from OxygenRM.internals.SQL_builders import *
 
 class SQLite3DB():
     ''' Init the connection to the database
@@ -264,60 +265,3 @@ class SQLite3DB():
                    the args to substitute can be passed as an iterator that yields tuples.
         '''
         return self.cursor.executemany(query, (tuple(field) for field in args))
-
-
-def where_clause(*conditions, **equals):
-    ''' Create a where clause string for SQL.
-
-        Args:
-            conditions: Triples with the conditions ('field', 'symbol', 'value')
-            equals: Passing k1:v1, ... is equivalent to passing (k1, '=', v1)
-        
-        Returns:
-            A string with the crafted clause and the values.
-
-        Raises:
-            ValueError: If no condition is passed.
-    '''
-    if not conditions and not equals:
-        raise ValueError('No conditions passed to WHERE clause')
-
-    conditions_list = list(conditions if conditions else ())
-
-    for field, value in equals.items():
-        conditions_list.append((field, '=', value))
-
-    where_clause_str = 'WHERE'
-    
-    # This assures that inequality doesn't skip over Null valued fields 
-    for index, condition in enumerate(conditions_list):
-        field, symbol, value = condition
-        separator = 'AND' if len(condition) == 3 else condition[3]
-
-        if symbol == '!=' and value != None:
-            where_clause_str += ' ({0} IS NULL OR {0} != ?) AND'.format(field)
-        elif symbol == '=' and value == None:
-            where_clause_str += ' {} IS ? AND'.format(field)
-        elif symbol[-1] == '=' and value != None:
-            where_clause_str += ' ({0} NOT NULL AND {0} {1} ?) AND'.format(field, symbol)
-        else:
-            where_clause_str += ' {} {} ? AND'.format(field, symbol)
-
-    # Prune any extra AND/OR
-    where_clause_str = where_clause_str[:-4]
-
-    return where_clause_str, tuple(condition[2] for condition in conditions_list)
-
-def select_clause(table_name, *fields):
-    ''' Create a select from clause string for SQL.
-
-        Args:
-            table_name: The table to select from as string.
-            *fields: The fields to select. 
-        
-        Returns:
-            A string with the crafted clause.
-    '''
-    fields_str = ', '.join(fields) if fields else '*'
-
-    return 'SELECT {} FROM {}'.format(fields_str, table_name)
