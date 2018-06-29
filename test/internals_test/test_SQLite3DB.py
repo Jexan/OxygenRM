@@ -233,10 +233,30 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(len(rows), 3)
         for row in rows:
             self.assertNotEqual(row['id'], None)
-    
-    def test_db_updating(self):
-        pass
 
+    def test_db_update_works(self):
+        db.create_table('test', id='integer')
+        db.create('test', id=1)
+        db.update_where('test', {'id':2}, id=1)
+        
+        self.assertEqual(next(db.all('test'))['id'], 2)
+    
+    def test_db_update_doesnt_update_not_found_columns(self):
+        db.create_table('test', id='integer')
+        db.create('test', id=0)
+        db.update_where('test', {'id':2}, id=1)
+
+        self.assertEqual(next(db.all('test'))['id'], 0)
+
+    def test_db_update_a_lot_of_cols(self):
+        db.create_table('test', id='integer', number='integer')
+        db.create_many('test', ('id', 'number'), ((1, i) for i in range(10)))
+        for row in db.all('test'):
+            self.assertNotEqual(row['number'], -1)
+
+        db.update_where('test', {'number':-1}, id=1)
+        for row in db.all('test'):
+            self.assertEqual(row['number'], -1)
 
 class TestSQLite3DBHelpers(unittest.TestCase):
     def test_select_clause_without_fields_is_select_wildcard(self):

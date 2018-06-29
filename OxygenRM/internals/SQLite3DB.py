@@ -171,8 +171,32 @@ class SQLite3DB():
 
         return self.execute_without_saving(query, where_info[1]) 
 
-    def update(self):
-        pass
+    def update_where(self, table_name, changes, *conditions, **equals):
+        ''' Update records who fulfills the conditions (or every record if no condition is given) 
+            with the proposed changes.
+
+            Args:
+                table_name: The table to query.
+                changes: A dict with the keys specifying the fields and the values, the new values.
+                *conditions: Triples with the conditions ('field', 'symbol', 'value')
+                **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
+            
+            Raises:
+                ValueError: If no WHERE condition is passed. 
+
+            See also:
+                SQLite3DB.update
+        '''
+        where_info = where_clause(*conditions, **equals)
+        query_args = tuple(chain(changes.values(), where_info[1]))
+
+        query = 'UPDATE {} SET {} {}'.format(
+            table_name, ','.join(field +  ' = ?' for field in changes.keys()), where_info[0]
+        )
+
+        result = self.execute(query, query_args)
+        [logging.debug(i) for i in result]
+        return result
 
     def delete_where(self, table_name, *conditions, **equals):
         ''' Delete every record that fullfil the given conditions.
@@ -271,7 +295,6 @@ def where_clause(*conditions, **equals):
     # Prune any extra AND/OR
     where_clause_str = where_clause_str[:-4]
 
-    logging.debug(conditions_list)
     return where_clause_str, tuple(condition[2] for condition in conditions_list)
 
 def select_clause(table_name, *fields):
