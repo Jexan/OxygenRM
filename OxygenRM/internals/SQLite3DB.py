@@ -26,9 +26,6 @@ class SQLite3DB():
                 table_name : The name of the table to be created.
                 **cols : A dict with the column names as keys and column type
                     as values.
-            
-            Returns:
-                True
 
             Raises:
                 TypeError: If a field passed is not a valid SQLite3 field.
@@ -37,10 +34,7 @@ class SQLite3DB():
             if not column_type in ['text', 'integer', 'real', 'blob']:
                 raise TypeError('Invalid column type: {}'.format(column_type))
 
-        cols_parentheses = ','.join(col_name + ' ' + col_type for col_name, col_type in cols.items())
-        query = 'CREATE TABLE {} ({})'.format(table_name, cols_parentheses) 
-
-        self.execute(query)
+        self.execute(create_table_clause(table_name, cols))
 
         return True
 
@@ -86,7 +80,7 @@ class SQLite3DB():
             Args:
                 table_name: The name of the table to be dropped.
         '''
-        return self.execute('DROP TABLE IF EXISTS {}'.format(table_name))
+        return self.execute(drop_table_clause(table_name))
 
     def table_exists(self, table_name):
         ''' Check if a table exist in the database.

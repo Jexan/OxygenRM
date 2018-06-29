@@ -15,8 +15,9 @@ def update_clause(table_name, changes):
             changes: A dict with the keys specifying the fields and the values, the new values.
 
         Returns:
-            A string with the crafted clause and the values.
-
+            A named tuple with tho fields:
+                [0] query: The crafted clause
+                [1] args : A tuple with the values to be safely replaced.
     '''
     set_query = 'SET ' + ', '.join(field +  ' = ?' for field in changes.keys())
     return SQLInfo('UPDATE {} {}'.format(table_name, set_query), tuple(changes.values()))
@@ -29,8 +30,9 @@ def where_clause(*conditions, **equals):
             equals: Passing k1:v1, ... is equivalent to passing (k1, '=', v1)
         
         Returns:
-            A string with the crafted clause and the values.
-
+            A named tuple with tho fields:
+                [0] query: The crafted clause
+                [1] args : A tuple with the values to be safely replaced.
         Raises:
             ValueError: If no condition is passed.
     '''
@@ -76,3 +78,28 @@ def select_clause(table_name, *fields):
     fields_str = ', '.join(fields) if fields else '*'
 
     return 'SELECT {} FROM {}'.format(fields_str, table_name)
+
+def create_table_clause(table_name, cols):
+    ''' Create a create table clause string for SQL.
+
+        Args:
+            table_name: The table to be created.
+            cols: A dict of the format column_name: column_type. 
+        
+        Returns:
+            A string with the crafted clause.
+    '''
+    columns = ', '.join(col_name + ' ' + col_type for col_name, col_type in cols.items())
+
+    return 'CREATE TABLE {} ({})'.format(table_name, columns) 
+
+def drop_table_clause(table_name):
+    ''' Create a drop table if exists clause string for SQL.
+
+        Args:
+            table_name: The table to be dropped.
+        
+        Returns:
+            A string with the crafted clause.
+    '''
+    return 'DROP TABLE IF EXISTS {}'.format(table_name) 

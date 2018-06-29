@@ -43,3 +43,15 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         
         self.assertEqual(result.query, expected)
         self.assertEqual(result.args, (1,2,3))
+
+    def test_create_table_clause(self):
+        expected = "CREATE TABLE test (a t1, b t2, c t3)"
+        result   = create_table_clause('test', OrderedDict((('a', 't1'), ('b', 't2'), ('c', 't3'))))
+        
+        self.assertEqual(result, expected)
+
+    def test_drop_table_clause(self):
+        expected = "DROP TABLE IF EXISTS test"
+        result   = drop_table_clause('test')
+        
+        self.assertEqual(result, expected)
