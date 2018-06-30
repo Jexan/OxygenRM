@@ -2,28 +2,90 @@
 '''
 from collections import namedtuple
 
-''' Used as return value of query builders that use
-    SQL prepares. The query will be the SQL and the args,
-    a tuple with the args to be passed to the preparer.
+VALID_CONNECTORS = ('AND', 'OR')
+VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
+
+''' Used as return value of query builders that have to
+    modify the arguments.
 '''
 SQLInfo = namedtuple('SQLInfo', ['query', 'args'])
+
+def insert_clause(table_name, keys, values=None):
+    ''' Create a insert clause string for SQL.
+
+        Args:
+            table_name: The table where the insertion will happen.
+            keys: The values to be
+        
+        Returns:
+            If values are passed:
+                A named tuple with tho fields:
+                    [0] query: The crafted clause
+                    [1] args : A tuple with the values to be safely replaced.
+            Else:
+                The query as a string
+    '''
+    fields = list(keys)
+
+    fields_str = ', '.join(keys)
+    values_str = ', '.join(['?']*len(fields))
+
+    query = 'INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str)
+    return query if values else SQLInfo(query, tuple(values))
 
 def update_clause(table_name, changes):
     ''' Create an update (with no where condition) clause string for SQL.
 
         Args:
-            changes: A dict with the keys specifying the fields and the values, the new values.
+            fields: A dict with the keys specifying the fields and the values, the new values. 
+                | An array with the fields to change.
 
         Returns:
-            A named tuple with tho fields:
-                [0] query: The crafted clause
-                [1] args : A tuple with the values to be safely replaced.
+            The crafted SQL.
     '''
-    set_query = 'SET ' + ', '.join(field +  ' = ?' for field in changes.keys())
-    return SQLInfo('UPDATE {} {}'.format(table_name, set_query), tuple(changes.values()))
+    local_fields = changes.keys() if isinstance(changes, dict) else changes
 
-def where_clause(*conditions, **equals):
-    ''' Create a where clause string for SQL.
+    set_query = 'SET ' + ', '.join(field +  ' = ?' for field in local_fields)
+    return 'UPDATE {} {}'.format(table_name, set_query)
+
+def where_clause(conditions):
+    ''' Create a where clause with the given conditions.
+
+        Args:
+            conditions: An iterator with tuples of the format (field, symbol, value, connector). The connector
+            must be AND or OR.
+
+        Returns:
+            The crafted SQL.
+
+        Raises:
+            ValueError: If a connector or symbol is invalid.
+    '''
+    conditions_str = ''
+    connector  = None
+
+    for field, symbol, value, connector in conditions:
+        if connector not in VALID_CONNECTORS:
+            raise ValueError('Unvalid SQL connector: {}'.format(connector))
+        elif symbol not in VALID_WHERE_OPERATIONS:
+            raise ValueError('Unvalid SQL operation: {}'.format(symbol))
+
+        if symbol == '!=' and value != None:
+            condition_str = '({field} IS NULL OR {field} != ?) {connector} '
+        elif symbol != '=' and symbol[-1] == '=' and value != None:
+            condition_str = '({field} NOT NULL AND {field} {symbol} ?) {connector} '
+        else:
+            condition_str = '{field} {symbol} ? {connector} '
+
+        conditions_str += condition_str.format(field=field, symbol=symbol, connector=connector)
+
+    # Prunes the leading condition
+    conditions_str = conditions_str[:-4 if connector == 'OR' else -5]
+        
+    return 'WHERE {}'.format(conditions_str)
+
+def where_equals_clause(*conditions, **equals):
+    ''' Create a where clause string for SQL, with the equals shorthand.
 
         Args:
             conditions: Triples with the conditions ('field', 'symbol', 'value')
@@ -44,7 +106,7 @@ def where_clause(*conditions, **equals):
     for field, value in equals.items():
         conditions_list.append((field, '=', value))
 
-    where_clause_str = 'WHERE'
+    where_equals_clause_str = 'WHERE'
     
     # This assures that inequality doesn't skip over Null valued fields 
     for index, condition in enumerate(conditions_list):
@@ -52,18 +114,18 @@ def where_clause(*conditions, **equals):
         separator = 'AND' if len(condition) == 3 else condition[3]
 
         if symbol == '!=' and value != None:
-            where_clause_str += ' ({0} IS NULL OR {0} != ?) AND'.format(field)
+            where_equals_clause_str += ' ({0} IS NULL OR {0} != ?) AND'.format(field)
         elif symbol == '=' and value == None:
-            where_clause_str += ' {} IS ? AND'.format(field)
+            where_equals_clause_str += ' {} IS ? AND'.format(field)
         elif symbol[-1] == '=' and value != None:
-            where_clause_str += ' ({0} NOT NULL AND {0} {1} ?) AND'.format(field, symbol)
+            where_equals_clause_str += ' ({0} NOT NULL AND {0} {1} ?) AND'.format(field, symbol)
         else:
-            where_clause_str += ' {} {} ? AND'.format(field, symbol)
+            where_equals_clause_str += ' {} {} ? AND'.format(field, symbol)
 
     # Prune any extra AND/OR
-    where_clause_str = where_clause_str[:-4]
+    where_equals_clause_str = where_equals_clause_str[:-4]
 
-    return SQLInfo(where_clause_str, tuple(condition[2] for condition in conditions_list))
+    return SQLInfo(where_equals_clause_str, tuple(condition[2] for condition in conditions_list))
 
 def select_clause(table_name, *fields):
     ''' Create a select from clause string for SQL.

@@ -1,7 +1,6 @@
 # Test cases for OxygenRM Models
 
 import unittest
-import os
 import logging
 
 logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
@@ -149,26 +148,34 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(created['number'], 1)
 
     def test_table_where_inequality_works_even_with_null_records(self):
-        db.create_table('test', id="integer", name="text")
+        db.create_table('test', id='integer', name='text')
         db.create_many('test', ('id', 'name'), ((1,'t1'), (2, 't2'), (3, None), (None, 't4')))
     
         fields_with_id_not_3 = list(db.find_where('test', ('id', '!=', 3)))
-        # Without the "NOT NULL" added in the method, this would not count the record with the name t6
+        # Without the 'NOT NULL' added in the method, this would not count the record with the name t6
         self.assertEqual(len(fields_with_id_not_3), 3)
 
         for field in fields_with_id_not_3:
             self.assertFalse(field['id'] == 3) 
 
-    def test_table_where_equality_to_null(self):
-        db.create_table('test', id="integer", name="text")
-        db.create('test', name="t6")
+    def test_table_where_equality_to_null_yields_nulls(self):
+        db.create_table('t', a='integer', b='text')
+        db.create('t', b='t1')
 
-        field_with_null_val = list(db.find_where('test', id=None))
-        self.assertEqual(field_with_null_val[0]['id'], None)
-        self.assertEqual(field_with_null_val[0]['name'], 't6')
+        field_with_null_val = list(db.find_where('t', a=None))
+        self.assertEqual(field_with_null_val[0]['a'], None)
+        self.assertEqual(field_with_null_val[0]['b'], 't1')
+
+    def test_table_where_equality_doesnt_count_nulls(self):
+        db.create_table('t', a='integer', b='integer')
+        db.create_many('t', ('a', 'b'), ((None, 1), (2, 2)))
+
+        field_with_id_2 = list(db.find_where('t', a=2))
+        self.assertEqual(len(field_with_id_2), 1)
+        self.assertEqual(field_with_id_2[0]['b'], 2)
 
     def test_table_where_lte_works(self):
-        db.create_table('test', id="integer", name="text")
+        db.create_table('test', id='integer', name='text')
         db.create_many('test', ('id', 'name'), [(1,'t1'), (2, 't2'), (3, None), (5, 't4')])
     
         field_with_id_le_than_3 = list(db.find_where('test', ('id', '<=', 3)))
@@ -180,7 +187,7 @@ class TestSQLite3DB(unittest.TestCase):
             self.assertIn(row['name'], ['t1', 't2', None])
 
     def test_table_where_equality_works(self):
-        db.create_table('test', id="integer", name="text")
+        db.create_table('test', id='integer', name='text')
 
         db.create('test', id=1, name='t1')
         db.create('test', id=2, name='t2')
@@ -191,12 +198,12 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(field_with_id_1[0]['name'], 't1')
 
     def test_table_where_with_two_conditions(self):
-        db.create_table('test', id="integer", name="text", float="real")
+        db.create_table('test', id='integer', name='text', float='real')
 
         db.create('test', id=1, name='t1', float=3.4)
         db.create('test', id=2, name='t2', float=.3)
         db.create('test', id=3)
-        db.create('test', name="t4")
+        db.create('test', name='t4')
 
         field_with_two_cond = list(db.find_where('test', ('id', '!=', 3), ('float', '>=', 1)))
         self.assertEqual(len(field_with_two_cond), 1)
@@ -206,10 +213,10 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertRaises(ValueError, db.find_where, 'test')
 
     def test_db_deletion_equality(self):
-        db.create_table('test', id="integer", name="text")
+        db.create_table('test', id='integer', name='text')
 
         db.create('test', id=1, name='t1')
-        db.create('test', name="t2")
+        db.create('test', name='t2')
 
         db.delete_where('test', id=2)
         self.assertEqual(len(list(db.all('test'))), 2)
@@ -220,12 +227,12 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(rows[0]['name'], 't2')
 
     def test_db_deletion_null(self):
-        db.create_table('test', id="integer", name="text")
+        db.create_table('test', id='integer', name='text')
         db.create('test', name='t1')
-        db.create('test', id=4, name="t5")
+        db.create('test', id=4, name='t5')
         db.create('test', id=2, name='t2')
         db.create('test', id=3)
-        db.create('test', name="t4")
+        db.create('test', name='t4')
 
         db.delete_where('test', id=None)
 

@@ -5,6 +5,8 @@
 import sqlite3
 import logging
 
+logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
+
 from OxygenRM.internals.SQL_builders import *
 
 class SQLite3DB():
@@ -160,7 +162,7 @@ class SQLite3DB():
             Raises:
                 ValueError: If no condition is passed.
         '''
-        where_info =  where_clause(*conditions, **equals)
+        where_info =  where_equals_clause(*conditions, **equals)
         query = '{} {}'.format(select_clause(table_name, *fields), where_info.query)
 
         return self.execute_without_saving(query, where_info.args) 
@@ -182,11 +184,11 @@ class SQLite3DB():
                 SQLite3DB.update
         '''
         update = update_clause(table_name, changes) 
-        where = where_clause(*conditions, **equals)
+        where = where_equals_clause(*conditions, **equals)
 
-        query = update.query + ' ' + where.query
+        query = update + ' ' + where.query
 
-        return self.execute(query, update.args + where.args)
+        return self.execute(query, tuple(changes.values()) + where.args)
 
     def update_all(self, table_name, changes):
         ''' Update every record with the proposed changes.
@@ -198,7 +200,7 @@ class SQLite3DB():
             See also:
                 SQLite3DB.update_where
         '''
-        return self.execute(*update_clause(table_name, changes))
+        return self.execute(update_clause(table_name, changes), tuple(changes.values()))
 
     def delete_where(self, table_name, *conditions, **equals):
         ''' Delete every record that fullfil the given conditions.
@@ -214,7 +216,7 @@ class SQLite3DB():
             Raises:
                 ValueError: If no condition is passed.
         '''
-        where_info = where_clause(*conditions, **equals)
+        where_info = where_equals_clause(*conditions, **equals)
         query = 'DELETE FROM {} {}'.format(table_name, where_info.query)
 
         return self.execute(query, where_info.args)
