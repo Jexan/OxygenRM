@@ -64,7 +64,7 @@ def where_clause(conditions):
 
         if symbol == '!=' and value != None:
             condition_str = '({field} IS NULL OR {field} != ?) {connector} '
-        elif symbol != '=' and symbol[-1] == '=' and value != None:
+        elif symbol[0] in '<>' and value != None:
             condition_str = '({field} NOT NULL AND {field} {symbol} ?) {connector} '
         else:
             condition_str = '{field} {symbol} ? {connector} '

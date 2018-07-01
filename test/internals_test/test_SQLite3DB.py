@@ -176,7 +176,7 @@ class TestSQLite3DB(unittest.TestCase):
 
     def test_table_where_lte_works(self):
         db.create_table('test', id='integer', name='text')
-        db.create_many('test', ('id', 'name'), [(1,'t1'), (2, 't2'), (3, None), (5, 't4')])
+        db.create_many('test', ('id', 'name'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
         field_with_id_le_than_3 = list(db.find_where('test', ('id', '<=', 3)))
         
@@ -185,6 +185,18 @@ class TestSQLite3DB(unittest.TestCase):
         for row in field_with_id_le_than_3:
             self.assertTrue(row['id'] <= 3)
             self.assertIn(row['name'], ['t1', 't2', None])
+    
+    def test_table_where_gt_works(self):
+        db.create_table('t', a='integer', b='text')
+        db.create_many('t', ('a', 'b'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
+    
+        field_with_a_gt_2 = list(db.find_where('t', ('a', '>', 2)))
+        
+        self.assertEqual(len(field_with_a_gt_2), 2)
+
+        for row in field_with_a_gt_2:
+            self.assertTrue(row['a'] > 2)
+            self.assertIn(row['b'], ['t4', None])
 
     def test_table_where_equality_works(self):
         db.create_table('test', id='integer', name='text')
