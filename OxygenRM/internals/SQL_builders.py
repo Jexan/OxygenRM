@@ -1,6 +1,7 @@
 ''' Sets of functions that help creating SQL clauses programatically
 '''
 from collections import namedtuple
+import logging
 
 VALID_CONNECTORS = ('AND', 'OR')
 VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
@@ -92,7 +93,7 @@ def where_equals_clause(*conditions, **equals):
     '''
     if not conditions and not equals:
         raise ValueError('No conditions passed to WHERE clause')
-
+   
     conditions_list = list(conditions if conditions else ())
 
     for field, value in equals.items():
@@ -157,3 +158,15 @@ def drop_table_clause(table_name):
             A string with the crafted clause.
     '''
     return 'DROP TABLE IF EXISTS {}'.format(table_name) 
+
+def equals_conditions(**equals):
+    ''' A quick builder for field = value conditions arguments.
+
+        Args:
+            **equals: A dict with field = value pairs.
+        
+        Yields:
+            A tuple of the form (field, '=', value, 'AND')
+    '''
+    for field, value in equals.items():
+        yield (field, '=', value, 'AND')
