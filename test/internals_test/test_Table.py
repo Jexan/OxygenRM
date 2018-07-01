@@ -1,13 +1,35 @@
 import unittest
+from OxygenRM import db_config, internal_db
+
+# FOR NOW
+db = db_config('sqlite3', ':memory:')
 
 from OxygenRM.internals.Table import *
 
-class TestTable(unittest.TestCase):
-    def test_Table_initialization(self):
-        pass
 
-    def test_Table_creation_if_not_exists(self):
-        pass
+def craft_generic_table():
+    generic_cols = {'a': 'integer', 'b': 'text'}
+    db.create_table('t', **generic_cols)
+
+class TestTable(unittest.TestCase):
+    def tearDown(self):
+        db.drop_all_tables()
+
+    def test_Table_initialization(self):
+        table = Table('t')
+
+        self.assertIsInstance(table, Table)
+
+    def test_Table_state_is_set_correctly_at_creation_if_not_exists(self):
+        table = Table('t')
+
+        self.assertIs(table.state, Table.State.CREATING)
+
+    def test_Table_state_is_set_correctly_at_creation_if_exists(self):
+        craft_generic_table()
+        table = Table('t')
+
+        self.assertIs(table.state, Table.State.EDITING)
 
     def test_Table_edition_if_it_exists(self):
         pass

@@ -1,8 +1,21 @@
+from .. import internal_db as db
+from enum import Enum
+
 # Allows the creation, edition and droppage of tables
 class Table():
+
+    ''' The possible states of the table
+    '''
+    class State(Enum):
+        CREATING = 1
+        EDITING  = 2
+
     # If the table already exists, grabs it. If not, it creates one.
     def __init__(self, table_name):
-        pass
+        if db.table_exists(table_name):
+            self.state = self.State.EDITING 
+        else:
+            self.state = self.State.CREATING
 
     # Allows adding columns to a table
     def create_cols(self, **kwargs):

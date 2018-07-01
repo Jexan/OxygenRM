@@ -3,12 +3,7 @@ import OxygenRM.internals.Table   as Table
 
 # Abstract base class for migrations 
 class Migration():
-    # When applied
-    def create():
-        pass
-            
-    # When dissapplied
-    def destroy():
+    def call(self):
         pass
 
 def set_from_last_migration():
