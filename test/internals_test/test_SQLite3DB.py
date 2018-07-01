@@ -236,10 +236,10 @@ class TestSQLite3DB(unittest.TestCase):
         db.create('test', id=1, name='t1')
         db.create('test', name='t2')
 
-        db.delete_where('test', id=2)
+        db.delete_equal('test', id=2)
         self.assertEqual(len(list(db.all('test'))), 2)
 
-        db.delete_where('test', name='t1')
+        db.delete_equal('test', name='t1')
         rows = list(db.all('test'))
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]['name'], 't2')
@@ -252,7 +252,7 @@ class TestSQLite3DB(unittest.TestCase):
         db.create('test', id=3)
         db.create('test', name='t4')
 
-        db.delete_where('test', id=None)
+        db.delete_equal('test', id=None)
 
         rows = list(db.all('test'))
         self.assertEqual(len(rows), 3)

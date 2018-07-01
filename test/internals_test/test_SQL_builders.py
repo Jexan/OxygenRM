@@ -28,26 +28,13 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         self.assertRaises(ValueError, where_clause, (('f1', '=', _, 1)))
 
     def test_where_equals_clause_empty_conditions_raises_ValueError(self):
-        self.assertRaises(ValueError, where_equals_clause)
+        self.assertRaises(ValueError, where_clause, [])
 
-    def test_where_equals_clause_ineq_clauses(self):
+    def test_where_clause_ineq_clauses(self):
         expected1 = 'WHERE (id IS NULL OR id != ?) AND (name NOT NULL AND name >= ?)'
-        result = where_equals_clause(('id', '!=', 1), ('name', '>=', 1))
+        result = where_clause([('id', '!=', 1, 'AND'), ('name', '>=', 1, 'OR')])
         
-        self.assertEqual(result[0], expected1)
-        self.assertEqual(result[1], (1,1))
-
-    def test_where_equals_clause_eq_to_none_clause(self):
-        expected = 'WHERE id IS ?'
-
-        self.assertEqual(where_equals_clause(id=None)[0], expected)
-
-    def test_where_equals_clause_eq_to_none_clause(self):
-        expected = 'WHERE id IS ?'
-        result = where_equals_clause(id=None)
-
-        self.assertEqual(result[0], expected)
-        self.assertEqual(result[1], (None,))
+        self.assertEqual(result, expected1)
 
     def test_update_clause_with_one(self):
         expected = "UPDATE test SET a = ?"
@@ -86,12 +73,17 @@ class TestSQLite3DBHelpers(unittest.TestCase):
 
     def test_equals_clause_with_some(self):
         expected1 = ('t1', '=', 1, 'AND')
-        expected2 = ('t2', '=', None, 'AND')
+        expected2 = ('t2', '=', 5, 'AND')
         expected3 = ('t3', '=', 'a', 'AND')
 
         conditions = equals_conditions(t1=1, t2=None, t3='a')
 
         self.assertEqual(sorted(list(conditions)), sorted([expected1, expected2, expected3]))
+
+    def test_equals_conditions_with_null(self):
+        expected = ('a', 'IS', None, 'AND')
+
+        self.assertEqual(next(equals_conditions(a=None)), expected)
 
     def test_connect_with(self):
         expected = ('t1', '=', 1, 'AND')

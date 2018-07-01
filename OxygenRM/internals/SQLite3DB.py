@@ -179,7 +179,7 @@ class SQLite3DB():
             Args:
                 table_name: The table to change.
                 changes: A dict with the keys specifying the fields and the values, the new values.
-                conditions: An iterator that yields triples with the conditions (field, symbol, value, connector)
+                conditions: An iterator that yields tuples with the conditions (field, symbol, value, connector)
 
             See also:
                 SQLite3DB.update_all
@@ -194,7 +194,7 @@ class SQLite3DB():
         return self.execute(query, tuple(changes.values()) + conditions_values(conditions))
 
     def update_equal(self, table_name, changes, **equals):
-        ''' Update records which are equal to the given field=values.
+        ''' Update records whose fields are equal to the given values, with the proposed changes.
 
             Args:
                 table_name: The table to change.
@@ -224,21 +224,38 @@ class SQLite3DB():
         '''
         return self.execute(update_clause(table_name, changes), tuple(changes.values()))
 
-    def delete_where(self, table_name, *conditions, **equals):
+    def delete_where(self, table_name, conditions):
         ''' Delete every record that fullfil the given conditions.
 
             Args:
                 table_name: The table to query.
-                *conditions: Triples with the conditions ('field', 'symbol', 'value')
-                **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
+                *conditions: An iterator that yields tuples of the form (field, symbol, value, conditions)
             
             Returns:
                 An iterator with the found records.
         '''
-        where_info = where_equals_clause(*conditions, **equals)
-        query = 'DELETE FROM {} {}'.format(table_name, where_info.query)
+        conditions = list(conditions)
 
-        return self.execute(query, where_info.args)
+        where = where_clause(conditions)
+        query = 'DELETE FROM {} {}'.format(table_name, where)
+
+        return self.execute(query, conditions_values(conditions))
+
+    def delete_equal(self, table_name, **equals):
+        ''' Delete records whose fields are equal to the given values.
+
+            Args:
+                table_name: The table to change.
+                **equals: A dict of fields: values pairs, so the deleted models will be
+                    those who fullfil the field == value.
+
+            Raises:
+                ValueError: If no WHERE condition is passed. 
+        '''
+        if not equals:
+            raise ValueError('No conditions passed')
+
+        return self.delete_where(table_name, equals_conditions(**equals))
 
     def execute(self, query, args=()):
         ''' Run a query and commit (for Create, Update, Delete operations). 
