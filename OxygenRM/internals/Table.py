@@ -1,8 +1,20 @@
 from .. import internal_db as db
 from enum import Enum
 
+class TableDoesNotExistException(Exception):
+    ''' A exception to be raised when a method that involves
+        editing an existing database is called. 
+    '''
+    pass    
+
 # Allows the creation, edition and droppage of tables
 class Table():
+    ''' Abstracts common database table operations.
+        To be used mostly during migrations.
+
+        Args:
+            table_name: The table to deal with. It doesn't matter if it doesn't exist. 
+    '''
 
     ''' The possible states of the table
     '''
@@ -16,6 +28,16 @@ class Table():
             self.state = self.State.EDITING 
         else:
             self.state = self.State.CREATING
+
+        self.table_name = table_name
+
+    def exists(self):
+        ''' Check if the table exist in the database.
+
+            Returns:
+                bool.
+        '''
+        return self.state is self.State.EDITING
 
     # Allows adding columns to a table
     def create_cols(self, **kwargs):
@@ -34,10 +56,21 @@ class Table():
         pass  
 
     def destroy(self):
+        ''' Destroy the table and deletes self.
+
+            Raises:
+                TableDoesNotExistException: If the table is just being created.
+        '''
+        if not self.exists():
+            raise TableDoesNotExistException('A non existing table cannot be destroyed')
+
+        db.drop_table(self.table_name)
+
+    def save(self):
         pass
 
-    def edit(self):
+    def __edit(self):
         pass
 
-    def create(self):
+    def __create(self):
         pass

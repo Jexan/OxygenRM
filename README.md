@@ -21,7 +21,7 @@ class CreateDatabaseAndPosts(Om.Migration):
             timestamps = True
         )
 
-        posts.create()
+        posts.save()
 
     def destroy(self):
         Database('test').drop()

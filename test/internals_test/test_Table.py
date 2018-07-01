@@ -6,39 +6,40 @@ db = db_config('sqlite3', ':memory:')
 
 from OxygenRM.internals.Table import *
 
+created_table = Table('c')
 
-def craft_generic_table():
-    generic_cols = {'a': 'integer', 'b': 'text'}
-    db.create_table('t', **generic_cols)
+db.create_table('e', a='integer', b='text')
+edited_table = Table('e')
 
 class TestTable(unittest.TestCase):
     def tearDown(self):
         db.drop_all_tables()
 
     def test_Table_initialization(self):
-        table = Table('t')
-
-        self.assertIsInstance(table, Table)
+        self.assertIsInstance(edited_table, Table)
+        self.assertIsInstance(created_table, Table)
 
     def test_Table_state_is_set_correctly_at_creation_if_not_exists(self):
-        table = Table('t')
-
-        self.assertIs(table.state, Table.State.CREATING)
+        self.assertIs(created_table.state, Table.State.CREATING)
+        self.assertFalse(created_table.exists())
 
     def test_Table_state_is_set_correctly_at_creation_if_exists(self):
-        craft_generic_table()
-        table = Table('t')
+        self.assertIs(edited_table.state, Table.State.EDITING)
+        self.assertTrue(edited_table.exists())
 
-        self.assertIs(table.state, Table.State.EDITING)
-
-    def test_Table_edition_if_it_exists(self):
-        pass
+    def test_destroy_raises_exception_if_table_doesnt_exist(self):
+        self.assertRaises(TableDoesNotExistException, created_table.destroy)
 
     def test_Table_behaviour_if_create_table_that_already_exists(self):
         pass
 
     def test_Table_destroying(self):
-        pass
+        db.create_table('t', a='text')
+        table = Table('t')
+
+        table.destroy()
+
+        self.assertFalse(db.table_exists('t'))
     
     def test_Table_destroying_if_table_not_exists(self):
         pass
