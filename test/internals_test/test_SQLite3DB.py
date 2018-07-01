@@ -28,18 +28,8 @@ class TestSQLite3DB(unittest.TestCase):
 
     def test_db_initializes_connection(self):
         self.assertIsInstance(conn, sql3.Connection)
-    
-    def test_table_cols_info_queries_info_correctly(self):
-        create_table('test', name= 'name', type='text')
-        info = list(db.table_cols_info('test'))
 
-        self.assertEqual(len(info), 1)
-
-        # Check if the info dict is correct.
-        self.assertEqual(info[0]['name'], 'name')
-        self.assertEqual(info[0]['type'], 'text')
-        self.assertEqual(info[0]['cid'], 0)
-
+    # CREATE TABLE ---------------------------------
     def test_table_creation_creates_table_and_cols(self):
         db.create_table('test', name='text', age='integer')
         info = list(db.table_cols_info('test'))
@@ -59,6 +49,7 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertRaises(TypeError, db.create_table, 't', name=True, age=2)
         self.assertRaises(TypeError, db.create_table, 't', name=1.j, t=complex)
 
+    # Table info ---------------------------------
     def test_table_fields_types_returns_every_field_with_his_type(self):
         db.create_table('test', name='text', 
             float='real', blob='blob', number='integer')
@@ -87,6 +78,18 @@ class TestSQLite3DB(unittest.TestCase):
 
         self.assertTrue(db.table_exists('test'))
 
+    def test_table_cols_info_queries_info_correctly(self):
+        create_table('test', name= 'name', type='text')
+        info = list(db.table_cols_info('test'))
+
+        self.assertEqual(len(info), 1)
+
+        # Check if the info dict is correct.
+        self.assertEqual(info[0]['name'], 'name')
+        self.assertEqual(info[0]['type'], 'text')
+        self.assertEqual(info[0]['cid'], 0)
+
+    # Table Droppage ---------------------------------
     def test_table_drop(self):
         self.assertEqual(len(list(db.get_all_tables())), 0)
         db.create_table('test', t='text')
@@ -111,6 +114,7 @@ class TestSQLite3DB(unittest.TestCase):
 
         self.assertEqual(len(list(db.get_all_tables())), 0)
 
+    # Table CREATION ---------------------------------
     def test_record_creation_creates_the_records_correctly(self):
         db.create_table('test', name='text', number='integer')
         
@@ -125,7 +129,7 @@ class TestSQLite3DB(unittest.TestCase):
             self.assertIn(row['name'], ['t1', 't2', 't4', None])
             self.assertIn(row['number'], [1, None])
     
-    def test_record_creation_creates_the_records_correctly(self):
+    def test_create_many_creates_the_records_correctly(self):
         db.create_table('test', name='text', number='integer')        
         db.create_many('test', ('number', 'name'), [(1,'t1'), (None, 't2'), (3, None)])
 
@@ -147,38 +151,23 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
 
-    def test_table_where_inequality_works_even_with_null_records(self):
+    # FIND WHERE ---------------------------------
+    def test_find_where_inequality_works_even_with_null_records(self):
         db.create_table('test', id='integer', name='text')
         db.create_many('test', ('id', 'name'), ((1,'t1'), (2, 't2'), (3, None), (None, 't4')))
     
-        fields_with_id_not_3 = list(db.find_where('test', ('id', '!=', 3)))
+        fields_with_id_not_3 = list(db.find_where('test', [('id', '!=', 3, 'AND')]))
         # Without the 'NOT NULL' added in the method, this would not count the record with the name t6
         self.assertEqual(len(fields_with_id_not_3), 3)
 
         for field in fields_with_id_not_3:
             self.assertFalse(field['id'] == 3) 
 
-    def test_table_where_equality_to_null_yields_nulls(self):
-        db.create_table('t', a='integer', b='text')
-        db.create('t', b='t1')
-
-        field_with_null_val = list(db.find_where('t', a=None))
-        self.assertEqual(field_with_null_val[0]['a'], None)
-        self.assertEqual(field_with_null_val[0]['b'], 't1')
-
-    def test_table_where_equality_doesnt_count_nulls(self):
-        db.create_table('t', a='integer', b='integer')
-        db.create_many('t', ('a', 'b'), ((None, 1), (2, 2)))
-
-        field_with_id_2 = list(db.find_where('t', a=2))
-        self.assertEqual(len(field_with_id_2), 1)
-        self.assertEqual(field_with_id_2[0]['b'], 2)
-
-    def test_table_where_lte_works(self):
+    def test_find_where_lte_works(self):
         db.create_table('test', id='integer', name='text')
         db.create_many('test', ('id', 'name'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
-        field_with_id_le_than_3 = list(db.find_where('test', ('id', '<=', 3)))
+        field_with_id_le_than_3 = list(db.find_where('test', [('id', '<=', 3, 'OR')]))
         
         self.assertEqual(len(field_with_id_le_than_3), 3)
 
@@ -186,11 +175,11 @@ class TestSQLite3DB(unittest.TestCase):
             self.assertTrue(row['id'] <= 3)
             self.assertIn(row['name'], ['t1', 't2', None])
     
-    def test_table_where_gt_works(self):
+    def test_find_where_gt_works(self):
         db.create_table('t', a='integer', b='text')
         db.create_many('t', ('a', 'b'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
-        field_with_a_gt_2 = list(db.find_where('t', ('a', '>', 2)))
+        field_with_a_gt_2 = list(db.find_where('t', [('a', '>', 2, 'AND')]))
         
         self.assertEqual(len(field_with_a_gt_2), 2)
 
@@ -198,18 +187,7 @@ class TestSQLite3DB(unittest.TestCase):
             self.assertTrue(row['a'] > 2)
             self.assertIn(row['b'], ['t4', None])
 
-    def test_table_where_equality_works(self):
-        db.create_table('test', id='integer', name='text')
-
-        db.create('test', id=1, name='t1')
-        db.create('test', id=2, name='t2')
-        db.create('test', id=3)
-
-        field_with_id_1 = list(db.find_where('test', id=1))
-        self.assertEqual(len(field_with_id_1), 1)
-        self.assertEqual(field_with_id_1[0]['name'], 't1')
-
-    def test_table_where_with_two_conditions(self):
+    def test_find_where_with_two_conditions(self):
         db.create_table('test', id='integer', name='text', float='real')
 
         db.create('test', id=1, name='t1', float=3.4)
@@ -217,13 +195,41 @@ class TestSQLite3DB(unittest.TestCase):
         db.create('test', id=3)
         db.create('test', name='t4')
 
-        field_with_two_cond = list(db.find_where('test', ('id', '!=', 3), ('float', '>=', 1)))
+        field_with_two_cond = list(db.find_where('test', [('id', '!=', 3, 'AND'), ('float', '>=', 1, 'AND')]))
         self.assertEqual(len(field_with_two_cond), 1)
         self.assertEqual(field_with_two_cond[0]['name'], 't1')
 
-    def table_where_with_no_conditions_raises_valueerror(self):
-        self.assertRaises(ValueError, db.find_where, 'test')
+    def test_find_equals_works(self):
+        db.create_table('test', id='integer', name='text')
 
+        db.create('test', id=1, name='t1')
+        db.create('test', id=2, name='t2')
+        db.create('test', id=3)
+
+        field_with_id_1 = list(db.find_equal('test', id=1))
+        self.assertEqual(len(field_with_id_1), 1)
+        self.assertEqual(field_with_id_1[0]['name'], 't1')
+
+    def test_find_equality_to_non_null_value_doesnt_count_nulls(self):
+        db.create_table('t', a='integer', b='integer')
+        db.create_many('t', ('a', 'b'), ((None, 1), (2, 2)))
+
+        field_with_id_2 = list(db.find_equal('t', a=2))
+        self.assertEqual(len(field_with_id_2), 1)
+        self.assertEqual(field_with_id_2[0]['b'], 2)
+
+    def test_find_equals_equality_to_null_fins_nulls(self):
+        db.create_table('t', a='integer', b='text')
+        db.create('t', b='t1')
+
+        field_with_null_val = list(db.find_equal('t', a=None))
+        self.assertEqual(field_with_null_val[0]['a'], None)
+        self.assertEqual(field_with_null_val[0]['b'], 't1')
+
+    def test_find_equal_with_no_conditions_raises_valueerror(self):
+        self.assertRaises(ValueError, db.find_equal, 'test')
+
+    # RECORD DELETE ---------------------------------
     def test_db_deletion_equality(self):
         db.create_table('test', id='integer', name='text')
 
@@ -253,6 +259,7 @@ class TestSQLite3DB(unittest.TestCase):
         for row in rows:
             self.assertNotEqual(row['id'], None)
 
+    # RECORD UPDATE ---------------------------------
     def test_db_update_works(self):
         db.create_table('test', id='integer')
         db.create('test', id=1)

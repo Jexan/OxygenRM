@@ -135,14 +135,13 @@ class SQLite3DB():
         '''
         return self.execute_without_saving(select_clause(table_name, *fields))
     
-    def find_where(self, table_name, *conditions, fields=[], **equals):
+    def find_where(self, table_name, conditions, fields=[]):
         ''' Get every record that fullfills the passed conditions. 
 
             Args:
                 table_name: The table to query.
-                *conditions: Triples with the conditions ('field', 'symbol', 'value')
+                conditions: Triples with the conditions (field, symbol, value, condition)
                 fields: A list of the fields to select.
-                **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
             
             Returns:
                 An iterator with the found records.
@@ -150,10 +149,31 @@ class SQLite3DB():
             Raises:
                 ValueError: If no condition is passed.
         '''
-        where_info =  where_equals_clause(*conditions, **equals)
-        query = '{} {}'.format(select_clause(table_name, *fields), where_info.query)
+        conditions = list(conditions)
 
-        return self.execute_without_saving(query, where_info.args) 
+        where_query =  where_clause(conditions)
+        query = '{} {}'.format(select_clause(table_name, *fields), where_query)
+
+        return self.execute_without_saving(query, tuple(value for _, _, value, _ in conditions)) 
+
+    def find_equal(self, table_name, *_, fields=[], **equals):
+        ''' Get every record whose fields are equal to the given values. 
+
+            Args:
+                table_name: The table to query.
+                fields: A list of the fields to select.
+                **equals: A dict of fields: values pairs.
+            
+            Returns:
+                An iterator with the found records.
+    
+            Raises:
+                ValueError: If no condition is passed.
+        '''
+        if not equals:
+            raise ValueError('No conditions passed')
+
+        return self.find_where(table_name, equals_conditions(**equals), fields)
 
     def update_where(self, table_name, changes, *conditions, **equals):
         ''' Update records who fulfills the conditions (or every record if no condition is given) 

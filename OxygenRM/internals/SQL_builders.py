@@ -166,10 +166,15 @@ def equals_conditions(**equals):
             **equals: A dict with field = value pairs.
         f
         Yields:
-            A tuple of the form (field, '=', value, 'AND')
-    '''
+            A tuple of the form (field, '=', value, 'AND') or
+            (field, 'IS', value, 'AND') if value is null.
+    '''    
     for field, value in equals.items():
-        yield (field, '=', value, 'AND')
+        connector = '='
+        if value == None:
+            connector = 'IS'
+
+        yield (field, connector, value, 'AND')
 
 def connect_with(conditions, connector):
     ''' Gives the conditions tuples the given connector.
