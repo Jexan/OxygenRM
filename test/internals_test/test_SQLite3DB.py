@@ -49,6 +49,9 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertRaises(TypeError, db.create_table, 't', name=True, age=2)
         self.assertRaises(TypeError, db.create_table, 't', name=1.j, t=complex)
 
+    def test_table_creation_raises_valueError_if_no_col_is_passed(self):
+        self.assertRaises(ValueError, db.create_table, 't')
+
     # Table info ---------------------------------
     def test_table_fields_types_returns_every_field_with_his_type(self):
         db.create_table('test', name='text', 

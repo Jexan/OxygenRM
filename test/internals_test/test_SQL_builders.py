@@ -73,10 +73,10 @@ class TestSQLite3DBHelpers(unittest.TestCase):
 
     def test_equals_clause_with_some(self):
         expected1 = ('t1', '=', 1, 'AND')
-        expected2 = ('t2', '=', 5, 'AND')
+        expected2 = ('t2', '=', False, 'AND')
         expected3 = ('t3', '=', 'a', 'AND')
 
-        conditions = equals_conditions(t1=1, t2=None, t3='a')
+        conditions = equals_conditions(t1=1, t2=False, t3='a')
 
         self.assertEqual(sorted(list(conditions)), sorted([expected1, expected2, expected3]))
 
