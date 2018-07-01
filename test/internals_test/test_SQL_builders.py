@@ -92,3 +92,10 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         conditions = equals_conditions(t1=1, t2=None, t3='a')
 
         self.assertEqual(sorted(list(conditions)), sorted([expected1, expected2, expected3]))
+
+    def test_connect_with(self):
+        expected = ('t1', '=', 1, 'AND')
+
+        result = next(connect_with((('t1', '=', 1),), 'AND'))
+
+        self.assertEqual(expected, result)

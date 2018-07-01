@@ -164,9 +164,28 @@ def equals_conditions(**equals):
 
         Args:
             **equals: A dict with field = value pairs.
-        
+        f
         Yields:
             A tuple of the form (field, '=', value, 'AND')
     '''
     for field, value in equals.items():
         yield (field, '=', value, 'AND')
+
+def connect_with(conditions, connector):
+    ''' Gives the conditions tuples the given connector.
+
+        Args:
+            condition: An iteratos with the format (field, condition, value)  
+            connector: A logical connector. Either 'AND' or 'OR'.
+        
+        Yields:
+            A tuple of the form (field, condition, value, connector)
+
+        Raises:
+            ValueError: If the given connector  is invalid.
+    '''
+    if connector not in VALID_CONNECTORS:
+        raise ValueError('Invalid logical connector: {}'.format(connector))
+    
+    for condition in conditions:
+        yield condition + (connector,)
