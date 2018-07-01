@@ -109,13 +109,7 @@ class SQLite3DB():
                 table_name: The table to query.
                 **values: The field=value dictionary
         '''
-        fields = list(values.keys())
-
-        fields_str = ','.join(fields)
-        values_str = ','.join(['?']*len(fields))
-
-        return self.execute('INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str),
-           tuple(values.values()))   
+        return self.execute(insert_clause(table_name, values) ,tuple(values.values()))   
 
     def create_many(self, table_name, keys, values):
         ''' Create multiple new records in the database. 
@@ -128,13 +122,7 @@ class SQLite3DB():
             Returns:
                 The created record
         '''
-        fields = list(keys)
-
-        fields_str = ','.join(fields)
-        values_str = ','.join(['?']*len(fields))
-        query = 'INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str)
-
-        return self.execute_many(query, values)
+        return self.execute_many(insert_clause(table_name, keys), values)
 
     def all(self, table_name, fields=[]):
         ''' Get every record in the table_name. 

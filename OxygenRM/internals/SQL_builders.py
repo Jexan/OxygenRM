@@ -10,42 +10,34 @@ VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
 '''
 SQLInfo = namedtuple('SQLInfo', ['query', 'args'])
 
-def insert_clause(table_name, keys, values=None):
+def insert_clause(table_name, keys):
     ''' Create a insert clause string for SQL.
 
         Args:
             table_name: The table where the insertion will happen.
-            keys: The values to be
+            keys: An iterator with strings specifying the fields to change.
         
         Returns:
-            If values are passed:
-                A named tuple with tho fields:
-                    [0] query: The crafted clause
-                    [1] args : A tuple with the values to be safely replaced.
-            Else:
-                The query as a string
+            The query as a string
     '''
     fields = list(keys)
 
-    fields_str = ', '.join(keys)
+    fields_str = ', '.join(fields)
     values_str = ', '.join(['?']*len(fields))
 
     query = 'INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str)
-    return query if values else SQLInfo(query, tuple(values))
+    return query 
 
-def update_clause(table_name, changes):
+def update_clause(table_name, fields):
     ''' Create an update (with no where condition) clause string for SQL.
 
         Args:
-            fields: A dict with the keys specifying the fields and the values, the new values. 
-                | An array with the fields to change.
+            fields: An iterator that yields the fields to change. 
 
         Returns:
             The crafted SQL.
     '''
-    local_fields = changes.keys() if isinstance(changes, dict) else changes
-
-    set_query = 'SET ' + ', '.join(field +  ' = ?' for field in local_fields)
+    set_query = 'SET ' + ', '.join(field +  ' = ?' for field in fields)
     return 'UPDATE {} {}'.format(table_name, set_query)
 
 def where_clause(conditions):
