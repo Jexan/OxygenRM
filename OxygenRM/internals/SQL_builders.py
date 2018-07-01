@@ -177,7 +177,7 @@ def equals_conditions(**equals):
         yield (field, connector, value, 'AND')
 
 def connect_with(conditions, connector):
-    ''' Gives the conditions tuples the given connector.
+    ''' Give the conditions tuples the given connector.
 
         Args:
             condition: An iteratos with the format (field, condition, value)  
@@ -194,3 +194,14 @@ def connect_with(conditions, connector):
     
     for condition in conditions:
         yield condition + (connector,)
+
+def conditions_values(conditions):
+    ''' Extract the values of the conditions, for passing it to the execute method.
+
+        Args:
+            condition: An iteratos that yields tuples like (field, condition, value, connector)  
+        
+        Returns:
+            A tuple containing every value of the conditions.
+    '''
+    return tuple(value for _, _, value, _ in conditions)

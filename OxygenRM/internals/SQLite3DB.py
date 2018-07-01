@@ -144,17 +144,14 @@ class SQLite3DB():
                 fields: A list of the fields to select.
             
             Returns:
-                An iterator with the found records.
-    
-            Raises:
-                ValueError: If no condition is passed.
+                An iterator with the found records.    
         '''
         conditions = list(conditions)
 
         where_query =  where_clause(conditions)
         query = '{} {}'.format(select_clause(table_name, *fields), where_query)
 
-        return self.execute_without_saving(query, tuple(value for _, _, value, _ in conditions)) 
+        return self.execute_without_saving(query, conditions_values(conditions)) 
 
     def find_equal(self, table_name, *_, fields=[], **equals):
         ''' Get every record whose fields are equal to the given values. 
@@ -162,7 +159,8 @@ class SQLite3DB():
             Args:
                 table_name: The table to query.
                 fields: A list of the fields to select.
-                **equals: A dict of fields: values pairs.
+                **equals: A dict of fields: values pairs, so the found models will be
+                    those who fullfil the field == value.
             
             Returns:
                 An iterator with the found records.
@@ -175,28 +173,44 @@ class SQLite3DB():
 
         return self.find_where(table_name, equals_conditions(**equals), fields)
 
-    def update_where(self, table_name, changes, *conditions, **equals):
-        ''' Update records who fulfills the conditions (or every record if no condition is given) 
-            with the proposed changes.
+    def update_where(self, table_name, changes, conditions):
+        ''' Update records who fulfills the conditions with the proposed changes.
 
             Args:
                 table_name: The table to change.
                 changes: A dict with the keys specifying the fields and the values, the new values.
-                *conditions: Triples with the conditions ('field', 'symbol', 'value')
-                **equals: Passing k1=v1, ... is equivalent to passing (k1, '=', v1)
-            
+                conditions: An iterator that yields triples with the conditions (field, symbol, value, connector)
+
+            See also:
+                SQLite3DB.update_all
+        '''
+        conditions = list(conditions)
+
+        update = update_clause(table_name, changes) 
+        where = where_clause(conditions)
+
+        query = update + ' ' + where
+
+        return self.execute(query, tuple(changes.values()) + conditions_values(conditions))
+
+    def update_equal(self, table_name, changes, **equals):
+        ''' Update records which are equal to the given field=values.
+
+            Args:
+                table_name: The table to change.
+                changes: A dict with the keys specifying the fields and the values, the new values.
+                **equals: A dict of fields: values pairs, so the found models will be
+                    those who fullfil the field == value.
             Raises:
                 ValueError: If no WHERE condition is passed. 
 
             See also:
-                SQLite3DB.update
+                SQLite3DB.update_all
         '''
-        update = update_clause(table_name, changes) 
-        where = where_equals_clause(*conditions, **equals)
+        if not equals:
+            raise ValueError('No conditions passed')
 
-        query = update + ' ' + where.query
-
-        return self.execute(query, tuple(changes.values()) + where.args)
+        return self.update_where(table_name, changes, equals_conditions(**equals))
 
     def update_all(self, table_name, changes):
         ''' Update every record with the proposed changes.
@@ -220,9 +234,6 @@ class SQLite3DB():
             
             Returns:
                 An iterator with the found records.
-    
-            Raises:
-                ValueError: If no condition is passed.
         '''
         where_info = where_equals_clause(*conditions, **equals)
         query = 'DELETE FROM {} {}'.format(table_name, where_info.query)

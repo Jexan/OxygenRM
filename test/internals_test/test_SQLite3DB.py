@@ -261,16 +261,22 @@ class TestSQLite3DB(unittest.TestCase):
 
     # RECORD UPDATE ---------------------------------
     def test_db_update_works(self):
+        pass
+    
+    def test_db_update_equal_works(self):
         db.create_table('test', id='integer')
         db.create('test', id=1)
-        db.update_where('test', {'id':2}, id=1)
+        db.update_equal('test', {'id':2}, id=1)
         
         self.assertEqual(next(db.all('test'))['id'], 2)
+
+    def test_db_update_equal_raises_valueError_if_no_condition_given(self):
+        self.assertRaises(ValueError, db.update_equal, 't', [])
     
     def test_db_update_doesnt_update_not_found_columns(self):
         db.create_table('test', id='integer')
         db.create('test', id=0)
-        db.update_where('test', {'id':2}, id=1)
+        db.update_equal('test', {'id':2}, id=1)
 
         self.assertEqual(next(db.all('test'))['id'], 0)
 
@@ -280,7 +286,7 @@ class TestSQLite3DB(unittest.TestCase):
         for row in db.all('test'):
             self.assertNotEqual(row['number'], -1)
 
-        db.update_where('test', {'number':-1}, id=1)
+        db.update_equal('test', {'number':-1}, id=1)
         for row in db.all('test'):
             self.assertEqual(row['number'], -1)
 
