@@ -102,8 +102,6 @@ class Text(Column):
         if not isinstance(value, str):
             raise TypeError('Invalid value {}. Expected str.'.format(value))
 
-        return True
-
 class Bool(Column):
     ''' A boolean column. Implemented as a small int.
 
@@ -115,8 +113,6 @@ class Bool(Column):
         if value not in (0, 1, True, False):
             raise TypeError('Invalid value {}. Expected 1, 0 or bool.'.format(value))
 
-        return True
-
     # We want to keep the value internally as a 1 or 0.
     def value_processor(self, value):
         return 1 if value else 0
@@ -127,9 +123,39 @@ class Bool(Column):
         return bool(self._value)
 
 class Integer(Column):
-    ''' An basic integer column.
+    ''' A basic integer column.
     '''
-    sql_type = {'sqlite3': integer}
+    sql_type = {'sqlite3': 'integer'}
+
+    def validate(self, value):
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise TypeError('Invalid value {}. Expected an int.'.format(value))
+    
+class Float(Column):
+    ''' A basic float column.
+    '''
+    sql_type = {'sqlite3': 'real'}
+
+    def validate(self, value):
+        if type(value) not in (int, float) or isinstance(value, bool):
+            raise TypeError('Invalid value {}. Expected a float or int.'.format(value))
+
+    def value_processor(self, value):
+        return float(value)
+
+class Id(Integer):
+    ''' An auto-incrementing, unsigned integer. Used as a primary key.
+    '''
+
+    null = False
+    primary = True
+    auto_increment = True
+
+    def __init__(self, name='id'):
+        self.name = name
+
+    def __set__(self, *_):
+        raise AttributeError('Primary key can\'t be changed')
 
 class Rel(Column):
     def __init__(self):
@@ -145,17 +171,3 @@ class JSON(Column):
 
 class Date(Column):
     pass
-    
-class Float(Column):
-    pass
-
-class Id(Column):
-    ''' An auto-incrementing, unsigned integer. Used as a primary key.
-    '''
-
-    null = False
-    primary = True
-    auto_increment = True
-
-    def __init__(self, name='id'):
-        self.name = name
