@@ -16,9 +16,9 @@ class Table():
             table_name: The table to deal with. It doesn't matter if it doesn't exist. 
     '''
 
-    ''' The possible states of the table
-    '''
     class State(Enum):
+        ''' The possible states of the table.
+        '''
         CREATING = 1
         EDITING  = 2
 
