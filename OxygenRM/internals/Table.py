@@ -30,6 +30,7 @@ class Table():
             self.state = self.State.CREATING
 
         self.table_name = table_name
+        self.table_columns = {}
 
     def exists(self):
         ''' Check if the table exist in the database.
@@ -40,8 +41,17 @@ class Table():
         return self.state is self.State.EDITING
 
     # Allows adding columns to a table
-    def create_cols(self, **kwargs):
-        pass
+    def create_cols(self, timestamps=False, **columns):
+        ''' Queue the creation of the given columns.
+
+            Args:
+                **columns: The column name = Column dict of columns to be created.
+                
+            Raises:
+                TypeError: If the given columns are not subclasses of Column.
+        '''
+        for col_name, column_type in columns.items():
+            self.table_columns[col_name] = column_type.driver_type[db.driver]
 
     def rename(self, name):
         pass
@@ -67,10 +77,16 @@ class Table():
         db.drop_table(self.table_name)
 
     def save(self):
+        if self.exists():
+            pass
+        else:
+            self._create()
+
+    def _edit(self):
         pass
 
-    def __edit(self):
-        pass
+    def _create(self):
+        if not self.table_columns:
+            raise ValueError('No column has been specified to be added to the table')
 
-    def __create(self):
-        pass
+        db.create_table(self.table_name, **self.table_columns)

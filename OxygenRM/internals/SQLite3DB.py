@@ -296,3 +296,7 @@ class SQLite3DB():
                    the args to substitute can be passed as an iterator that yields tuples.
         '''
         return self.cursor.executemany(query, (tuple(field) for field in args))
+
+    ''' The name of the DB driver.
+    '''
+    driver = 'sqlite3'

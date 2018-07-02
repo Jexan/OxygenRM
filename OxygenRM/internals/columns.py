@@ -91,12 +91,12 @@ class Column(metaclass=ABCMeta):
     ''' A dict with the types this column represents
         in various database systems.
     '''
-    sql_type = {}
+    driver_type = {}
 
 class Text(Column):
     ''' A basic Text column.
     '''
-    sql_type = {'sqlite3': 'text'}
+    driver_type = {'sqlite3': 'text'}
 
     def validate(self, value):
         if not isinstance(value, str):
@@ -107,7 +107,7 @@ class Bool(Column):
 
         The possible values to be setted, in a model, are bool, 1 or 0. 
     '''
-    sql_type = {'sqlite3': 'integer'}
+    driver_type = {'sqlite3': 'integer'}
 
     def validate(self, value):
         if value not in (0, 1, True, False):
@@ -125,7 +125,7 @@ class Bool(Column):
 class Integer(Column):
     ''' A basic integer column.
     '''
-    sql_type = {'sqlite3': 'integer'}
+    driver_type = {'sqlite3': 'integer'}
 
     def validate(self, value):
         if not isinstance(value, int) or isinstance(value, bool):
@@ -134,7 +134,7 @@ class Integer(Column):
 class Float(Column):
     ''' A basic float column.
     '''
-    sql_type = {'sqlite3': 'real'}
+    driver_type = {'sqlite3': 'real'}
 
     def validate(self, value):
         if type(value) not in (int, float) or isinstance(value, bool):

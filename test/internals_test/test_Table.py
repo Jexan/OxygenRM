@@ -5,6 +5,7 @@ from OxygenRM import db_config, internal_db
 db = db_config('sqlite3', ':memory:')
 
 from OxygenRM.internals.Table import *
+from OxygenRM.internals.columns import *
 
 created_table = Table('c')
 
@@ -48,7 +49,12 @@ class TestTable(unittest.TestCase):
         pass
 
     def test_Table_adding_cols(self):
-        pass
+        t = Table('t')
+        t.create_cols(name=Text(), number=Integer())
+        t.save()
+
+        self.assertTrue(db.table_exists('t'))
+        self.assertEqual(db.table_fields_types('t'), {'name': 'text', 'number': 'integer'})
 
     def test_Table_adding_cols_if_already_exists(self):
         pass
