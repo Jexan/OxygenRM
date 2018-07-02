@@ -45,13 +45,10 @@ class TestColumns(unittest.TestCase):
         self.assertFalse(t.b)
 
         t.b = 1
-        self.assertEqual(t.b, 1)
+        self.assertEqual(t.b, True)
 
         t.b = 0
-        self.assertEqual(t.b, 0)
-
-        t.b = 4
-
+        self.assertEqual(t.b, False)
 
     def test_bool_raises_if_set_not_bool(self):
         t = T()
@@ -60,10 +57,10 @@ class TestColumns(unittest.TestCase):
             t.b = 3
 
         with self.assertRaises(TypeError):
-            t.t = []
+            t.b = []
 
         with self.assertRaises(TypeError):
-            t.t = None        
+            t.b = None        
 
     def test_int_prop_creation(self):
         pass

@@ -22,30 +22,67 @@ class Column(metaclass=ABCMeta):
         if value is None :
             if not self.null:
                 raise TypeError('Property not nullable')
-
-        if self.validate(value):
-            self._value = value
-
-        return self
-
+            self._value = self.none_processor()
+        else:
+            self.validate(value)
+            self._value = self.value_processor(value)
+            
     def __get__(self, instance, owner):
         ''' Get the value of the column
 
             Returns:
                 The column internal value.
         '''
-        return self._value
+        return self.pretty_value() if self._value is not None else self.pretty_none()
 
     def validate(self, value):
-        ''' Decide wheter a value that wants to be set is valid.
+        ''' Decide wheter a non-null value that wants to be set is valid.
+
+            Args:
+                value: The value to be set internally
+        
+            Raises:
+                TypeError: If the value is invalid.
+        '''
+        ...
+
+    def value_processor(self, value):
+        ''' Process the value given. Used when setting.
 
             Args:
                 value: The value to be set internally
         
             Returns:
-                A bool.
+                A processed value
         '''
-        return True
+        return value
+
+    def none_processor(self):
+        ''' Returns a customized value to be setted if the value is none.
+
+            Returns:
+                A convenient value
+        '''
+        return self._value
+    
+    def pretty_value(self):
+        ''' Filters the internal value, without changing it. Used when getting.
+
+            Args:
+                value: The value to be shown.
+        
+            Returns:
+                A processed value
+        '''
+        return self._value
+
+    def pretty_none(self):
+        ''' Filters the internal value, if it's null. 
+        
+            Returns:
+                A processed value
+        '''
+        return None
 
     ''' The value of the column itself
     '''
@@ -69,6 +106,8 @@ class Text(Column):
 
 class Bool(Column):
     ''' A boolean column. Implemented as a small int.
+
+        The possible values to be setted, in a model, are bool, 1 or 0. 
     '''
     sql_type = {'sqlite3': 'integer'}
 
@@ -78,8 +117,19 @@ class Bool(Column):
 
         return True
 
+    # We want to keep the value internally as a 1 or 0.
+    def value_processor(self, value):
+        return 1 if value else 0
+
+    # Return a boolean by itself, which is the most expected behaviour.
+    # Or Null
+    def pretty_value(self):
+        return bool(self._value)
+
 class Integer(Column):
-    pass
+    ''' An basic integer column.
+    '''
+    sql_type = {'sqlite3': integer}
 
 class Rel(Column):
     def __init__(self):
