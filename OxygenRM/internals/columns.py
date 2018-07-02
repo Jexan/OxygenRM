@@ -5,23 +5,28 @@ class Column(metaclass=ABCMeta):
         column.
     '''
     def __init__(self, **options):
-        self.default = options.get('default', None)
         self.null    = options.get('null', False)
         self.primary = options.get('primary', False)
         self.auto_increment = options.get('auto_increment', False)
 
+        self.default = options.get('default', None)
         self._value = self.default
 
     def __set__(self, instance, value):
         ''' Validate the set value and change the internal 
             _value of the class 
+
+            Raises: 
+                Typerror: If property is not nullable and tried to be assigned a Null.
         '''
-        if not isinstance(value, self.value_class):
-            raise TypeError('Property value cannot be of type: {}. \'{}\' expected'.format(
-                type(value), self.value_class.__name__))
+        if value is None :
+            if not self.null:
+                raise TypeError('Property not nullable')
 
         if self.validate(value):
             self._value = value
+
+        return self
 
     def __get__(self, instance, owner):
         ''' Get the value of the column
@@ -46,23 +51,32 @@ class Column(metaclass=ABCMeta):
     '''
     _value = None
 
-    ''' The class of the value.
+    ''' A dict with the types this column represents
+        in various database systems.
     '''
-    value_class = None
+    sql_type = {}
 
 class Text(Column):
     ''' A basic Text column.
     '''
-
-    ''' A dict with the types this column represents
-        in various database systems.
-    '''
     sql_type = {'sqlite3': 'text'}
 
-    value_class = str
+    def validate(self, value):
+        if not isinstance(value, str):
+            raise TypeError('Invalid value {}. Expected str.'.format(value))
+
+        return True
 
 class Bool(Column):
-    pass
+    ''' A boolean column. Implemented as a small int.
+    '''
+    sql_type = {'sqlite3': 'integer'}
+
+    def validate(self, value):
+        if value not in (0, 1, True, False):
+            raise TypeError('Invalid value {}. Expected 1, 0 or bool.'.format(value))
+
+        return True
 
 class Integer(Column):
     pass
