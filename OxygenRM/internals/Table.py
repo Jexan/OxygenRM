@@ -1,4 +1,4 @@
-from .. import internal_db as db
+from OxygenRM import internal_db as db
 from enum import Enum
 
 class TableDoesNotExistException(Exception):
@@ -51,7 +51,7 @@ class Table():
                 TypeError: If the given columns are not subclasses of Column.
         '''
         for col_name, column_type in columns.items():
-            self.table_columns[col_name] = column_type.driver_type[db.driver]
+            self.table_columns[col_name] = column_type.get_data(db.driver)
 
     def rename(self, name):
         pass

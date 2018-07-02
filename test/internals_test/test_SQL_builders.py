@@ -1,6 +1,7 @@
 import unittest
+import re
 from OxygenRM.internals.SQL_builders import *
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 _ = True
 
@@ -55,10 +56,8 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         self.assertEqual(result, expected)
 
     def test_create_table_clause(self):
-        expected = "CREATE TABLE test (a t1, b t2, c t3)"
-        result   = create_table_clause('test', OrderedDict((('a', 't1'), ('b', 't2'), ('c', 't3'))))
-        
-        self.assertEqual(result, expected)
+        result   = create_table_clause('test', default_cols(a='t1', b='t2', c='t3'))
+        self.assertTrue(re.match("CREATE TABLE test [(]( ?(a|b|c) t(1|2|3),?)+[)]", result))
 
     def test_drop_table_clause(self):
         expected = "DROP TABLE IF EXISTS test"
