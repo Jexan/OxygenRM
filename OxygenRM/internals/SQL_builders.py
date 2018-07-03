@@ -147,43 +147,30 @@ def group_by_clause(fields, having=None):
 
     return group_by_str
 
-def natural_join_clause(join_type, table1, table2):
+def join_clause(join_type, table1, table2, on=None, using=None):
     ''' Generate a NATURAL JOIN clause.
 
         Args: 
             join_type: Either outer or inner.
             table1, table2: The tables to join
-
-        Returns:
-            The sql clause.
-    '''
-    return '{} NATURAL {} JOIN {}'.format(table1, join_type, table2)
-
-def join_using_clause(join_type, table1, table2, using):
-    ''' Generate a JOIN USING clause.
-
-        Args: 
-            join_type: Either outer or inner.
-            table1, table2: The tables to join
+            on: An iterator that yields ConditionClause tuples, with the condtions.
             using: An iterator that yields the columns to use.
 
         Returns:
             The sql clause.
     '''
-    return '{} {} JOIN {} USING ({})'.format(table1, join_type, table2, ', '.join(using))
+    join_table = '{} JOIN {}'.format(join_type, table2)
 
-def join_on_clause(join_type, table1, table2, on):
-    ''' Generate a JOIN ON clause.
+    if not on and not using:
+        if join_type == 'CROSS':
+            return '{} {}'.format(table1, join_table)
 
-        Args: 
-            join_type: Either outer or inner.
-            table1, table2: The tables to join
-            on: An iterator that yields ConditionClause tuples, with the condtions.
+        return '{} NATURAL {}'.format(table1, join_table)
 
-        Returns:
-            The sql clause.
-    '''
-    return '{} {} JOIN {} ON {}'.format(table1, join_type, table2, conditions_gen(on, False))
+    if on:
+        return '{} {} ON {}'.format(table1, join_table, conditions_gen(on, False))
+    elif using:
+        return '{} {} USING ({})'.format(table1, join_table, ', '.join(using))
 
 def conditions_gen(conditions, safe=True):
     ''' Generate comma separated conditions.
@@ -210,9 +197,9 @@ def conditions_gen(conditions, safe=True):
 
         condition_str = '' if index == 0 else condition.connector + ' '
 
-        if condition.symbol == '!=' and value != None:
+        if condition.symbol == '!=' and value != None and safe:
             condition_str += '({field} IS NULL OR {field} != {value}) '
-        elif condition.symbol[0] in '<>' and value != None:
+        elif condition.symbol[0] in '<>' and value != None and safe:
             condition_str += '({field} NOT NULL AND {field} {symbol} {value}) '
         else:
             condition_str += '{field} {symbol} {value} '

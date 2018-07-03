@@ -56,3 +56,34 @@ class TestQueryBuilder(unittest.TestCase):
         t = QueryBuilder.table('t').distinct()
         self.assertEqual(t.get(), 'SELECT DISTINCT * FROM t')
 
+    def test_cross_join(self):
+        t = QueryBuilder.table('t').cross_join('s')
+        self.assertEqual(t.get(), saft + ' CROSS JOIN s')
+        
+    def test_natural_join(self):
+        t = QueryBuilder.table('t').join('s')
+        self.assertEqual(t.get(), saft + ' NATURAL INNER JOIN s')
+
+    def test_natural_outer_join(self):
+        t = QueryBuilder.table('t').outer_join('s')
+        self.assertEqual(t.get(), saft + ' NATURAL OUTER JOIN s')
+
+    def test_join_using(self):
+        t = QueryBuilder.table('t').join('s').using(['a', 'b'])
+        self.assertEqual(t.get(), saft + ' INNER JOIN s USING (a, b)')
+
+    def test_outer_join_using(self):
+        t = QueryBuilder.table('t').outer_join('s').using(('a', 'b',))
+        self.assertEqual(t.get(), saft + ' OUTER JOIN s USING (a, b)')
+
+    def test_join_on(self):
+        t = QueryBuilder.table('t').join('s').on('t.a', '=', 's.b')
+        self.assertEqual(t.get(), saft + ' INNER JOIN s ON t.a = s.b')
+
+    def test_outer_join_on(self):
+        t = QueryBuilder.table('t').outer_join('s').on('t.a', '=', 's.b')
+        self.assertEqual(t.get(), saft + ' OUTER JOIN s ON t.a = s.b')
+
+    def test_or_on_join(self):
+        t = QueryBuilder.table('t').join('s').on('t.a', '=', 's.b').or_on('t.c', '>', 's.d')
+        self.assertEqual(t.get(), saft + ' INNER JOIN s ON t.a = s.b OR t.c > s.d')

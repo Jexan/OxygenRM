@@ -135,6 +135,45 @@ class QueryBuilder:
         self._in_wait['distinct'] = distinct
         return self
 
+    def join(self, table):
+        ''' Add an INNER JOIN to the prepared query.
+
+            Args: 
+                table: The table to join the current one.
+
+            Returns:
+                self
+        '''
+        self._in_wait['join_type'] = 'INNER'
+        self._in_wait['join_with'] = table
+        return self
+
+    def outer_join(self, table):
+        ''' Add an OUTER JOIN to the prepared query.
+
+            Args: 
+                table: The table to join the current one.
+
+            Returns:
+                self
+        '''
+        self._in_wait['join_type'] = 'OUTER'
+        self._in_wait['join_with'] = table
+        return self
+
+    def using(self, fields):
+        ''' Add a USING for a JOIN.
+
+            Args: 
+                using: The columns to compare and outer_join.
+
+            Returns:
+                self
+        '''
+        self._in_wait['using'] = fields
+
+        return self
+
     def cross_join(self, table):
         ''' Add a CROSS JOIN to the prepared query.
 
@@ -144,73 +183,11 @@ class QueryBuilder:
             Returns:
                 self
         '''
-        self._in_wait['join_type'] = 'cross'
+        self._in_wait['join_type'] = 'CROSS'
         self._in_wait['join_with'] = table 
         return self
 
-    def join_using(self, table, using):
-        ''' Add an INNER JOIN USING to the prepared query.
-
-            Args: 
-                table: The table to join the current one.
-                using: The columns to compare and join.
-
-            Returns:
-                self
-        '''
-        self._in_wait['join_type'] = 'inner'
-        self._in_wait['join_with'] = table
-        self._in_wait['using'] = using
-
-        return self
-
-    def natural_join(self, table):
-        ''' Add a NATURAL JOIN clause to the prepared query.
-
-            Args: 
-                table: The table to join the current one.
-
-            Returns:
-                self
-        '''
-        self._in_wait['join_type'] = 'inner'
-        self._in_wait['join_with'] = table
-        self._in_wait['natural']   = True
-        
-        return self
-
-    def outer_join_using(self, table, using):
-        ''' Add an OUTER JOIN USING to the prepared query.
-
-            Args: 
-                table: The table to join the current one.
-                using: The columns to compare and outer_join.
-
-            Returns:
-                self
-        '''
-        self._in_wait['join_type'] = 'outer'
-        self._in_wait['join_with'] = table
-        self._in_wait['using'] = using
-
-        return self
-
-    def natural_outer_join(self, table):
-        ''' Add a NATURAL JOIN clause to the prepared query.
-
-            Args: 
-                table: The table to join the current one.
-
-            Returns:
-                self
-        '''
-        self._in_wait['join_type'] = 'outer'
-        self._in_wait['join_with'] = table
-        self._in_wait['natural']   = True
-
-        return self
-    
-    def join_on(self, field, symbol, value):
+    def on(self, field, symbol, value):
         ''' Add an ON AND condtion to the prepared query.
 
             Args: 
@@ -225,7 +202,7 @@ class QueryBuilder:
 
         return self
 
-    def or_join_on(self, field, symbol, value):
+    def or_on(self, field, symbol, value):
         ''' Add a ON OR condtion to the prepared query.
 
             Args: 
@@ -250,12 +227,13 @@ class QueryBuilder:
         options = self._in_wait
 
         if options['join_type']:
-            if options['natural']:
-                clauses['table_to_select'] = natural_join_clause(options['join_type'], options['table_name'], options['join_with'])
-            elif options['using']:
-                clauses['table_to_select'] = join_using_clause(options['join_type'], options['table_name'], options['join_with'], options['join_using'])
-            else:
-                clauses['table_to_select'] = join_on_clause(options['join_type'], options['table_name'], options['join_with'], options['join_on'])
+            clauses['table_to_select'] = join_clause(
+                    options['join_type'], 
+                    options['table_name'], 
+                    options['join_with'], 
+                    options['join_on'],
+                    options['using']
+                )
         else: 
             clauses['table_to_select'] = options['table_name']
 
