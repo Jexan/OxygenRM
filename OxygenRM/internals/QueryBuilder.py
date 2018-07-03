@@ -260,6 +260,14 @@ class QueryBuilder:
         '''
         return delete_clause(self._in_wait['table_name'], self._in_wait['where_cond'])
 
+    def update(self, values):
+        ''' Update the given data.
+
+            Args:
+                values: A dict with the keys as the fields and the values as the values to be set.
+        '''
+        return update_clause(self._in_wait['table_name'], values.keys(), self._in_wait['where_cond'])
+
     def __iter__(self):
         ''' An alias for self.get. 
         '''

@@ -95,3 +95,11 @@ class TestQueryBuilder(unittest.TestCase):
     def test_delete_clause_where(self):
         t = QueryBuilder.table('t').where('id', '=', 2)
         self.assertEqual(t.delete(), 'DELETE FROM t WHERE id = ?')
+
+    def test_update_clause(self):
+        t = QueryBuilder.table('t')
+        self.assertEqual(t.update({'a': None}), 'UPDATE t SET a = ?')
+
+    def test_update_clause_where(self):
+        t = QueryBuilder.table('t').where('id', '=', 2)
+        self.assertEqual(t.update({'a': None}), 'UPDATE t SET a = ? WHERE id = ?')

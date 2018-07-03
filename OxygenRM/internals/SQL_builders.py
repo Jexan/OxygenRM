@@ -29,7 +29,7 @@ def insert_clause(table_name, keys):
     query = 'INSERT INTO {} ({}) VALUES ({})'.format(table_name, fields_str, values_str)
     return query 
 
-def update_clause(table_name, fields):
+def update_clause(table_name, fields, where=None):
     ''' Create an update (with no where condition) clause string for SQL.
 
         Args:
@@ -39,7 +39,12 @@ def update_clause(table_name, fields):
             The crafted SQL.
     '''
     set_query = 'SET ' + ', '.join(field +  ' = ?' for field in fields)
-    return 'UPDATE {} {}'.format(table_name, set_query)
+    update_str = 'UPDATE {} {}'.format(table_name, set_query)
+    
+    if where:
+        update_str += ' {}'.format(where_clause(where))
+
+    return update_str
 
 def where_clause(conditions):
     ''' Create a where clause with the given conditions.
