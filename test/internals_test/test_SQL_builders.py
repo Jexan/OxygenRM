@@ -90,3 +90,22 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         result = next(connect_with((('t1', '=', 1),), 'AND'))
 
         self.assertEqual(expected, result)
+
+    def test_natural_join_outer_inner(self):
+        expected_inner = 'a NATURAL INNER JOIN b'
+        expected_outer = 'a NATURAL OUTER JOIN b'
+
+        self.assertEqual(natural_join_clause('INNER', 'a', 'b'), expected_inner)
+        self.assertEqual(natural_join_clause('OUTER', 'a', 'b'), expected_outer)
+
+    def test_join_using_clause(self):
+        expected = 'a INNER JOIN b USING (i, j, k)'
+        cols = ('i', 'j', 'k')
+
+        self.assertEqual(join_using_clause('INNER', 'a', 'b', cols), expected)
+
+    def test_join_on_clause(self):
+        expected = 'a INNER JOIN b ON a.a = b.a'
+        condition = ('AND', 'a.a', '=', 'b.a')
+
+        self.assertEqual(join_on_clause('INNER', 'a', 'b', (condition,)), expected)

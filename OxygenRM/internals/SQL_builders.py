@@ -8,6 +8,9 @@ from OxygenRM.internals.columns import ColumnData
 VALID_CONNECTORS = ('AND', 'OR')
 VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
 
+ConditionClause = namedtuple('ConditionClause', ['connector', 'field', 'symbol', 'value'])
+OrderClause = namedtuple('OrderClause', ['field', 'order'])
+
 def insert_clause(table_name, keys):
     ''' Create a insert clause string for SQL.
 
@@ -134,6 +137,81 @@ def equals_conditions(**equals):
 
         yield (field, connector, value, 'AND')
 
+def natural_join_clause(join_type, table1, table2):
+    ''' Generate a NATURAL JOIN clause.
+
+        Args: 
+            join_type: Either outer or inner.
+            table1, table2: The tables to join
+
+        Returns:
+            The sql clause.
+    '''
+    return '{} NATURAL {} JOIN {}'.format(table1, join_type, table2)
+
+def join_using_clause(join_type, table1, table2, using):
+    ''' Generate a JOIN USING clause.
+
+        Args: 
+            join_type: Either outer or inner.
+            table1, table2: The tables to join
+            using: An iterator that yields the columns to use.
+
+        Returns:
+            The sql clause.
+    '''
+    return '{} {} JOIN {} USING ({})'.format(table1, join_type, table2, ', '.join(using))
+
+def join_on_clause(join_type, table1, table2, on):
+    ''' Generate a JOIN ON clause.
+
+        Args: 
+            join_type: Either outer or inner.
+            table1, table2: The tables to join
+            on: An iterator that yields ConditionsClause tuples, with the condtions.
+
+        Returns:
+            The sql clause.
+    '''
+    return '{} {} JOIN {} ON {}'.format(table1, join_type, table2, conditions_gen(on, False))
+
+def conditions_gen(conditions, safe=True):
+    ''' Generate comma separated conditions.
+
+        Args: 
+            conditions: An iterator that yields ConditionClause tuples. 
+
+        Returns:
+            The string of the query.
+    '''
+    conditions_str = ''
+    connector  = None
+
+    for index, (connector, field, symbol, value) in enumerate(conditions):
+        if connector not in VALID_CONNECTORS:
+            raise ValueError('Unvalid SQL connector: {}'.format(connector))
+        elif symbol not in VALID_WHERE_OPERATIONS:
+            raise ValueError('Unvalid SQL operation: {}'.format(symbol))
+
+        if safe:
+            value = '?'
+
+        condition_str = '' if index == 0 else connector + ' '
+
+        if symbol == '!=' and value != None:
+            condition_str = '({field} IS NULL OR {field} != {value}) '
+        elif symbol[0] in '<>' and value != None:
+            condition_str = '({field} NOT NULL AND {field} {symbol} {value}) '
+        else:
+            condition_str = '{field} {symbol} {value} '
+
+        conditions_str += condition_str.format(field=field, symbol=symbol, connector=connector, value=value)
+
+    if not conditions_str:
+        raise ValueError('No condition passed')
+
+    return conditions_str[:-1]
+
 def connect_with(conditions, connector):
     ''' Give the conditions tuples the given connector.
 
@@ -163,7 +241,6 @@ def conditions_values(conditions):
             A tuple containing every value of the conditions.
     '''
     return tuple(value for _, _, value, _ in conditions)
-
 
 def default_cols(**cols):
     ''' Create a simple column dictionary with the given arguments.
