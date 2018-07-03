@@ -115,3 +115,9 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         condition = ConditionClause('AND', 'a.a', '=', 'b.a')
 
         self.assertEqual(join_clause('INNER', 'a', 'b', on=(condition,)), expected)
+
+    def test_delete_clause(self):
+        self.assertEqual(delete_clause('t'), 'DELETE FROM t')
+
+    def test_delete_clause_where(self):
+        self.assertEqual(delete_clause('t', (ConditionClause('AND', 'id', '=', 2),)), 'DELETE FROM t WHERE id = ?')

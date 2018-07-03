@@ -76,6 +76,23 @@ def select_clause(table_name, *fields, distinct=False):
 
     return '{} {} FROM {}'.format(select, fields_str, table_name)
 
+def delete_clause(table_name, conditions=None):
+    ''' Create a DELETE WHERE clause
+
+        Args:
+            table_name: The name of the table to delete from.
+            conditions: An iterator of ConditionClauses.
+
+        Returns:
+            The constructed query.
+    '''
+    delete_str = 'DELETE FROM {}'.format(table_name)
+
+    if conditions:
+        delete_str += ' {}'.format(where_clause(conditions))
+
+    return delete_str
+
 def create_table_clause(table_name, cols):
     ''' Create a create table clause string for SQL.
 

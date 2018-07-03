@@ -87,3 +87,11 @@ class TestQueryBuilder(unittest.TestCase):
     def test_or_on_join(self):
         t = QueryBuilder.table('t').join('s').on('t.a', '=', 's.b').or_on('t.c', '>', 's.d')
         self.assertEqual(t.get(), saft + ' INNER JOIN s ON t.a = s.b OR t.c > s.d')
+
+    def test_delete_clause(self):
+        t = QueryBuilder.table('t')
+        self.assertEqual(t.delete(), 'DELETE FROM t')
+
+    def test_delete_clause_where(self):
+        t = QueryBuilder.table('t').where('id', '=', 2)
+        self.assertEqual(t.delete(), 'DELETE FROM t WHERE id = ?')

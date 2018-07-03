@@ -223,11 +223,10 @@ class QueryBuilder:
             Returns:
                 An iterator
         '''
-        clauses = defaultdict(str)
         options = self._in_wait
 
         if options['join_type']:
-            clauses['table_to_select'] = join_clause(
+            table_to_select = join_clause(
                     options['join_type'], 
                     options['table_name'], 
                     options['join_with'], 
@@ -235,9 +234,9 @@ class QueryBuilder:
                     options['using']
                 )
         else: 
-            clauses['table_to_select'] = options['table_name']
+            table_to_select = options['table_name']
 
-        query = select_clause(clauses['table_to_select'], *options['select_fields'], distinct=options['distinct'])
+        query = select_clause(table_to_select, *options['select_fields'], distinct=options['distinct'])
 
         if options['where_cond']:
             query += where_clause(options['where_cond'])
@@ -252,6 +251,14 @@ class QueryBuilder:
             query += limit_clause(options['limit'], options['offset'])
 
         return query
+
+    def delete(self):
+        '''  Delete the given data.
+
+            Returns:
+                An iterator
+        '''
+        return delete_clause(self._in_wait['table_name'], self._in_wait['where_cond'])
 
     def __iter__(self):
         ''' An alias for self.get. 
