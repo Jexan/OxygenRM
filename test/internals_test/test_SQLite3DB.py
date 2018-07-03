@@ -52,6 +52,22 @@ class TestSQLite3DB(unittest.TestCase):
     def test_table_creation_raises_valueError_if_no_col_is_passed(self):
         self.assertRaises(ValueError, db.create_table, 't')
 
+    # TABLE ALTER ------------------------------
+    def test_table_renaming(self):
+        db.create_table('t', **default_cols(a='text'))
+
+        db.rename_table('t', 's')
+
+        self.assertFalse(db.table_exists('t'))
+        self.assertTrue(db.table_exists('s'))
+
+    def test_table_add_col(self):
+        db.create_table('t', **default_cols(a='text'))
+
+        db.add_column('t', b='integer')
+
+        self.assertEqual(db.table_fields_types()['b'], 'integer')
+
     # Table info ---------------------------------
     def test_table_fields_types_returns_every_field_with_his_type(self):
         db.create_table('test', **default_cols(name='text', 

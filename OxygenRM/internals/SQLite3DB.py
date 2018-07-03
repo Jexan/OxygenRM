@@ -86,6 +86,24 @@ class SQLite3DB():
         '''
         return self.execute(drop_table_clause(table_name))
 
+    def add_column(self, table_name, column):
+        ''' Add columns to the table
+
+            Args:
+                table_name: The table to add the column to.
+                column: A ColumnData tuple.
+        '''
+        self.execute(add_column_clause(table_name, column))
+
+    def rename_table(self, old_table_name, new_table_name):
+        ''' Rename a table of the database.
+
+            Args:
+                old_table_name: The table in database to be renamed.
+                new_table_name: The new name for the table.
+        '''
+        self.execute(rename_table_clause(old_table_name, new_table_name))
+
     def table_exists(self, table_name):
         ''' Check if a table exist in the database.
 
