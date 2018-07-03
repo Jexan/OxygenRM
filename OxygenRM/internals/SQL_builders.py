@@ -57,7 +57,7 @@ def where_clause(conditions):
     '''        
     return 'WHERE {}'.format(conditions_gen(conditions))
 
-def select_clause(table_name, *fields):
+def select_clause(table_name, *fields, distinct=False):
     ''' Create a select from clause string for SQL.
 
         Args:
@@ -67,9 +67,14 @@ def select_clause(table_name, *fields):
         Returns:
             A string with the crafted clause.
     '''
+    select = 'SELECT'
+    
+    if distinct:
+        select += ' DISTINCT'
+
     fields_str = ', '.join(fields) if fields else '*'
 
-    return 'SELECT {} FROM {}'.format(fields_str, table_name)
+    return '{} {} FROM {}'.format(select, fields_str, table_name)
 
 def create_table_clause(table_name, cols):
     ''' Create a create table clause string for SQL.
@@ -96,22 +101,51 @@ def drop_table_clause(table_name):
     '''
     return 'DROP TABLE IF EXISTS {}'.format(table_name) 
 
-def equals_conditions(**equals):
-    ''' A quick builder for field = value conditions arguments.
+def order_by_clause(conditions):
+    ''' Generate an ORDER BY clause.
+
+        Args: 
+            conditions: An iterator that yields OrderClauses
+
+        Returns:
+            The sql clause.
+    '''
+    return 'ORDER BY {}'.format(order_gen(condtions))
+
+def limit_clause(n, offset=None):
+    ''' Generate an LIMIT clause, with OFFSET if provided.
 
         Args:
-            **equals: A dict with field = value pairs.
-        f
-        Yields:
-            A tuple of the form (field, '=', value, 'AND') or
-            (field, 'IS', value, 'AND') if value is null.
-    '''    
-    for field, value in equals.items():
-        connector = '='
-        if value == None:
-            connector = 'IS'
+            n: The number of rows to get.
+            offset: The offset number. If None, no offset is added.
 
-        yield ConditionClause('AND', field, connector, value)
+        Return:
+            The completed clause
+    '''
+    limit_str = 'LIMIT {}'.format(n)
+
+    if offset:
+        limit_str += ' OFFSET {}'.format(offset)
+    
+    return limit_str
+
+def group_by_clause(fields, having=None):
+    ''' Generate an GROUP BY clause
+
+        Args:
+            fields: An iterator with the groupped by fields.
+            having: A ConditionClause with the having condition. 
+                If falsy, no HAVING condition will be added. 
+
+        Return:
+            The completed clause
+    '''
+    group_by_str = 'GROUP BY {}'.format(order_gen(fields))
+
+    if having:
+        group_by_str += ' HAVING {field} {symbol} {value}'.format(**having._asdict())
+
+    return group_by_str
 
 def natural_join_clause(join_type, table1, table2):
     ''' Generate a NATURAL JOIN clause.
@@ -191,6 +225,17 @@ def conditions_gen(conditions, safe=True):
 
     return conditions_str[:-1]
 
+def order_gen(conditions):
+    ''' Create comma separated Order conditions
+
+        Args:
+            conditions: An iterator of OrderClauses.
+
+        Returns:
+            The values as a string
+    '''
+    return ', '.join(condition.field + ' ' + condition.order for condition in conditions)
+
 def connect_with(conditions, connector):
     ''' Give the conditions tuples the given connector.
 
@@ -235,3 +280,20 @@ def default_cols(**cols):
         col_dict[col] = ColumnData(col_type, False, None, False, False)
 
     return col_dict
+
+def equals_conditions(**equals):
+    ''' A quick builder for field = value conditions arguments.
+
+        Args:
+            **equals: A dict with field = value pairs.
+        f
+        Yields:
+            A tuple of the form (field, '=', value, 'AND') or
+            (field, 'IS', value, 'AND') if value is null.
+    '''    
+    for field, value in equals.items():
+        connector = '='
+        if value == None:
+            connector = 'IS'
+
+        yield ConditionClause('AND', field, connector, value)
