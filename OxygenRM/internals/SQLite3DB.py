@@ -18,7 +18,7 @@ class SQLite3DB():
     def __init__(self, db_name):
         self.connection = sqlite3.connect(db_name)
         self.connection.row_factory = sqlite3.Row
-
+    
         self.cursor     = self.connection.cursor()
 
     def create_table(self, table_name, **columns):
@@ -137,128 +137,6 @@ class SQLite3DB():
         '''
         return self.execute_without_saving(select_clause(table_name, *fields))
     
-    def find_where(self, table_name, conditions, fields=[]):
-        ''' Get every record that fullfills the passed conditions. 
-
-            Args:
-                table_name: The table to query.
-                conditions: Triples with the conditions (field, symbol, value, condition)
-                fields: A list of the fields to select.
-            
-            Returns:
-                An iterator with the found records.    
-        '''
-        conditions = list(conditions)
-
-        where_query =  where_clause(conditions)
-        query = '{} {}'.format(select_clause(table_name, *fields), where_query)
-
-        return self.execute_without_saving(query, conditions_values(conditions)) 
-
-    def find_equal(self, table_name, *_, fields=[], **equals):
-        ''' Get every record whose fields are equal to the given values. 
-
-            Args:
-                table_name: The table to query.
-                fields: A list of the fields to select.
-                **equals: A dict of fields: values pairs, so the found models will be
-                    those who fullfil the field == value.
-            
-            Returns:
-                An iterator with the found records.
-    
-            Raises:
-                ValueError: If no condition is passed.
-        '''
-        if not equals:
-            raise ValueError('No conditions passed')
-
-        return self.find_where(table_name, equals_conditions(**equals), fields)
-
-    def update_where(self, table_name, changes, conditions):
-        ''' Update records who fulfills the conditions with the proposed changes.
-
-            Args:
-                table_name: The table to change.
-                changes: A dict with the keys specifying the fields and the values, the new values.
-                conditions: An iterator that yields tuples with the conditions (field, symbol, value, connector)
-
-            See also:
-                SQLite3DB.update_all
-        '''
-        conditions = list(conditions)
-
-        update = update_clause(table_name, changes) 
-        where = where_clause(conditions)
-
-        query = update + ' ' + where
-
-        return self.execute(query, tuple(changes.values()) + conditions_values(conditions))
-
-    def update_equal(self, table_name, changes, **equals):
-        ''' Update records whose fields are equal to the given values, with the proposed changes.
-
-            Args:
-                table_name: The table to change.
-                changes: A dict with the keys specifying the fields and the values, the new values.
-                **equals: A dict of fields: values pairs, so the found models will be
-                    those who fullfil the field == value.
-            Raises:
-                ValueError: If no WHERE condition is passed. 
-
-            See also:
-                SQLite3DB.update_all
-        '''
-        if not equals:
-            raise ValueError('No conditions passed')
-
-        return self.update_where(table_name, changes, equals_conditions(**equals))
-
-    def update_all(self, table_name, changes):
-        ''' Update every record with the proposed changes.
-
-            Args:
-                table_name: The table to change.
-                changes: A dict with the keys specifying the fields and the values, the new values.
-
-            See also:
-                SQLite3DB.update_where
-        '''
-        return self.execute(update_clause(table_name, changes), tuple(changes.values()))
-
-    def delete_where(self, table_name, conditions):
-        ''' Delete every record that fullfil the given conditions.
-
-            Args:
-                table_name: The table to query.
-                *conditions: An iterator that yields tuples of the form (field, symbol, value, conditions)
-            
-            Returns:
-                An iterator with the found records.
-        '''
-        conditions = list(conditions)
-
-        where = where_clause(conditions)
-        query = 'DELETE FROM {} {}'.format(table_name, where)
-
-        return self.execute(query, conditions_values(conditions))
-
-    def delete_equal(self, table_name, **equals):
-        ''' Delete records whose fields are equal to the given values.
-
-            Args:
-                table_name: The table to change.
-                **equals: A dict of fields: values pairs, so the deleted models will be
-                    those who fullfil the field == value.
-
-            Raises:
-                ValueError: If no WHERE condition is passed. 
-        '''
-        if not equals:
-            raise ValueError('No conditions passed')
-
-        return self.delete_where(table_name, equals_conditions(**equals))
-
     def execute(self, query, args=()):
         ''' Run a query and commit (for Create, Update, Delete operations). 
 

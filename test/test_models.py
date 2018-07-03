@@ -2,7 +2,7 @@
 
 import unittest
 from OxygenRM import db_config
-from OxygenRM.internals.SQL_builders import default_cols
+from .internals_test import default_cols
 
 db = db_config('sqlite3', ':memory:')
 

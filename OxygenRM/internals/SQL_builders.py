@@ -165,7 +165,7 @@ def group_by_clause(fields, having=None):
     group_by_str = 'GROUP BY {}'.format(order_gen(fields))
 
     if having:
-        group_by_str += ' HAVING {field} {symbol} {value}'.format(**having._asdict())
+        group_by_str += ' HAVING {field} {symbol} ?'.format(**having._asdict())
 
     return group_by_str
 
@@ -219,10 +219,12 @@ def conditions_gen(conditions, safe=True):
 
         condition_str = '' if index == 0 else condition.connector + ' '
 
-        if condition.symbol == '!=' and value != None and safe:
+        if condition.symbol == '!=' and condition.value and safe:
             condition_str += '({field} IS NULL OR {field} != {value}) '
-        elif condition.symbol[0] in '<>' and value != None and safe:
+        elif condition.symbol[0] in '<>' and condition.value and safe:
             condition_str += '({field} NOT NULL AND {field} {symbol} {value}) '
+        elif condition.symbol == '=' and not condition.value and safe:
+            condition_str += '{field} IS {value} '
         else:
             condition_str += '{field} {symbol} {value} '
 
@@ -244,65 +246,3 @@ def order_gen(conditions):
             The values as a string
     '''
     return ', '.join(condition.field + ' ' + condition.order for condition in conditions)
-
-def connect_with(conditions, connector):
-    ''' Give the conditions tuples the given connector.
-
-        Args:
-            condition: An iteratos with the format (field, condition, value)  
-            connector: A logical connector. Either 'AND' or 'OR'.
-        
-        Yields:
-            A tuple of the form (field, condition, value, connector)
-
-        Raises:
-            ValueError: If the given connector  is invalid.
-    '''
-    if connector not in VALID_CONNECTORS:
-        raise ValueError('Invalid logical connector: {}'.format(connector))
-    
-    for condition in conditions:
-        yield condition + (connector,)
-
-def conditions_values(conditions):
-    ''' Extract the values of the conditions, for passing it to the execute method.
-
-        Args:
-            condition: An iteratos that yields tuples like (field, condition, value, connector)  
-        
-        Returns:
-            A tuple containing every value of the conditions.
-    '''
-    return tuple(value for _, _, value, _ in conditions)
-
-def default_cols(**cols):
-    ''' Create a simple column dictionary with the given arguments.
-
-        Args
-            **cols: A list of column_name=column_type.
-        
-        Returns:
-            A dictionary whose keys are the column name and the values a ColumnData tuple. 
-    '''
-    col_dict = {}
-    for col, col_type in cols.items(): 
-        col_dict[col] = ColumnData(col_type, False, None, False, False)
-
-    return col_dict
-
-def equals_conditions(**equals):
-    ''' A quick builder for field = value conditions arguments.
-
-        Args:
-            **equals: A dict with field = value pairs.
-        f
-        Yields:
-            A tuple of the form (field, '=', value, 'AND') or
-            (field, 'IS', value, 'AND') if value is null.
-    '''    
-    for field, value in equals.items():
-        connector = '='
-        if value == None:
-            connector = 'IS'
-
-        yield ConditionClause('AND', field, connector, value)

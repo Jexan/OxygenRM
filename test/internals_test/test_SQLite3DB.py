@@ -2,6 +2,7 @@
 
 import unittest
 import logging
+from . import default_cols
 
 logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 
@@ -116,7 +117,7 @@ class TestSQLite3DB(unittest.TestCase):
 
         self.assertEqual(len(list(db.get_all_tables())), 0)
 
-    # Table CREATION ---------------------------------
+    # RECORD CREATION ---------------------------------
     def test_record_creation_creates_the_records_correctly(self):
         db.create_table('test', **default_cols(name='text', number='integer'))
         
@@ -152,150 +153,3 @@ class TestSQLite3DB(unittest.TestCase):
         created = db.all('test').fetchone()
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
-
-    # FIND WHERE ---------------------------------
-    def test_find_where_inequality_works_even_with_null_records(self):
-        db.create_table('test', **default_cols(id='integer', name='text'))
-        db.create_many('test', ('id', 'name'), ((1,'t1'), (2, 't2'), (3, None), (None, 't4')))
-    
-        fields_with_id_not_3 = list(db.find_where('test', [ic('id', '!=', 3, 'AND')]))
-        # Without the 'NOT NULL' added in the method, this would not count the record with the name t6
-        self.assertEqual(len(fields_with_id_not_3), 3)
-
-        for field in fields_with_id_not_3:
-            self.assertFalse(field['id'] == 3) 
-
-    def test_find_where_lte_works(self):
-        db.create_table('test', **default_cols(id='integer', name='text'))
-        db.create_many('test', ('id', 'name'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
-    
-        field_with_id_le_than_3 = list(db.find_where('test', [ic('id', '<=', 3, 'OR')]))
-        
-        self.assertEqual(len(field_with_id_le_than_3), 3)
-
-        for row in field_with_id_le_than_3:
-            self.assertTrue(row['id'] <= 3)
-            self.assertIn(row['name'], ['t1', 't2', None])
-    
-    def test_find_where_gt_works(self):
-        db.create_table('t', **default_cols(a='integer', b='text'))
-        db.create_many('t', ('a', 'b'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
-    
-        field_with_a_gt_2 = list(db.find_where('t', [ic('a', '>', 2, 'AND')]))
-        
-        self.assertEqual(len(field_with_a_gt_2), 2)
-
-        for row in field_with_a_gt_2:
-            self.assertTrue(row['a'] > 2)
-            self.assertIn(row['b'], ['t4', None])
-
-    def test_find_where_with_two_conditions(self):
-        db.create_table('test', **default_cols(id='integer', name='text', float='real'))
-
-        db.create('test', id=1, name='t1', float=3.4)
-        db.create('test', id=2, name='t2', float=.3)
-        db.create('test', id=3)
-        db.create('test', name='t4')
-
-        field_with_two_cond = list(db.find_where('test', [ic('id', '!=', 3, 'AND'), ic('float', '>=', 1, 'AND')]))
-        self.assertEqual(len(field_with_two_cond), 1)
-        self.assertEqual(field_with_two_cond[0]['name'], 't1')
-
-    def test_find_equals_works(self):
-        db.create_table('test', **default_cols(id='integer', name='text'))
-
-        db.create('test', id=1, name='t1')
-        db.create('test', id=2, name='t2')
-        db.create('test', id=3)
-
-        field_with_id_1 = list(db.find_equal('test', id=1))
-        self.assertEqual(len(field_with_id_1), 1)
-        self.assertEqual(field_with_id_1[0]['name'], 't1')
-
-    def test_find_equality_to_non_null_value_doesnt_count_nulls(self):
-        db.create_table('t', **default_cols(a='integer', b='integer'))
-        db.create_many('t', ('a', 'b'), ((None, 1), (2, 2)))
-
-        field_with_id_2 = list(db.find_equal('t', a=2))
-        self.assertEqual(len(field_with_id_2), 1)
-        self.assertEqual(field_with_id_2[0]['b'], 2)
-
-    def test_find_equals_equality_to_null_fins_nulls(self):
-        db.create_table('t', **default_cols(a='integer', b='text'))
-        db.create('t', b='t1')
-
-        field_with_null_val = list(db.find_equal('t', a=None))
-        self.assertEqual(field_with_null_val[0]['a'], None)
-        self.assertEqual(field_with_null_val[0]['b'], 't1')
-
-    def test_find_equal_with_no_conditions_raises_valueerror(self):
-        self.assertRaises(ValueError, db.find_equal, 'test')
-
-    # RECORD DELETE ---------------------------------
-    def test_db_deletion_equality(self):
-        db.create_table('test', **default_cols(id='integer', name='text'))
-
-        db.create('test', id=1, name='t1')
-        db.create('test', name='t2')
-
-        db.delete_equal('test', id=2)
-        self.assertEqual(len(list(db.all('test'))), 2)
-
-        db.delete_equal('test', name='t1')
-        rows = list(db.all('test'))
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]['name'], 't2')
-
-    def test_db_deletion_null(self):
-        db.create_table('test', **default_cols(id='integer', name='text'))
-        db.create('test', name='t1')
-        db.create('test', id=4, name='t5')
-        db.create('test', id=2, name='t2')
-        db.create('test', id=3)
-        db.create('test', name='t4')
-
-        db.delete_equal('test', id=None)
-
-        rows = list(db.all('test'))
-        self.assertEqual(len(rows), 3)
-        for row in rows:
-            self.assertNotEqual(row['id'], None)
-
-    # RECORD UPDATE ---------------------------------
-    def test_db_update_works(self):
-        pass
-    
-    def test_db_update_equal_works(self):
-        db.create_table('test', **default_cols(id='integer'))
-        db.create('test', id=1)
-        db.update_equal('test', {'id':2}, id=1)
-        
-        self.assertEqual(next(db.all('test'))['id'], 2)
-
-    def test_db_update_equal_raises_valueError_if_no_condition_given(self):
-        self.assertRaises(ValueError, db.update_equal, 't', [])
-    
-    def test_db_update_doesnt_update_not_found_columns(self):
-        db.create_table('test', **default_cols(id='integer'))
-        db.create('test', id=0)
-        db.update_equal('test', {'id':2}, id=1)
-
-        self.assertEqual(next(db.all('test'))['id'], 0)
-
-    def test_db_update_a_lot_of_cols(self):
-        db.create_table('test', **default_cols(id='integer', number='integer'))
-        db.create_many('test', ('id', 'number'), ((1, i) for i in range(10)))
-        for row in db.all('test'):
-            self.assertNotEqual(row['number'], -1)
-
-        db.update_equal('test', {'number':-1}, id=1)
-        for row in db.all('test'):
-            self.assertEqual(row['number'], -1)
-
-    def test_update_all(self):
-        db.create_table('test', **default_cols(id='integer'))
-        db.create_many('test', ('id',), ((1,) for _ in range(10)))
-
-        db.update_all('test', {'id':0})
-        for row in db.all('test'):
-            self.assertEqual(row['id'], 0)

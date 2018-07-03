@@ -6,7 +6,8 @@ db = db_config('sqlite3', ':memory:')
 
 from OxygenRM.internals.Table import *
 from OxygenRM.internals.columns import *
-from OxygenRM.internals.SQL_builders import default_cols
+
+from . import default_cols
 
 created_table = Table('c')
 

@@ -2,6 +2,8 @@ import unittest
 import re
 from OxygenRM.internals.SQL_builders import *
 from collections import OrderedDict, namedtuple
+from . import default_cols
+
 
 _ = True
 
@@ -29,10 +31,10 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         self.assertEqual(result2, expected)
 
     def test_where_raises_value_error_with_bad_parameters(self):
-        self.assertRaises(ValueError, where_clause, (ConditionClause('AND', 'f1', 'bad', _)))
-        self.assertRaises(ValueError, where_clause, (ConditionClause('AND', 'f1', False, _)))
-        self.assertRaises(ValueError, where_clause, (ConditionClause('bad', 'f1', '=', _)))
-        self.assertRaises(ValueError, where_clause, (ConditionClause(1, 'f1', '=', _)))
+        self.assertRaises(ValueError, where_clause, (ConditionClause('AND', 'f1', 'bad', _),))
+        self.assertRaises(ValueError, where_clause, (ConditionClause('AND', 'f1', False, _),))
+        self.assertRaises(ValueError, where_clause, (ConditionClause('bad', 'f1', '=', _),))
+        self.assertRaises(ValueError, where_clause, (ConditionClause(1, 'f1', '=', _),))
 
     def test_where_equals_clause_empty_conditions_raises_ValueError(self):
         self.assertRaises(ValueError, where_clause, [])
@@ -70,32 +72,6 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         result   = drop_table_clause('test')
         
         self.assertEqual(result, expected)
-
-    def test_equals_clause_with_one(self):
-        expected = ('t1', '=', 1, 'AND')
-
-        self.assertEqual(next(equals_conditions(t1=1)), expected)
-
-    def test_equals_clause_with_some(self):
-        expected1 = ('t1', '=', 1, 'AND')
-        expected2 = ('t2', '=', False, 'AND')
-        expected3 = ('t3', '=', 'a', 'AND')
-
-        conditions = equals_conditions(t1=1, t2=False, t3='a')
-
-        self.assertEqual(sorted(list(conditions)), sorted([expected1, expected2, expected3]))
-
-    def test_equals_conditions_with_null(self):
-        expected = ('a', 'IS', None, 'AND')
-
-        self.assertEqual(next(equals_conditions(a=None)), expected)
-
-    def test_connect_with(self):
-        expected = ('t1', '=', 1, 'AND')
-
-        result = next(connect_with((('t1', '=', 1),), 'AND'))
-
-        self.assertEqual(expected, result)
 
     def test_natural_join_outer_inner(self):
         expected_inner = 'a NATURAL INNER JOIN b'

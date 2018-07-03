@@ -1,5 +1,10 @@
 from collections import defaultdict
+from itertools import chain
+
 from OxygenRM.internals.SQL_builders import *
+from OxygenRM import internal_db
+
+db = internal_db
 
 class QueryBuilder:
     ''' A class for building and chaining queries.
@@ -58,6 +63,23 @@ class QueryBuilder:
         '''
         self._in_wait['where_cond'].append(ConditionClause('OR', field, symbol, value))
         return self
+
+    def where_many(self, conditions):
+        ''' Add multiple AND WHERE condition to the prepared query.
+
+            Args: 
+                conditions: An iterator that yields lists/tuples, such that:
+                    0: The column name.
+                    1: The operator.
+                    2: The value to compare the rows.
+
+            Returns:
+                self
+        '''
+        condition_packer = lambda cond: ConditionClause('AND', *cond)
+
+        self._in_wait['where_cond'].extend(map(condition_packer, conditions))
+        return self    
 
     def group_by(self, field, order='ASC'):
         ''' Add a GROUP BY to the prepared query.
@@ -217,11 +239,11 @@ class QueryBuilder:
 
         return self
 
-    def get(self):
-        '''  Query the database with the prepared conditions.
+    def get_sql(self):
+        '''  Craft a get sql command.
 
             Returns:
-                An iterator
+                A query string
         '''
         options = self._in_wait
 
@@ -239,40 +261,94 @@ class QueryBuilder:
         query = select_clause(table_to_select, *options['select_fields'], distinct=options['distinct'])
 
         if options['where_cond']:
-            query += where_clause(options['where_cond'])
+            query += ' ' + where_clause(options['where_cond'])
         
         if options['group_by']:
-            query += group_by_clause(options['group_by'], options['having'])
+            query += ' ' + group_by_clause(options['group_by'], options['having'])
             
         if options['order_by']:
-            query += order_by_clause(options['order_by'])
+            query += ' ' + order_by_clause(options['order_by'])
 
         if options['limit']:
-            query += limit_clause(options['limit'], options['offset'])
+            query += ' ' + limit_clause(options['limit'], options['offset'])
 
         return query
 
-    def delete(self):
-        '''  Delete the given data.
+    def delete_sql(self):
+        '''  Craft a delete sql command.
 
             Returns:
-                An iterator
+                A query string
         '''
         return delete_clause(self._in_wait['table_name'], self._in_wait['where_cond'])
 
-    def update(self, values):
-        ''' Update the given data.
+    def update_sql(self, values):
+        ''' Craft a update sql command.
 
             Args:
                 values: A dict with the keys as the fields and the values as the values to be set.
         '''
         return update_clause(self._in_wait['table_name'], values.keys(), self._in_wait['where_cond'])
+    
+    def delete(self):
+        '''  Delete records according to the chained methods.
+        '''
+        db.execute(self.delete_sql(), tuple(extract_values(self._in_wait['where_cond'])))
+
+    def update(self, values):
+        ''' Update records in the database according with the given values.
+
+            Args:
+                values: A dict with the keys as the fields and the values as the values to be set.
+        '''
+        values_to_prepare = chain(values.values(), extract_values(self._in_wait['where_cond']))
+
+        db.execute(self.update_sql(values), tuple(values_to_prepare))
+
+    def get(self):
+        '''  Get the specified records.
+
+            Returns:
+                The rows obtained.
+        '''
+        query = self.get_sql()
+        options = self._in_wait
+
+        values_to_prepare = extract_values(options['where_cond'])
+
+        if options['having']:
+            values_to_prepare = chain(values_to_prepare, options['having'].value)
+
+        return db.execute_without_saving(query, tuple(values_to_prepare))
+
+    def all(self):
+        ''' Gets all the records.
+
+            Returns:
+                The queried rows.
+        '''
+        return db.all(self._in_wait['table_name'], self._in_wait['select_fields'])
 
     def __iter__(self):
-        ''' An alias for self.get. 
+        ''' Alias fot get.
+
+            Returns:
+                The rows obtained.
         '''
-        return self
+        return self.get()
 
     ''' A dict indicating which operation is pending.
     '''
     _in_wait = defaultdict(list)
+
+def extract_values(conditions):
+    ''' Get every value of the passed conditions.
+
+        Args:
+            conditions: An iterator of ConditionClause.
+
+        Yields:
+            The values of every condition.
+    '''
+    for condition in conditions:
+        yield condition.value
