@@ -54,32 +54,8 @@ def where_clause(conditions):
         Raises:
             ValueError: If a connector or symbol is invalid.
                 | The conditions are empty.
-    '''
-    conditions_str = ''
-    connector  = None
-
-    for field, symbol, value, connector in conditions:
-        if connector not in VALID_CONNECTORS:
-            raise ValueError('Unvalid SQL connector: {}'.format(connector))
-        elif symbol not in VALID_WHERE_OPERATIONS:
-            raise ValueError('Unvalid SQL operation: {}'.format(symbol))
-
-        if symbol == '!=' and value != None:
-            condition_str = '({field} IS NULL OR {field} != ?) {connector} '
-        elif symbol[0] in '<>' and value != None:
-            condition_str = '({field} NOT NULL AND {field} {symbol} ?) {connector} '
-        else:
-            condition_str = '{field} {symbol} ? {connector} '
-
-        conditions_str += condition_str.format(field=field, symbol=symbol, connector=connector)
-
-    if not conditions_str:
-        raise ValueError('No condition passed')
-
-    # Prunes the leading condition
-    conditions_str = conditions_str[:-4 if connector == 'OR' else -5]
-        
-    return 'WHERE {}'.format(conditions_str)
+    '''        
+    return 'WHERE {}'.format(conditions_gen(conditions))
 
 def select_clause(table_name, *fields):
     ''' Create a select from clause string for SQL.
@@ -135,7 +111,7 @@ def equals_conditions(**equals):
         if value == None:
             connector = 'IS'
 
-        yield (field, connector, value, 'AND')
+        yield ConditionClause('AND', field, connector, value)
 
 def natural_join_clause(join_type, table1, table2):
     ''' Generate a NATURAL JOIN clause.
@@ -168,7 +144,7 @@ def join_on_clause(join_type, table1, table2, on):
         Args: 
             join_type: Either outer or inner.
             table1, table2: The tables to join
-            on: An iterator that yields ConditionsClause tuples, with the condtions.
+            on: An iterator that yields ConditionClause tuples, with the condtions.
 
         Returns:
             The sql clause.
@@ -186,26 +162,29 @@ def conditions_gen(conditions, safe=True):
     '''
     conditions_str = ''
     connector  = None
-
-    for index, (connector, field, symbol, value) in enumerate(conditions):
-        if connector not in VALID_CONNECTORS:
-            raise ValueError('Unvalid SQL connector: {}'.format(connector))
-        elif symbol not in VALID_WHERE_OPERATIONS:
-            raise ValueError('Unvalid SQL operation: {}'.format(symbol))
+    
+    for index, condition in enumerate(conditions):
+        if condition.connector not in VALID_CONNECTORS:
+            raise ValueError('Unvalid SQL connector: {}'.format(condition.connector))
+        elif condition.symbol not in VALID_WHERE_OPERATIONS:
+            raise ValueError('Unvalid SQL operation: {}'.format(condition.symbol))
 
         if safe:
             value = '?'
-
-        condition_str = '' if index == 0 else connector + ' '
-
-        if symbol == '!=' and value != None:
-            condition_str = '({field} IS NULL OR {field} != {value}) '
-        elif symbol[0] in '<>' and value != None:
-            condition_str = '({field} NOT NULL AND {field} {symbol} {value}) '
         else:
-            condition_str = '{field} {symbol} {value} '
+            value = condition.value
 
-        conditions_str += condition_str.format(field=field, symbol=symbol, connector=connector, value=value)
+        condition_str = '' if index == 0 else condition.connector + ' '
+
+        if condition.symbol == '!=' and value != None:
+            condition_str += '({field} IS NULL OR {field} != {value}) '
+        elif condition.symbol[0] in '<>' and value != None:
+            condition_str += '({field} NOT NULL AND {field} {symbol} {value}) '
+        else:
+            condition_str += '{field} {symbol} {value} '
+
+        conditions_str += condition_str.format(
+                field=condition.field, symbol=condition.symbol, value=value)
 
     if not conditions_str:
         raise ValueError('No condition passed')

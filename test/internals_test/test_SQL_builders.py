@@ -14,26 +14,32 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         expected = 'SELECT field1, field2, field3 FROM test'
         self.assertEqual(select_clause('test', 'field1', 'field2', 'field3'), expected)
 
-    def test_where_crafs_sql_no_matter_the_last_connector(self):
-        expected = 'WHERE f1 = ? AND f2 IS ? OR (f3 NOT NULL AND f3 >= ?)'
-        result1 = where_clause((('f1', '=', _, 'AND'), ('f2', 'IS', _, 'OR'), ('f3', '>=', _, 'OR')))
-        result2 = where_clause((('f1', '=', _, 'AND'), ('f2', 'IS', _, 'OR'), ('f3', '>=', _, 'AND')))
+    def test_where_crafs_sql_no_matter_the_first_connector(self):
+        expected = 'WHERE f1 = ? OR f2 IS ? AND (f3 NOT NULL AND f3 >= ?)'
+
+        cond1_and = ConditionClause('AND', 'f1', '=', _) 
+        cond1_or = ConditionClause('OR', 'f1', '=', _) 
+        cond2 = ConditionClause('OR', 'f2', 'IS', _)
+        cond3 = ConditionClause('AND', 'f3', '>=', _)
+
+        result1 = where_clause((cond1_and, cond2, cond3))
+        result2 = where_clause((cond1_or, cond2, cond3))
 
         self.assertEqual(result1, expected)
         self.assertEqual(result2, expected)
 
     def test_where_raises_value_error_with_bad_parameters(self):
-        self.assertRaises(ValueError, where_clause, (('f1', 'bad', _, 'AND')))
-        self.assertRaises(ValueError, where_clause, (('f1', False, _, 'AND')))
-        self.assertRaises(ValueError, where_clause, (('f1', '=', _, 'bad')))
-        self.assertRaises(ValueError, where_clause, (('f1', '=', _, 1)))
+        self.assertRaises(ValueError, where_clause, (ConditionClause('AND', 'f1', 'bad', _)))
+        self.assertRaises(ValueError, where_clause, (ConditionClause('AND', 'f1', False, _)))
+        self.assertRaises(ValueError, where_clause, (ConditionClause('bad', 'f1', '=', _)))
+        self.assertRaises(ValueError, where_clause, (ConditionClause(1, 'f1', '=', _)))
 
     def test_where_equals_clause_empty_conditions_raises_ValueError(self):
         self.assertRaises(ValueError, where_clause, [])
 
     def test_where_clause_ineq_clauses(self):
-        expected1 = 'WHERE (id IS NULL OR id != ?) AND (name NOT NULL AND name >= ?)'
-        result = where_clause([('id', '!=', 1, 'AND'), ('name', '>=', 1, 'OR')])
+        expected1 = 'WHERE (id IS NULL OR id != ?) OR (name NOT NULL AND name >= ?)'
+        result = where_clause([ConditionClause('AND', 'id', '!=', 1), ConditionClause('OR', 'name', '>=', 1)])
         
         self.assertEqual(result, expected1)
 
@@ -106,6 +112,6 @@ class TestSQLite3DBHelpers(unittest.TestCase):
 
     def test_join_on_clause(self):
         expected = 'a INNER JOIN b ON a.a = b.a'
-        condition = ('AND', 'a.a', '=', 'b.a')
+        condition = ConditionClause('AND', 'a.a', '=', 'b.a')
 
         self.assertEqual(join_on_clause('INNER', 'a', 'b', (condition,)), expected)

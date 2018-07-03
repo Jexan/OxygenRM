@@ -8,10 +8,13 @@ logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 import sqlite3 as sql3
 from OxygenRM.internals.SQLite3DB import *
 from OxygenRM.internals.columns import ColumnData
+from collections import namedtuple
 
 db_name = ':memory:'
 db = SQLite3DB(db_name)
 conn = db.connection
+
+ic = namedtuple('InvertedCondition', ['field', 'symbol', 'value', 'connector'])
 
 def drop_table(table):
     c = conn.cursor()
@@ -155,7 +158,7 @@ class TestSQLite3DB(unittest.TestCase):
         db.create_table('test', **default_cols(id='integer', name='text'))
         db.create_many('test', ('id', 'name'), ((1,'t1'), (2, 't2'), (3, None), (None, 't4')))
     
-        fields_with_id_not_3 = list(db.find_where('test', [('id', '!=', 3, 'AND')]))
+        fields_with_id_not_3 = list(db.find_where('test', [ic('id', '!=', 3, 'AND')]))
         # Without the 'NOT NULL' added in the method, this would not count the record with the name t6
         self.assertEqual(len(fields_with_id_not_3), 3)
 
@@ -166,7 +169,7 @@ class TestSQLite3DB(unittest.TestCase):
         db.create_table('test', **default_cols(id='integer', name='text'))
         db.create_many('test', ('id', 'name'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
-        field_with_id_le_than_3 = list(db.find_where('test', [('id', '<=', 3, 'OR')]))
+        field_with_id_le_than_3 = list(db.find_where('test', [ic('id', '<=', 3, 'OR')]))
         
         self.assertEqual(len(field_with_id_le_than_3), 3)
 
@@ -178,7 +181,7 @@ class TestSQLite3DB(unittest.TestCase):
         db.create_table('t', **default_cols(a='integer', b='text'))
         db.create_many('t', ('a', 'b'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
-        field_with_a_gt_2 = list(db.find_where('t', [('a', '>', 2, 'AND')]))
+        field_with_a_gt_2 = list(db.find_where('t', [ic('a', '>', 2, 'AND')]))
         
         self.assertEqual(len(field_with_a_gt_2), 2)
 
@@ -194,7 +197,7 @@ class TestSQLite3DB(unittest.TestCase):
         db.create('test', id=3)
         db.create('test', name='t4')
 
-        field_with_two_cond = list(db.find_where('test', [('id', '!=', 3, 'AND'), ('float', '>=', 1, 'AND')]))
+        field_with_two_cond = list(db.find_where('test', [ic('id', '!=', 3, 'AND'), ic('float', '>=', 1, 'AND')]))
         self.assertEqual(len(field_with_two_cond), 1)
         self.assertEqual(field_with_two_cond[0]['name'], 't1')
 
