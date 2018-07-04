@@ -74,9 +74,12 @@ class TestTable(unittest.TestCase):
 
     def test_Table_adding_cols_if_already_exists_raises_ColumnAlreadyExistsError(self):
         t = Table('t')
-        t.create_columns()
+        t.create_columns(a=Text())
+        t.save()
+
+        s = Table('t')
         with self.assertRaises(ColumnAlreadyExistsError): 
-            t.create_columns()
+            s.create_columns(a=Text())
 
     def test_Table_renaming_cols(self):
         pass

@@ -32,14 +32,15 @@ class Table():
 
     # If the table already exists, grabs it. If not, it creates one.
     def __init__(self, table_name):
+        self.table_name = table_name
+
         if db.table_exists(table_name):
             self.state = self.State.EDITING 
         else:
             self.state = self.State.CREATING
 
-        self.table_name = table_name
+        self._assign_tables()
         self.table_columns = []
-
 
     def exists(self):
         ''' Check if the table exist in the database.
@@ -48,19 +49,6 @@ class Table():
                 bool.
         '''
         return self.state is self.State.EDITING
-
-    # Allows adding columns to a table
-    def create_columns(self, timestamps=False, **columns):
-        ''' Queue the creation of the given columns.
-
-            Args:
-                **columns: The column name = Column dict of columns to be created.
-                
-            Raises:
-                TypeError: If the given columns are not subclasses of Column.
-        '''
-        for col_name, column_type in columns.items():
-            self.table_columns.append(column_type.get_data(col_name, db.driver))
 
     def rename(self, new_name):
         ''' Change the name of the table.
@@ -74,6 +62,20 @@ class Table():
         self._exists_guard()
 
         db.rename_table(self.table_name, new_name)
+
+    def create_columns(self, timestamps=False, **columns):
+        ''' Queue the creation of the given columns.
+
+            Args:
+                **columns: The column name = Column dict of columns to be created.
+                
+            Raises:
+                TypeError: If the given columns are not subclasses of Column.
+        '''
+        for col_name, column_type in columns.items():
+            if col_name in self.columns:
+                raise ColumnAlreadyExistsError('The table {} aready has a column {}'.format(self.table_name, col_name))
+            self._add_columns.append(column_type.get_data(col_name, db.driver))
 
     def drop_columns(self, *args):
         pass
@@ -109,10 +111,22 @@ class Table():
         pass
 
     def _create(self):
-        if not self.table_columns:
+        if not self._add_columns:
             raise ValueError('No column has been specified to be added to the table')
 
-        db.create_table(self.table_name, self.table_columns)
+        db.create_table(self.table_name, self._add_columns)
+
+    def _assign_tables(self):
+        ''' Fetch the table currently created columns.
+        '''
+        if self.exists():
+            self.columns = {col.name: col for col in db.get_all_columns(self.table_name)}
+        else:
+            self.columns = {}
+
+        self._edit_columns = []
+        self._add_columns = []
+        self._delete_columns = []
 
     def _exists_guard(self):
         ''' Halt execution if the table doesn't exist.

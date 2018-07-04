@@ -119,8 +119,6 @@ class TestSQLite3DB(unittest.TestCase):
         col = next(default_cols(a='text'))._replace(null=False, default='Testing')
         db.create_table('t', (col,))
 
-        print(col)
-        print(next(db.get_all_columns('t')))
         self.assertEqual(next(db.get_all_columns('t')), col)
 
     # Table Droppage ---------------------------------
