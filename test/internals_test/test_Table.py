@@ -11,7 +11,7 @@ from . import default_cols
 
 created_table = Table('c')
 
-db.create_table('e', **default_cols(a='integer', b='text'))
+db.create_table('e', default_cols(a='integer', b='text'))
 edited_table = Table('e')
 
 class TestTable(unittest.TestCase):
@@ -37,7 +37,7 @@ class TestTable(unittest.TestCase):
         pass
 
     def test_Table_destroying(self):
-        db.create_table('t', **default_cols(a='text'))
+        db.create_table('t', default_cols(a='text'))
         table = Table('t')
 
         table.destroy()

@@ -1,7 +1,7 @@
 from abc import *
 from collections import namedtuple
 
-ColumnData = namedtuple('ColumnData', ['type', 'nullable', 'default', 'primary', 'auto_increment'])
+ColumnData = namedtuple('ColumnData', 'name type nullable default primary auto_increment')
 
 class Column(metaclass=ABCMeta):
     ''' The base class for defining a Model (or Migration)
@@ -38,16 +38,17 @@ class Column(metaclass=ABCMeta):
         '''
         return self.pretty_value() if self._value is not None else self.pretty_none()
 
-    def get_data(self, driver):
+    def get_data(self, name, driver):
         ''' Get the relevant data of the column to craft
 
             Args:
+                name: The name of the column to add.
                 driver: The driver of the database, as a string.
 
             Returns:
                 A ColumnData tuple.
         '''
-        return ColumnData(self.driver_type[driver], self.null, self.default, self.primary, self.auto_increment)
+        return ColumnData(name, self.driver_type[driver], self.null, self.default, self.primary, self.auto_increment)
 
     def validate(self, value):
         ''' Decide wheter a non-null value that wants to be set is valid.

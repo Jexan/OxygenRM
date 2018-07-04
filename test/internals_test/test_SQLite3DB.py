@@ -31,7 +31,7 @@ class TestSQLite3DB(unittest.TestCase):
 
     # CREATE TABLE ---------------------------------
     def test_table_creation_creates_table_and_cols(self):
-        db.create_table('test', **default_cols(name='text', age='integer'))
+        db.create_table('test', default_cols(name='text', age='integer'))
         info = list(db.table_cols_info('test'))
 
         # Since dicts are not ordered.
@@ -45,16 +45,16 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(len(info), 2)
 
     def test_table_creation_raises_typeerror_if_type_is_unvalid(self):
-        self.assertRaises(TypeError, db.create_table, 't', **default_cols(name='nonsense', age='what'))
-        self.assertRaises(TypeError, db.create_table, 't', **default_cols(name=True, age=2))
-        self.assertRaises(TypeError, db.create_table, 't', **default_cols(name=1.j, t=complex))
+        self.assertRaises(TypeError, db.create_table, 't', default_cols(name='nonsense', age='what'))
+        self.assertRaises(TypeError, db.create_table, 't', default_cols(name=True, age=2))
+        self.assertRaises(TypeError, db.create_table, 't', default_cols(name=1.j, t=complex))
 
     def test_table_creation_raises_valueError_if_no_col_is_passed(self):
-        self.assertRaises(ValueError, db.create_table, 't')
+        self.assertRaises(ValueError, db.create_table, 't', [])
 
     # TABLE ALTER ------------------------------
     def test_table_renaming(self):
-        db.create_table('t', **default_cols(a='text'))
+        db.create_table('t', default_cols(a='text'))
 
         db.rename_table('t', 's')
 
@@ -62,15 +62,15 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertTrue(db.table_exists('s'))
 
     def test_table_add_col(self):
-        db.create_table('t', **default_cols(a='text'))
+        db.create_table('t', default_cols(a='text'))
 
-        db.add_column('t', b='integer')
+        db.add_column('t', default_cols(b= 'integer'))
 
         self.assertEqual(db.table_fields_types()['b'], 'integer')
 
     # Table info ---------------------------------
     def test_table_fields_types_returns_every_field_with_his_type(self):
-        db.create_table('test', **default_cols(name='text', 
+        db.create_table('test', default_cols(name='text', 
             float='real', blob='blob', number='integer'))
 
         info = db.table_fields_types('test')
@@ -81,8 +81,8 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(info['number'], 'integer') 
 
     def test_get_database_tables_lists_every_table(self):
-        db.create_table('test', **default_cols(name='text'))
-        db.create_table('test2', **default_cols(float='real'))
+        db.create_table('test', default_cols(name='text'))
+        db.create_table('test2', default_cols(float='real'))
 
         info = list(db.get_all_tables())
 
@@ -93,12 +93,12 @@ class TestSQLite3DB(unittest.TestCase):
     def test_table_existence_detects_whether_a_table_exists(self):
         self.assertFalse(db.table_exists('test'))
 
-        db.create_table('test', **default_cols(name='text'))
+        db.create_table('test', default_cols(name='text'))
 
         self.assertTrue(db.table_exists('test'))
 
     def test_table_cols_info_queries_info_correctly(self):
-        db.create_table('test', **default_cols(name= 'text'))
+        db.create_table('test', default_cols(name= 'text'))
         info = list(db.table_cols_info('test'))
 
         self.assertEqual(len(info), 1)
@@ -111,7 +111,7 @@ class TestSQLite3DB(unittest.TestCase):
     # Table Droppage ---------------------------------
     def test_table_drop(self):
         self.assertEqual(len(list(db.get_all_tables())), 0)
-        db.create_table('test', **default_cols(t='text'))
+        db.create_table('test', default_cols(t='text'))
 
         self.assertEqual(len(list(db.get_all_tables())), 1)
 
@@ -120,12 +120,12 @@ class TestSQLite3DB(unittest.TestCase):
 
     def test_drop_all_tables_drops_every_table(self):
         self.assertEqual(len(list(db.get_all_tables())), 0)
-        db.create_table('test1', **default_cols(t='text'))
-        db.create_table('test2', **default_cols(t='text'))
-        db.create_table('test3', **default_cols(t='text'))
-        db.create_table('test4', **default_cols(t='text'))
-        db.create_table('test5', **default_cols(t='text'))
-        db.create_table('test6', **default_cols(t='text'))
+        db.create_table('test1', default_cols(t='text'))
+        db.create_table('test2', default_cols(t='text'))
+        db.create_table('test3', default_cols(t='text'))
+        db.create_table('test4', default_cols(t='text'))
+        db.create_table('test5', default_cols(t='text'))
+        db.create_table('test6', default_cols(t='text'))
 
         self.assertEqual(len(list(db.get_all_tables())), 6)
 
@@ -135,7 +135,7 @@ class TestSQLite3DB(unittest.TestCase):
 
     # RECORD CREATION ---------------------------------
     def test_record_creation_creates_the_records_correctly(self):
-        db.create_table('test', **default_cols(name='text', number='integer'))
+        db.create_table('test', default_cols(name='text', number='integer'))
         
         db.create('test', name='t1', number=1)
         db.create('test', name='t2', number=1)
@@ -149,7 +149,7 @@ class TestSQLite3DB(unittest.TestCase):
             self.assertIn(row['number'], [1, None])
     
     def test_create_many_creates_the_records_correctly(self):
-        db.create_table('test', **default_cols(name='text', number='integer')       ) 
+        db.create_table('test', default_cols(name='text', number='integer')       ) 
         db.create_many('test', ('number', 'name'), [(1,'t1'), (None, 't2'), (3, None)])
 
         c = conn.cursor()
@@ -159,7 +159,7 @@ class TestSQLite3DB(unittest.TestCase):
             self.assertIn(row['number'], [1, 3, None])
             
     def test_table_querying_all(self):
-        db.create_table('test', **default_cols(name='text', number='integer'))
+        db.create_table('test', default_cols(name='text', number='integer'))
 
         self.assertEqual(len(list(db.all('test'))), 0)
         

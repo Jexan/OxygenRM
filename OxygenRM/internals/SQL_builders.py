@@ -8,8 +8,8 @@ from OxygenRM.internals.columns import ColumnData
 VALID_CONNECTORS = ('AND', 'OR')
 VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
 
-ConditionClause = namedtuple('ConditionClause', ['connector', 'field', 'symbol', 'value'])
-OrderClause = namedtuple('OrderClause', ['field', 'order'])
+ConditionClause = namedtuple('ConditionClause', 'connector field symbol value')
+OrderClause = namedtuple('OrderClause', 'field order')
 
 def insert_clause(table_name, keys):
     ''' Create a insert clause string for SQL.
@@ -108,7 +108,7 @@ def create_table_clause(table_name, cols):
         Returns:
             A string with the crafted clause.
     '''
-    columns = ', '.join(col_name + ' ' + col_data.type for col_name, col_data in cols.items())
+    columns = ', '.join(col.name + ' ' + col.type for col in cols)
 
     return 'CREATE TABLE {} ({})'.format(table_name, columns) 
 

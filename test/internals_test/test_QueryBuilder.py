@@ -114,7 +114,7 @@ class RecordManipulationTest(unittest.TestCase):
         db.drop_all_tables()
 
     def test_table_querying_all(self):
-        db.create_table('t', **default_cols(name='text', number='integer'))
+        db.create_table('t', default_cols(name='text', number='integer'))
 
         self.assertEqual(len(list(db.all('t'))), 0)
         
@@ -127,7 +127,7 @@ class RecordManipulationTest(unittest.TestCase):
 
     # FIND WHERE GET
     def test_where_inequality_works_even_with_null_records(self):
-        db.create_table('t', **default_cols(a='integer', b='text'))
+        db.create_table('t', default_cols(a='integer', b='text'))
         db.create_many('t', ('a', 'b'), ((1,'t1'), (2, 't2'), (3, None), (None, 't4')))
     
         fields_with_a_not_3 = list(qb.table('t').where('a', '!=', 3))
@@ -139,7 +139,7 @@ class RecordManipulationTest(unittest.TestCase):
             self.assertFalse(field['a'] == 3) 
 
     def test_find_where_lte_works(self):
-        db.create_table('t', **default_cols(a='integer', name='text'))
+        db.create_table('t', default_cols(a='integer', name='text'))
         db.create_many('t', ('a', 'name'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
         field_with_a_le_than_3 = list(qb.table('t').where_many([('a', '<=', 3)]))
@@ -151,7 +151,7 @@ class RecordManipulationTest(unittest.TestCase):
             self.assertIn(row['name'], ['t1', 't2', None])
     
     def test__where_gt_works(self):
-        db.create_table('t', **default_cols(a='integer', b='text'))
+        db.create_table('t', default_cols(a='integer', b='text'))
         db.create_many('t', ('a', 'b'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
         field_with_a_gt_2 = list(qb.table('t').where('a', '>', 2))
@@ -163,7 +163,7 @@ class RecordManipulationTest(unittest.TestCase):
             self.assertIn(row['b'], ['t4', None])
 
     def test_where_many_with_two_conditions(self):
-        db.create_table('t', **default_cols(a='integer', b='text', c='real'))
+        db.create_table('t', default_cols(a='integer', b='text', c='real'))
 
         db.create('t', a=1, b='t1', c=3.4)
         db.create('t', a=2, b='t2', c=.3)
@@ -175,7 +175,7 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(field_with_two_cond[0]['b'], 't1')
 
     def test_where_equals_works(self):
-        db.create_table('t', **default_cols(id='integer', name='text'))
+        db.create_table('t', default_cols(id='integer', name='text'))
 
         db.create('t', id=1, name='t1')
         db.create('t', id=2, name='t2')
@@ -186,7 +186,7 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(field_with_id_1[0]['name'], 't1')
 
     def test_where_equality_to_non_null_value_doesnt_count_nulls(self):
-        db.create_table('t', **default_cols(a='integer', b='integer'))
+        db.create_table('t', default_cols(a='integer', b='integer'))
         db.create_many('t', ('a', 'b'), ((None, 1), (2, 2)))
 
         field_with_id_2 = list(qb.table('t').where('a', '=', 2))
@@ -194,7 +194,7 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(field_with_id_2[0]['b'], 2)
 
     def test_find_equals_equality_to_null_finds_nulls(self):
-        db.create_table('t', **default_cols(a='integer', b='text'))
+        db.create_table('t', default_cols(a='integer', b='text'))
         db.create('t', b='t1')
 
         field_with_null_val = list(qb.table('t').where('a', '=', None))
@@ -202,7 +202,7 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(field_with_null_val[0]['b'], 't1')
 
     def test_db_deletion_equality(self):
-        db.create_table('t', **default_cols(id='integer', name='text'))
+        db.create_table('t', default_cols(id='integer', name='text'))
 
         db.create('t', id=1, name='t1')
         db.create('t', name='t2')
@@ -215,7 +215,7 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(rows[0]['name'], 't2')
 
     def test_db_deletion_null(self):
-        db.create_table('t', **default_cols(id='integer', name='text'))
+        db.create_table('t', default_cols(id='integer', name='text'))
         db.create('t', name='t1')
         db.create('t', id=4, name='t5')
         db.create('t', id=2, name='t2')
@@ -230,7 +230,7 @@ class RecordManipulationTest(unittest.TestCase):
             self.assertNotEqual(row['id'], None)
 
     def test_db_update_equal_works(self):
-        db.create_table('t', **default_cols(id='integer'))
+        db.create_table('t', default_cols(id='integer'))
         db.create('t', id=1)
         
         qb.table('t').where('id', '=', 1).update({'id':2})
@@ -238,14 +238,14 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(next(db.all('t'))['id'], 2)
 
     def test_db_update_doesnt_update_not_found_columns(self):
-        db.create_table('t', **default_cols(id='integer'))
+        db.create_table('t', default_cols(id='integer'))
         db.create('t', id=0)
         qb.table('t').where('id', '=', '1').update({'id':2})
 
         self.assertEqual(next(db.all('t'))['id'], 0)
 
     def test_db_update_a_lot_of_cols(self):
-        db.create_table('t', **default_cols(id='integer', number='integer'))
+        db.create_table('t', default_cols(id='integer', number='integer'))
         db.create_many('t', ('id', 'number'), ((1, i) for i in range(10)))
         for row in db.all('t'):
             self.assertNotEqual(row['number'], -1)
@@ -255,7 +255,7 @@ class RecordManipulationTest(unittest.TestCase):
             self.assertEqual(row['number'], -1)
 
     def test_update_all(self):
-        db.create_table('t', **default_cols(id='integer'))
+        db.create_table('t', default_cols(id='integer'))
         db.create_many('t', ('id',), ((1,) for _ in range(10)))
 
         qb.table('t').update({'id':0})

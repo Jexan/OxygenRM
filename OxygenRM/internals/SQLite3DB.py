@@ -21,7 +21,7 @@ class SQLite3DB():
     
         self.cursor     = self.connection.cursor()
 
-    def create_table(self, table_name, **columns):
+    def create_table(self, table_name, columns):
         ''' Create a table in the database with the specified columns.
 
             Args:
@@ -33,10 +33,11 @@ class SQLite3DB():
                 TypeError: If a field passed is not a valid SQLite3 field.
                     | No columns passed.
         '''
+        columns = list(columns)
         if not columns:
             raise ValueError('Can\'t create {} without columns'.format(table_name))
 
-        for column_data in columns.values():
+        for column_data in columns:
             if not column_data.type in ['text', 'integer', 'real', 'blob']:
                 raise TypeError('Invalid column type: {}'.format(column_data.type))
 

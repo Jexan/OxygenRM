@@ -30,7 +30,7 @@ class Table():
             self.state = self.State.CREATING
 
         self.table_name = table_name
-        self.table_columns = {}
+        self.table_columns = []
 
     def exists(self):
         ''' Check if the table exist in the database.
@@ -51,7 +51,7 @@ class Table():
                 TypeError: If the given columns are not subclasses of Column.
         '''
         for col_name, column_type in columns.items():
-            self.table_columns[col_name] = column_type.get_data(db.driver)
+            self.table_columns.append(column_type.get_data(col_name, db.driver))
 
     def rename(self, name):
         pass
@@ -89,4 +89,4 @@ class Table():
         if not self.table_columns:
             raise ValueError('No column has been specified to be added to the table')
 
-        db.create_table(self.table_name, **self.table_columns)
+        db.create_table(self.table_name, self.table_columns)

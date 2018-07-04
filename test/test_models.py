@@ -8,7 +8,7 @@ db = db_config('sqlite3', ':memory:')
 
 import OxygenRM.models as O
 
-db.create_table('todos', **default_cols(a='text'))
+db.create_table('todos', default_cols(a='text'))
 
 class ToDo(O.Model):
 	pass
@@ -30,7 +30,7 @@ class TestModels(unittest.TestCase):
 		self.assertEqual(ToDo._db_fields, {'a': 'text'})
 	
 	def test_model_is_not_set_up_if_not_invoked(self):
-		db.create_table('users', **default_cols(a='text'))
+		db.create_table('users', default_cols(a='text'))
 		class User(O.Model):
 			pass
 
