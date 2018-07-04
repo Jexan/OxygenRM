@@ -9,13 +9,10 @@ logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 import sqlite3 as sql3
 from OxygenRM.internals.SQLite3DB import *
 from OxygenRM.internals.columns import ColumnData
-from collections import namedtuple
 
 db_name = ':memory:'
 db = SQLite3DB(db_name)
 conn = db.connection
-
-ic = namedtuple('InvertedCondition', ['field', 'symbol', 'value', 'connector'])
 
 def drop_table(table):
     c = conn.cursor()
@@ -33,7 +30,6 @@ class TestSQLite3DB(unittest.TestCase):
     def test_table_creation_creates_table_and_cols(self):
         db.create_table('test', default_cols(name='text', age='integer'))
         info = list(db.table_cols_info('test'))
-
         # Since dicts are not ordered.
         if info[0]['name'] == 'name':
             name_col = info[0]
@@ -43,6 +39,17 @@ class TestSQLite3DB(unittest.TestCase):
             age_col  = info[0]
  
         self.assertEqual(len(info), 2)
+
+    def test_complex_table_creation(self):
+        column_with_not_null = next(default_cols(a='text'))._replace(null=False)
+        column_with_weird_default = next(default_cols(b='text'))._replace(default="' ; \\ \"")
+        column_with_check = next(default_cols(c='text'))._replace(check="c > 5")
+
+        db.create_table('t', (column_with_not_null, column_with_weird_default, column_with_check))
+        info = list(db.table_cols_info('t'))
+
+        self.assertTrue(info[0]['notnull'])
+        self.assertEqual(info[1]['dflt_value'], "''' ; \\ \"'")
 
     def test_table_creation_raises_typeerror_if_type_is_unvalid(self):
         self.assertRaises(TypeError, db.create_table, 't', default_cols(name='nonsense', age='what'))

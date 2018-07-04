@@ -1,12 +1,24 @@
 ''' Sets of functions that help creating SQL clauses programatically
 '''
-from collections import namedtuple
 import logging
+import re
+
+from collections import namedtuple
 
 from OxygenRM.internals.columns import ColumnData
 
 VALID_CONNECTORS = ('AND', 'OR')
 VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
+COLUMN_RE = re.compile(
+        r'''\ ?(?P<col_name>\w+)\ 
+            (?P<col_type>\w+)\ ?
+            (?P<primary>PRIMARY\ KEY\ ?)?
+            (?P<auto_increment>AUTOINCREMENT\ ?)?
+            (?P<not_null>NOT\ NULL\ ?)?
+            (DEFAULT\ "?(?P<default>.+)(^\\"?)\ ?)?
+            (?P<unique>UNIQUE\ ?)?
+            (CHECK(?P<check>.+))?
+        ''', re.VERBOSE)
 
 ConditionClause = namedtuple('ConditionClause', 'connector field symbol value')
 OrderClause = namedtuple('OrderClause', 'field order')
@@ -240,7 +252,7 @@ def column_gen(columns):
             default = col.default
 
             if type(col.default) not in (bool, float):
-                default = '"{}"'.format(col.default)
+                default = "'{}'".format(escape_single_quotes_sql(col.default))
 
             col_str += ' DEFAULT {}'.format(default)
 
@@ -306,3 +318,53 @@ def order_gen(conditions):
             The values as a string
     '''
     return ', '.join(condition.field + ' ' + condition.order for condition in conditions)
+
+def build_columns_from_sql(sql):
+    ''' Parse a CREATE TABLE sql statement and yield the columns.
+
+        Args:
+            sql: The sql statement string.
+
+        Yields:
+            A ColumnData tuple for every column.
+    '''
+    # Get everything inside the parentheses
+    columns_str = sql[sql.find('(')+1:-1]
+
+    for column_str in columns_str.split(','):
+        null = True
+        primary = False
+        unique = False
+        auto_increment = False
+        result = COLUMN_RE.match(column_str)
+
+        if result.group('not_null'):
+            null = False
+
+        if result.group('primary'):
+            primary = True
+
+        if result.group('unique'):
+            unique = True
+
+        if result.group('auto_increment'):
+            auto_increment = True
+
+        default = result.group('default')
+        check = result.group('check')
+
+        col_type = result.group('col_type')
+        col_name = result.group('col_name')
+
+        yield ColumnData(col_name, col_type, null, default, primary, auto_increment, unique, check)
+
+def escape_single_quotes_sql(expr):
+    ''' Escape the single quotes of the given string.
+
+        Args: 
+            expr: the string to escape.
+
+        Returns:
+            expr with quotes escaped.
+    '''
+    return expr.replace("'", "''")

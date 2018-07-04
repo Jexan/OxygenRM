@@ -75,13 +75,13 @@ class Table():
 
         db.rename_table(self.table_name, new_name)
 
-    def drop_cols(self, *args):
+    def drop_columns(self, *args):
         pass
 
-    def rename_cols(self, **kwargs):
+    def rename_columns(self, **kwargs):
         pass
 
-    def edit_cols_props(self, **kwargs):
+    def edit_columns_props(self, **kwargs):
         pass  
 
     def drop(self):
@@ -122,4 +122,3 @@ class Table():
         '''
         if not self.exists():
             raise TableDoesNotExistError('You can not edit a table that does not exist')
-

@@ -72,7 +72,7 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         self.assertEqual(column_gen(default_cols(a='integer')), expected)
 
     def test_create_complex_column_gen(self):
-        expected = 'a text NOT NULL DEFAULT "JEX" UNIQUE CHECK(a LIKE "asd_"), id integer PRIMARY KEY AUTOINCREMENT'
+        expected = 'a text NOT NULL DEFAULT \'JEX\' UNIQUE CHECK(a LIKE "asd_"), id integer PRIMARY KEY AUTOINCREMENT'
         a_col = next(default_cols(a='text'))._replace(null=False, default='JEX', unique=True, check='a LIKE "asd_"')
         id_col = next(default_cols(id='integer'))._replace(primary=True, auto_increment=True)
 
@@ -116,3 +116,13 @@ class TestSQLite3DBHelpers(unittest.TestCase):
 
     def test_add_col_clause(self):
         self.assertEqual(add_column_clause('t', next(default_cols(a='integer'))), 'ALTER TABLE t ADD COLUMN a integer')
+
+    def test_build_columns_from_sql(self):
+        sql = '(a text, b integer NOT NULL, c real PRIMARY KEY AUTOINCREMENT)'
+
+        columns = build_columns_from_sql(sql)
+
+        self.assertEqual(column_gen(columns), sql[1:-1])
+
+    def test_build_columns_from_sql_breaks_with_string_defaults(self):
+        pass

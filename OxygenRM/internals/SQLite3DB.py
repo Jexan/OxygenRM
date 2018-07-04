@@ -34,6 +34,7 @@ class SQLite3DB():
                     | No columns passed.
         '''
         columns = list(columns)
+
         if not columns:
             raise ValueError('Can\'t create {} without columns'.format(table_name))
 
@@ -78,6 +79,20 @@ class SQLite3DB():
         tables = self.execute_without_saving('SELECT * FROM sqlite_master WHERE type="table"')
 
         return (table['name'] for table in tables)
+
+    def get_all_columns(self, table_name):
+        ''' Get every column of the given table.
+
+            Args:
+                table_name The name of the table whose columns will be fetched.
+
+            Returns:
+                An iterable with every column as ColumnData
+        '''
+        table = self.execute_without_saving('SELECT sql FROM sqlite_master WHERE tbl_name=?', (table_name, ))
+        table = table.fetchone()
+
+        pass
 
     def drop_table(self, table_name):
         ''' Drop a table from the database.

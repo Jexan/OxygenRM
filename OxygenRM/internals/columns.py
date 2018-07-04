@@ -178,17 +178,29 @@ class Id(Integer):
     def __set__(self, *_):
         raise AttributeError('Primary key can\'t be changed')
 
+class Date(Column):
+    pass
+
 class Rel(Column):
-    def __init__(self):
-        pass
+    pass
+
+class Multiple(Column):
+    pass
 
 class Email(Column):
-    def __init__(self):
-        pass
+    pass
+
+class Password(Column):
+    pass
 
 class JSON(Column):
-    def __init__(self):
-        pass
+    pass
 
-class Date(Column):
+class XML(Column):
+    pass
+
+class CSV(Column):
+    pass
+
+class Pickle(Column):
     pass
