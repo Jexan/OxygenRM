@@ -15,6 +15,12 @@ class ColumnAlreadyExistsError(Exception):
     '''
     pass    
 
+class ColumnDoesNotExistError(Exception):
+    ''' A exception to be raised when a column that does 
+        not exist is attempted to be edited. 
+    '''
+    pass    
+
 # Allows the creation, edition and droppage of tables
 class Table():
     ''' Abstracts common database table operations.
@@ -77,8 +83,23 @@ class Table():
                 raise ColumnAlreadyExistsError('The table {} aready has a column {}'.format(self.table_name, col_name))
             self._add_columns.append(column_type.get_data(col_name, db.driver))
 
-    def drop_columns(self, *args):
-        pass
+    def drop_columns(self, *columns):
+        ''' Queue the droppage of the given columns.
+
+            Args:
+                *columns: The columns name to be dropped.
+                
+            Raises:
+                TableDoesNotExistError: If the table does not exist.
+                columnDoesNotExistsError: If the column to drop does not exist in the table.
+        '''
+        self._exists_guard()
+
+        for col in columns:
+            if col not in self.columns:
+                raise ColumnDoesNotExistError('Cannot drop column {} that does not exist.'.format(col))
+
+            self._delete_columns.append(col)
 
     def rename_columns(self, **kwargs):
         pass
