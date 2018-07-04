@@ -194,6 +194,62 @@ def join_clause(join_type, table1, table2, on=None, using=None):
     elif using:
         return '{} {} USING ({})'.format(table1, join_table, ', '.join(using))
 
+def rename_table_clause(old_table, new_table):
+    ''' Create a RENAME table clause string for SQL.
+
+        Args:
+            old_table: The table to be renamed.
+            new_table: The new table name.
+        
+        Returns:
+            A string with the crafted clause.
+    '''
+    return 'ALTER TABLE {} RENAME TO {}'.format(old_table, new_table)
+
+def add_column_clause(table_name, column):
+    ''' Create a ADD COLUMN clause string for SQL.
+
+        Args:
+            table_name: The table target of the query.
+            column: A ColumnData of the columns to add.
+        
+        Returns:
+            A string with the crafted clause.
+    '''
+    return 'ALTER TABLE {} ADD COLUMN {}'.format(table_name, column_gen((column,)))
+
+def column_gen(columns):
+    ''' Create a column fields data, comma separated, for use in column adding builders.
+
+        Args:
+            columns: An iterator of ColumnData
+    '''
+    column_sql = []
+    
+    for col in columns:
+        col_str = '{} {}'.format(col.name, col.type)
+
+        if col.primary:
+            col_str += ' PRIMARY KEY'
+
+            if col.auto_increment:
+                col_str += ' AUTOINCREMENT'
+
+        if not col.null:
+            col_str += ' NOT NULL'
+
+        if col.default:
+            col_str += ' DEFAULT {}'.format(col.default)
+
+        if col.unique:
+            col_str += ' UNIQUE'
+
+        if col.check:
+            col_str += ' CHECK({})'.format(col.check)
+
+        column_sql.append(col_str)
+
+    return ', '.join(column_sql)
 def conditions_gen(conditions, safe=True):
     ''' Generate comma separated conditions.
 

@@ -64,9 +64,9 @@ class TestSQLite3DB(unittest.TestCase):
     def test_table_add_col(self):
         db.create_table('t', default_cols(a='text'))
 
-        db.add_column('t', default_cols(b= 'integer'))
+        db.add_column('t', next(default_cols(b= 'integer')))
 
-        self.assertEqual(db.table_fields_types()['b'], 'integer')
+        self.assertEqual(db.table_fields_types('t')['b'], 'integer')
 
     # Table info ---------------------------------
     def test_table_fields_types_returns_every_field_with_his_type(self):

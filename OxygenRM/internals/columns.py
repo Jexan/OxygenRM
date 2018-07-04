@@ -1,7 +1,7 @@
 from abc import *
 from collections import namedtuple
 
-ColumnData = namedtuple('ColumnData', 'name type nullable default primary auto_increment')
+ColumnData = namedtuple('ColumnData', 'name type null default primary auto_increment unique check')
 
 class Column(metaclass=ABCMeta):
     ''' The base class for defining a Model (or Migration)
@@ -10,6 +10,8 @@ class Column(metaclass=ABCMeta):
     def __init__(self, **options):
         self.null    = options.get('null', False)
         self.primary = options.get('primary', False)
+        self.unique  = options.get('unique', False)
+        self.check   = options.get('check', None)
         self.auto_increment = options.get('auto_increment', False)
 
         self.default = options.get('default', None)
@@ -48,7 +50,11 @@ class Column(metaclass=ABCMeta):
             Returns:
                 A ColumnData tuple.
         '''
-        return ColumnData(name, self.driver_type[driver], self.null, self.default, self.primary, self.auto_increment)
+        return ColumnData(
+            name, self.driver_type[driver], 
+            self.null, self.default, 
+            self.primary, self.auto_increment,
+            self.unique, self.check)
 
     def validate(self, value):
         ''' Decide wheter a non-null value that wants to be set is valid.

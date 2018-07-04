@@ -10,4 +10,9 @@ def default_cols(**cols):
             ColumnData tuples
     '''
     for col_name, col_type in cols.items(): 
-        yield ColumnData(col_name, col_type, False, None, False, False)
+        yield ColumnData(
+            col_name, col_type, 
+            null=True, default=None, 
+            primary=False, auto_increment=False, 
+            unique=False, check=None
+        )

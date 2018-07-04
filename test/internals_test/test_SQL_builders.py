@@ -1,9 +1,9 @@
 import unittest
 import re
-from OxygenRM.internals.SQL_builders import *
-from collections import OrderedDict, namedtuple
-from . import default_cols
+from collections import OrderedDict
 
+from OxygenRM.internals.SQL_builders import *
+from . import default_cols
 
 _ = True
 
@@ -97,3 +97,9 @@ class TestSQLite3DBHelpers(unittest.TestCase):
 
     def test_delete_clause_where(self):
         self.assertEqual(delete_clause('t', (ConditionClause('AND', 'id', '=', 2),)), 'DELETE FROM t WHERE id = ?')
+
+    def test_rename_table_clause(self):
+        self.assertEqual(rename_table_clause('t', 's'), 'ALTER TABLE t RENAME TO s')
+
+    def test_add_col_clause(self):
+        self.assertEqual(add_column_clause('t', next(default_cols(a='integer'))), 'ALTER TABLE t ADD COLUMN a integer')
