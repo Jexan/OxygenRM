@@ -124,5 +124,7 @@ class TestSQLite3DBHelpers(unittest.TestCase):
 
         self.assertEqual(column_gen(columns), sql[1:-1])
 
-    def test_build_columns_from_sql_breaks_with_string_defaults(self):
-        pass
+    def test_build_columns_from_sql_defaults_correctly(self):
+        sql = 'CREATE TABLE t (a integer DEFAULT 4000, b text CHECK(b > 4))'
+        
+        self.assertEqual(column_gen(build_columns_from_sql(sql)), sql[sql.find('(')+1:-1])

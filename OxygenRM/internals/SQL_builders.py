@@ -15,10 +15,10 @@ COLUMN_RE = re.compile(
             (?P<primary>PRIMARY\ KEY\ ?)?
             (?P<auto_increment>AUTOINCREMENT\ ?)?
             (?P<not_null>NOT\ NULL\ ?)?
-            (DEFAULT\ "?(?P<default>.+)(^\\"?)\ ?)?
+            (DEFAULT\ (?P<default>'?.+(?<!')'?)?\ ?)?
             (?P<unique>UNIQUE\ ?)?
-            (CHECK(?P<check>.+))?
-        ''', re.VERBOSE)
+            (CHECK[(](?P<check>.+)[)])?
+        ''', re.VERBOSE | re.DOTALL)
 
 ConditionClause = namedtuple('ConditionClause', 'connector field symbol value')
 OrderClause = namedtuple('OrderClause', 'field order')
@@ -251,7 +251,7 @@ def column_gen(columns):
         if col.default:
             default = col.default
 
-            if type(col.default) not in (bool, float):
+            if type(col.default) not in (bool, float, int):
                 default = "'{}'".format(escape_single_quotes_sql(col.default))
 
             col_str += ' DEFAULT {}'.format(default)
@@ -336,6 +336,8 @@ def build_columns_from_sql(sql):
         primary = False
         unique = False
         auto_increment = False
+        default = None
+
         result = COLUMN_RE.match(column_str)
 
         if result.group('not_null'):
@@ -350,7 +352,16 @@ def build_columns_from_sql(sql):
         if result.group('auto_increment'):
             auto_increment = True
 
-        default = result.group('default')
+        if result.group('default'):
+            default = result.group('default')
+            if default[0] != "'":
+                if '.' in default:
+                    default = float(default)
+                else:
+                    default = int(default)
+            else:
+                default = default[1:-1]
+
         check = result.group('check')
 
         col_type = result.group('col_type')

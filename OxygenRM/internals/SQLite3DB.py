@@ -90,9 +90,8 @@ class SQLite3DB():
                 An iterable with every column as ColumnData
         '''
         table = self.execute_without_saving('SELECT sql FROM sqlite_master WHERE tbl_name=?', (table_name, ))
-        table = table.fetchone()
 
-        pass
+        return build_columns_from_sql(table.fetchone()['sql'])
 
     def drop_table(self, table_name):
         ''' Drop a table from the database.
