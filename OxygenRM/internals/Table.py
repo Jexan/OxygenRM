@@ -7,6 +7,12 @@ class TableDoesNotExistError(Exception):
     ''' A exception to be raised when a method that involves
         editing an existing database is called. 
     '''
+    pass
+
+class ColumnAlreadyExistsError(Exception):
+    ''' A exception to be raised when a column that already
+        exist is tried to be created. 
+    '''
     pass    
 
 # Allows the creation, edition and droppage of tables
@@ -34,6 +40,7 @@ class Table():
         self.table_name = table_name
         self.table_columns = []
 
+
     def exists(self):
         ''' Check if the table exist in the database.
 
@@ -43,7 +50,7 @@ class Table():
         return self.state is self.State.EDITING
 
     # Allows adding columns to a table
-    def create_cols(self, timestamps=False, **columns):
+    def create_columns(self, timestamps=False, **columns):
         ''' Queue the creation of the given columns.
 
             Args:
