@@ -98,19 +98,17 @@ def delete_clause(table_name, conditions=None):
 
     return delete_str
 
-def create_table_clause(table_name, cols):
+def create_table_clause(table_name, cols): 
     ''' Create a create table clause string for SQL.
 
         Args:
             table_name: The table to be created.
-            cols: A dict of the format column_name: column_type. 
+            cols: An iterator of ColumnData.
         
         Returns:
             A string with the crafted clause.
     '''
-    columns = ', '.join(col.name + ' ' + col.type for col in cols)
-
-    return 'CREATE TABLE {} ({})'.format(table_name, columns) 
+    return 'CREATE TABLE {} ({})'.format(table_name, column_gen(cols)) 
 
 def drop_table_clause(table_name):
     ''' Create a drop table if exists clause string for SQL.
@@ -239,7 +237,12 @@ def column_gen(columns):
             col_str += ' NOT NULL'
 
         if col.default:
-            col_str += ' DEFAULT {}'.format(col.default)
+            default = col.default
+
+            if type(col.default) not in (bool, float):
+                default = '"{}"'.format(col.default)
+
+            col_str += ' DEFAULT {}'.format(default)
 
         if col.unique:
             col_str += ' UNIQUE'
@@ -250,6 +253,7 @@ def column_gen(columns):
         column_sql.append(col_str)
 
     return ', '.join(column_sql)
+
 def conditions_gen(conditions, safe=True):
     ''' Generate comma separated conditions.
 

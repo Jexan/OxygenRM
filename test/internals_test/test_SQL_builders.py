@@ -67,6 +67,19 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         result   = create_table_clause('test', default_cols(a='t1', b='t2', c='t3'))
         self.assertTrue(re.match("CREATE TABLE test [(]( ?(a|b|c) t(1|2|3),?)+[)]", result))
 
+    def test_simple_column_gen(self):
+        expected = 'a integer'
+        self.assertEqual(column_gen(default_cols(a='integer')), expected)
+
+    def test_create_complex_column_gen(self):
+        expected = 'a text NOT NULL DEFAULT "JEX" UNIQUE CHECK(a LIKE "asd_"), id integer PRIMARY KEY AUTOINCREMENT'
+        a_col = next(default_cols(a='text'))._replace(null=False, default='JEX', unique=True, check='a LIKE "asd_"')
+        id_col = next(default_cols(id='integer'))._replace(primary=True, auto_increment=True)
+
+        result = column_gen((a_col, id_col))
+
+        self.assertEqual(expected, result)
+
     def test_drop_table_clause(self):
         expected = "DROP TABLE IF EXISTS test"
         result   = drop_table_clause('test')
