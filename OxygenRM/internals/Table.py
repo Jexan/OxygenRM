@@ -1,7 +1,9 @@
-from OxygenRM import internal_db as db
 from enum import Enum
+from functools import wraps
 
-class TableDoesNotExistException(Exception):
+from OxygenRM import internal_db as db
+
+class TableDoesNotExistError(Exception):
     ''' A exception to be raised when a method that involves
         editing an existing database is called. 
     '''
@@ -53,8 +55,18 @@ class Table():
         for col_name, column_type in columns.items():
             self.table_columns.append(column_type.get_data(col_name, db.driver))
 
-    def rename(self, name):
-        pass
+    def rename(self, new_name):
+        ''' Change the name of the table.
+
+            Args:
+                name: The new name of the table
+
+            Raises:
+                TableDoesNotExistError: If the table is just being created.
+        '''
+        self._exists_guard()
+
+        db.rename_table(self.table_name, new_name)
 
     def drop_cols(self, *args):
         pass
@@ -65,15 +77,19 @@ class Table():
     def edit_cols_props(self, **kwargs):
         pass  
 
-    def destroy(self):
+    def drop(self):
         ''' Destroy the table and deletes self.
 
             Raises:
-                TableDoesNotExistException: If the table is just being created.
+                TableDoesNotExistError: If the table is just being created.
         '''
-        if not self.exists():
-            raise TableDoesNotExistException('A non existing table cannot be destroyed')
+        self._exists_guard()
 
+        db.drop_table(self.table_name)
+
+    def drop_if_exists(self):
+        ''' Destroy the table if exists.
+        '''
         db.drop_table(self.table_name)
 
     def save(self):
@@ -90,3 +106,13 @@ class Table():
             raise ValueError('No column has been specified to be added to the table')
 
         db.create_table(self.table_name, self.table_columns)
+
+    def _exists_guard(self):
+        ''' Halt execution if the table doesn't exist.
+
+            Raises:
+                TableDoesNotExistError: If the table is just being created.
+        '''
+        if not self.exists():
+            raise TableDoesNotExistError('You can not edit a table that does not exist')
+

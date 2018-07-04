@@ -30,26 +30,40 @@ class TestTable(unittest.TestCase):
         self.assertIs(edited_table.state, Table.State.EDITING)
         self.assertTrue(edited_table.exists())
 
-    def test_destroy_raises_exception_if_table_doesnt_exist(self):
-        self.assertRaises(TableDoesNotExistException, created_table.destroy)
+    def test_drop_raises_exception_if_table_doesnt_exist(self):
+        self.assertRaises(TableDoesNotExistError, created_table.drop)
 
-    def test_Table_behaviour_if_create_table_that_already_exists(self):
-        pass
-
-    def test_Table_destroying(self):
+    def test_Table_droping(self):
         db.create_table('t', default_cols(a='text'))
         table = Table('t')
 
-        table.destroy()
+        table.drop()
 
         self.assertFalse(db.table_exists('t'))
+
+    def test_Table_drop_if_exist_drops_correctly(self):
+        db.create_table('t', default_cols(a='text'))
+        table = Table('t')
+
+        table.drop_if_exists()
+
+        self.assertFalse(db.table_exists('t'))
+
+    def test_Table_drop_if_exists_continues_if_table_not_exists(self):
+        Table('t').drop_if_exists()
     
-    def test_Table_destroying_if_table_not_exists(self):
-        pass
+    def test_Table_droping_if_table_not_exists(self):
+        self.assertRaises(TableDoesNotExistError, created_table.drop)
 
     def test_Table_renaming(self):
-        pass
+        db.create_table('t', default_cols(a='text'))
+        table = Table('t')
 
+        table.rename('s')
+
+        self.assertFalse(db.table_exists('t'))
+        self.assertTrue(db.table_exists('s'))
+    
     def test_Table_adding_cols(self):
         t = Table('t')
         t.create_cols(name=Text(), number=Integer())
