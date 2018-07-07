@@ -2,9 +2,7 @@ from collections import defaultdict
 from itertools import chain
 
 from OxygenRM.internals.SQL_builders import *
-from OxygenRM import internal_db
-
-db = internal_db
+from OxygenRM import internal_db as db
 
 class QueryBuilder:
     ''' A class for building and chaining queries.
@@ -321,6 +319,8 @@ class QueryBuilder:
         if options['having']:
             values_to_prepare = chain(values_to_prepare, options['having'].value)
 
+        exists = db.table_exists('todos')
+
         result = db.execute_without_saving(query, tuple(values_to_prepare))
         return self._wrap_in_model(result)
 
@@ -330,7 +330,8 @@ class QueryBuilder:
             Returns:
                 The queried rows.
         '''
-        return db.all(self._in_wait['table_name'], self._in_wait['select_fields'])
+        result = db.all(self._in_wait['table_name'], self._in_wait['select_fields']) 
+        return self._wrap_in_model(result)
 
     def first(self):
         ''' Get the first record of the specified query.
@@ -349,16 +350,28 @@ class QueryBuilder:
         return self.get()
 
     def _wrap_in_model(self, result):
+        ''' Wrap the results of the query cursor in 
+            a passed model, if available.
+
+            Args:
+                result: An iterator with the rows
+
+            Yields:
+                The rows in the model, or just the rows if no Model available.
+        '''
         if not self._model:
-            return result
+            for row in result:
+                yield row
+
+            return
 
         first_row = next(result)
         keys = first_row.keys()
 
-        yield self._model(**dict(zip(keys, tuple(first_row))))
+        yield self._model(creating_new=False, **dict(zip(keys, tuple(first_row))))
 
         for row in result:
-            yield self._model(**dict(zip(keys, tuple(row))))
+            yield self._model(creating_new=False, **dict(zip(keys, tuple(row))))
 
     ''' A dict indicating which operation is pending.
     '''

@@ -21,15 +21,15 @@ def drop_table(table):
 
 class TestSQLite3DB(unittest.TestCase):
     def tearDown(self):
-        db.drop_all_tables()
+        db.drop_table('t')
 
     def test_db_initializes_connection(self):
         self.assertIsInstance(conn, sql3.Connection)
 
     # CREATE TABLE ---------------------------------
     def test_table_creation_creates_table_and_cols(self):
-        db.create_table('test', default_cols(name='text', age='integer'))
-        info = list(db.table_cols_info('test'))
+        db.create_table('t', default_cols(name='text', age='integer'))
+        info = list(db.table_cols_info('t'))
         # Since dicts are not ordered.
         if info[0]['name'] == 'name':
             name_col = info[0]
@@ -77,10 +77,10 @@ class TestSQLite3DB(unittest.TestCase):
 
     # Table info ---------------------------------
     def test_table_fields_types_returns_every_field_with_his_type(self):
-        db.create_table('test', default_cols(name='text', 
+        db.create_table('t', default_cols(name='text', 
             float='real', blob='blob', number='integer'))
 
-        info = db.table_fields_types('test')
+        info = db.table_fields_types('t')
 
         self.assertEqual(info['name'], 'text') 
         self.assertEqual(info['float'], 'real') 
@@ -88,25 +88,27 @@ class TestSQLite3DB(unittest.TestCase):
         self.assertEqual(info['number'], 'integer') 
 
     def test_get_database_tables_lists_every_table(self):
-        db.create_table('test', default_cols(name='text'))
-        db.create_table('test2', default_cols(float='real'))
+        db.create_table('t', default_cols(name='text'))
+        db.create_table('t2', default_cols(float='real'))
 
         info = list(db.get_all_tables())
 
         self.assertEqual(len(info), 2)
-        self.assertIn('test', info)
-        self.assertIn('test2', info)
+        self.assertIn('t', info)
+        self.assertIn('t2', info)
+
+        db.drop_table('t2')
     
     def test_table_existence_detects_whether_a_table_exists(self):
-        self.assertFalse(db.table_exists('test'))
+        self.assertFalse(db.table_exists('t'))
 
-        db.create_table('test', default_cols(name='text'))
+        db.create_table('t', default_cols(name='text'))
 
-        self.assertTrue(db.table_exists('test'))
+        self.assertTrue(db.table_exists('t'))
 
     def test_table_cols_info_queries_info_correctly(self):
-        db.create_table('test', default_cols(name= 'text'))
-        info = list(db.table_cols_info('test'))
+        db.create_table('t', default_cols(name= 'text'))
+        info = list(db.table_cols_info('t'))
 
         self.assertEqual(len(info), 1)
 
@@ -124,21 +126,21 @@ class TestSQLite3DB(unittest.TestCase):
     # Table Droppage ---------------------------------
     def test_table_drop(self):
         self.assertEqual(len(list(db.get_all_tables())), 0)
-        db.create_table('test', default_cols(t='text'))
+        db.create_table('t', default_cols(t='text'))
 
         self.assertEqual(len(list(db.get_all_tables())), 1)
 
-        db.drop_table('test')
+        db.drop_table('t')
         self.assertEqual(len(list(db.get_all_tables())), 0)
 
     def test_drop_all_tables_drops_every_table(self):
         self.assertEqual(len(list(db.get_all_tables())), 0)
-        db.create_table('test1', default_cols(t='text'))
-        db.create_table('test2', default_cols(t='text'))
-        db.create_table('test3', default_cols(t='text'))
-        db.create_table('test4', default_cols(t='text'))
-        db.create_table('test5', default_cols(t='text'))
-        db.create_table('test6', default_cols(t='text'))
+        db.create_table('t1', default_cols(t='text'))
+        db.create_table('t2', default_cols(t='text'))
+        db.create_table('t3', default_cols(t='text'))
+        db.create_table('t4', default_cols(t='text'))
+        db.create_table('t5', default_cols(t='text'))
+        db.create_table('t6', default_cols(t='text'))
 
         self.assertEqual(len(list(db.get_all_tables())), 6)
 
@@ -148,37 +150,37 @@ class TestSQLite3DB(unittest.TestCase):
 
     # RECORD CREATION ---------------------------------
     def test_record_creation_creates_the_records_correctly(self):
-        db.create_table('test', default_cols(name='text', number='integer'))
+        db.create_table('t', default_cols(name='text', number='integer'))
         
-        db.create('test', name='t1', number=1)
-        db.create('test', name='t2', number=1)
-        db.create('test', number=1)
-        db.create('test', name='t4')
+        db.create('t', name='t1', number=1)
+        db.create('t', name='t2', number=1)
+        db.create('t', number=1)
+        db.create('t', name='t4')
 
         c = conn.cursor()
 
-        for row in c.execute('SELECT name, number FROM test'):
+        for row in c.execute('SELECT name, number FROM t'):
             self.assertIn(row['name'], ['t1', 't2', 't4', None])
             self.assertIn(row['number'], [1, None])
     
     def test_create_many_creates_the_records_correctly(self):
-        db.create_table('test', default_cols(name='text', number='integer')       ) 
-        db.create_many('test', ('number', 'name'), [(1,'t1'), (None, 't2'), (3, None)])
+        db.create_table('t', default_cols(name='text', number='integer')       ) 
+        db.create_many('t', ('number', 'name'), [(1,'t1'), (None, 't2'), (3, None)])
 
         c = conn.cursor()
 
-        for row in c.execute('SELECT name, number FROM test'):
+        for row in c.execute('SELECT name, number FROM t'):
             self.assertIn(row['name'], ['t1', 't2', None])
             self.assertIn(row['number'], [1, 3, None])
             
     def test_table_querying_all(self):
-        db.create_table('test', default_cols(name='text', number='integer'))
+        db.create_table('t', default_cols(name='text', number='integer'))
 
-        self.assertEqual(len(list(db.all('test'))), 0)
+        self.assertEqual(len(list(db.all('t'))), 0)
         
-        db.create('test', name='t1', number=1)
-        self.assertEqual(len(list(db.all('test'))), 1)
+        db.create('t', name='t1', number=1)
+        self.assertEqual(len(list(db.all('t'))), 1)
 
-        created = db.all('test').fetchone()
+        created = db.all('t').fetchone()
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)

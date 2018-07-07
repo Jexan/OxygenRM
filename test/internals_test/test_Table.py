@@ -1,8 +1,5 @@
 import unittest
-from OxygenRM import db_config, internal_db
-
-# FOR NOW
-db = db_config('sqlite3', ':memory:')
+from .. import db
 
 from OxygenRM.internals.Table import *
 from OxygenRM.internals.columns import *
@@ -16,7 +13,7 @@ edited_table = Table('e')
 
 class TestTable(unittest.TestCase):
     def tearDown(self):
-        db.drop_all_tables()
+        db.drop_table('t')
 
     def test_Table_initialization(self):
         self.assertIsInstance(edited_table, Table)

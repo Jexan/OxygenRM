@@ -76,7 +76,7 @@ class SQLite3DB():
             Returns:
                 An iterable with all the tables names.
         '''
-        tables = self.execute_without_saving('SELECT * FROM sqlite_master WHERE type="table"')
+        tables = self.connection.execute('SELECT * FROM sqlite_master WHERE type="table"')
 
         return (table['name'] for table in tables)
 

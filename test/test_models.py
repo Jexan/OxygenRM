@@ -1,10 +1,8 @@
 # Test cases for OxygenRM Models
 
 import unittest
-from OxygenRM import db_config
+from OxygenRM import internal_db as db
 from .internals_test import default_cols
-
-db = db_config('sqlite3', ':memory:')
 
 import OxygenRM.models as O
 
@@ -38,7 +36,7 @@ class TestModels(unittest.TestCase):
         class User(O.Model):
             pass
 
-        User.limit(2)
+        User.limit(2).get()
 
         self.assertTrue(User._set_up)
         self.assertIsNot(User._db_fields, None)
@@ -77,6 +75,7 @@ class TestModels(unittest.TestCase):
         for i in range(100):
             create_todo()
 
+        exists = db.table_exists('todos')
         first_50_todos = list(Todo.limit(50).get())
 
         self.assertEqual(len(first_50_todos), 50)

@@ -1,8 +1,5 @@
 import unittest
-from OxygenRM import db_config
-
-# FOR NOW
-db = db_config('sqlite3', ':memory:')
+from .. import db
 
 from OxygenRM.internals.QueryBuilder import *
 from . import default_cols
@@ -111,7 +108,7 @@ class TestQueryBuilderSQL(unittest.TestCase):
 
 class RecordManipulationTest(unittest.TestCase):
     def tearDown(self):
-        db.drop_all_tables()
+        db.drop_table('t')
 
     def test_table_querying_all(self):
         db.create_table('t', default_cols(name='text', number='integer'))
@@ -121,7 +118,7 @@ class RecordManipulationTest(unittest.TestCase):
         db.create('t', name='t1', number=1)
         self.assertEqual(len(list(db.all('t'))), 1)
 
-        created = qb.table('t').all().fetchone()
+        created = next(qb.table('t').all())
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
 
@@ -150,7 +147,7 @@ class RecordManipulationTest(unittest.TestCase):
             self.assertTrue(row['a'] <= 3)
             self.assertIn(row['name'], ['t1', 't2', None])
     
-    def test__where_gt_works(self):
+    def test_where_gt_works(self):
         db.create_table('t', default_cols(a='integer', b='text'))
         db.create_many('t', ('a', 'b'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
     
@@ -181,7 +178,9 @@ class RecordManipulationTest(unittest.TestCase):
         db.create('t', id=2, name='t2')
         db.create('t', id=3)
 
+        query = qb.table('t').where('id', '=', 1)
         field_with_id_1 = list(qb.table('t').where('id', '=', 1))
+
         self.assertEqual(len(field_with_id_1), 1)
         self.assertEqual(field_with_id_1[0]['name'], 't1')
 

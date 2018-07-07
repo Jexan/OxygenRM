@@ -64,7 +64,7 @@ class Model(metaclass=MetaModel):
         cls._self_name = cls.__name__
 
     def __getattr__(self, name):
-        return self._db_values[name]
+        return self._db_values.get(name, None)
 
     def __setattr__(self, name, value):
         if name in self._db_fields:
@@ -79,7 +79,7 @@ class Model(metaclass=MetaModel):
     '''
     table_name = ''
 
-    def __init__(self, creating_new=False, **values):
+    def __init__(self, creating_new=True, **values):
         if not self._set_up:
             self.__class__._set_model_db_data()
 
@@ -98,8 +98,13 @@ class Model(metaclass=MetaModel):
                                 
     # Saves all changes
     def save(self):
-        pass
-         
+        if self._creating_new:
+            db.create(self.table_name, **self._db_values)
+        else:
+            raise NotImplementedError('Model dition not implemented yet')
+
+        return self
+
     # Converts the record to a value
     def to(self):
         pass
