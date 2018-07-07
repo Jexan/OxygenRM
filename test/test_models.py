@@ -88,16 +88,16 @@ class TestModels(unittest.TestCase):
         record = db.all('todos').fetchone()
         self.assertEqual(record['a'], 't')
 
-    def test_models_delete(self):
+    def test_models_destroy(self):
         create_todo()
 
-        t = Todo.where('a', '=', 't').get()
-        t.delete()
+        t = Todo.where('a', '=', 't').first()
+        t.destroy()
 
         record = db.all('todos').fetchone()
-        self.assertNone(record)
+        self.assertIs(record, None)
 
-    def test_models_destroy(self):
+    def test_models_delete(self):
         create_todo()
 
         t = Todo.where('a', '=', 't').delete()

@@ -112,10 +112,17 @@ class Model(metaclass=MetaModel):
         if self._creating_new:
             db.create(self.table_name, **self._db_values)
         else:
-            s1 = self.__class__.where_many(self._convert_orig_values_to_conditions())
-            s2 = s1.update(self._db_values)
+            self.__class__.where_many(self._convert_orig_values_to_conditions()).update(self._db_values)
 
         return self
+
+    def destroy(self):
+        if self._creating_new:
+            raise Exception('Can not destroy model that doesn\'t exist in the database')
+
+        self.__class__.where_many(self._convert_orig_values_to_conditions()).delete()
+
+        return True
 
     # Converts the record to a value
     def to(self):
