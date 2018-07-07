@@ -9,12 +9,14 @@ db = internal_db
 class QueryBuilder:
     ''' A class for building and chaining queries.
     '''
-    def __init__(self, table_name):
+    def __init__(self, table_name, model=None):
         self._in_wait = defaultdict(list)
         self._in_wait['table_name'] = table_name
 
+        self._model = model
+
     @classmethod
-    def table(cls, table_name):
+    def table(cls, table_name, model=None):
         ''' Prepare the table to edit.
 
             Args:
@@ -23,7 +25,7 @@ class QueryBuilder:
             Returns:
                 A QueryBuilder instance
         '''
-        return cls(table_name)
+        return cls(table_name, model)
 
     def select(self, *fields):
         ''' Specify which fields will be selected. 
@@ -319,7 +321,8 @@ class QueryBuilder:
         if options['having']:
             values_to_prepare = chain(values_to_prepare, options['having'].value)
 
-        return db.execute_without_saving(query, tuple(values_to_prepare))
+        result = db.execute_without_saving(query, tuple(values_to_prepare))
+        return self._wrap_in_model(result)
 
     def all(self):
         ''' Gets all the records.
@@ -344,6 +347,18 @@ class QueryBuilder:
                 The rows obtained.
         '''
         return self.get()
+
+    def _wrap_in_model(self, result):
+        if not self._model:
+            return result
+
+        first_row = next(result)
+        keys = first_row.keys()
+
+        yield self._model(**dict(zip(keys, tuple(first_row))))
+
+        for row in result:
+            yield self._model(**dict(zip(keys, tuple(row))))
 
     ''' A dict indicating which operation is pending.
     '''

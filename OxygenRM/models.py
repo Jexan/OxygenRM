@@ -4,7 +4,17 @@ from OxygenRM import internal_db as db
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.columns import *
 
-class Model(QueryBuilder):
+class MetaModel(type):
+    def __getattr__(cls, name):
+        if not cls._set_up:
+            cls._set_model_db_data()
+
+        if getattr(QueryBuilder, name, None):
+            return getattr(QueryBuilder.table(cls.table_name, cls), name)
+        else:
+            raise AttributeError('The model {} has no attribute {}'.format(cls._self_name, name))
+
+class Model(metaclass=MetaModel):
     ''' The model base class. It allows ORM operations, and
         it's supossed to be subclassed.
     '''
@@ -29,6 +39,10 @@ class Model(QueryBuilder):
     '''
     _model = None
     
+    ''' The values of the model per se.
+    '''
+    _db_values = {}
+
     @classmethod
     def _set_model_db_data(cls):
         ''' Set up the model internals that allows communication
@@ -47,6 +61,16 @@ class Model(QueryBuilder):
         cls._db_fields = db.table_fields_types(cls.table_name)
         cls._Row = namedtuple(cls.__name__, list(cls._db_fields.keys()))
         cls._set_up = True
+        cls._self_name = cls.__name__
+
+    def __getattr__(self, name):
+        return self._db_values[name]
+
+    def __setattr__(self, name, value):
+        if name in self._db_fields:
+            self._db_values[name] = value
+        else:
+            super().__setattr__(name, value)
 
     # PUBLIC
     ''' A string of the associated table name. Can be specified by
@@ -55,9 +79,12 @@ class Model(QueryBuilder):
     '''
     table_name = ''
 
-    def __init__(self, **values):
+    def __init__(self, creating_new=False, **values):
         if not self._set_up:
             self.__class__._set_model_db_data()
+
+        self._db_values = values
+        self._creating_new = creating_new
 
     # Creates a new record and saves it right away
     @staticmethod
