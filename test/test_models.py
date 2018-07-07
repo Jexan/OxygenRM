@@ -26,7 +26,6 @@ class TestModels(unittest.TestCase):
         t = Todo()
         self.assertTrue(Todo._set_up)
         self.assertIsNot(Todo._db_fields, None)
-        self.assertIsNot(Todo._Row, None)
 
         self.assertEqual(Todo.table_name, 'todos')
         self.assertEqual(Todo._db_fields, {'a': 'text'})
@@ -40,7 +39,6 @@ class TestModels(unittest.TestCase):
 
         self.assertTrue(User._set_up)
         self.assertIsNot(User._db_fields, None)
-        self.assertIsNot(User._Row, None)
         self.assertEqual(User.table_name, 'users')
 
     def test_model_is_not_set_up_if_not_invoked(self):
@@ -50,7 +48,6 @@ class TestModels(unittest.TestCase):
 
         self.assertFalse(User._set_up)
         self.assertIs(User._db_fields, None)
-        self.assertIs(User._Row, None)
         self.assertEqual(User.table_name, '')
 
     def test_model_can_have_custom_table_name(self):
@@ -103,10 +100,25 @@ class TestModels(unittest.TestCase):
     def test_models_destroy(self):
         create_todo()
 
-        t = Todo.destroy(a='t')
+        t = Todo.where('a', '=', 't').delete()
 
         record = db.all('todos').fetchone()
-        self.assertNone(record)
+        self.assertIs(record, None)
+
+    def test_model_update(self):
+        create_todo()
+
+        t = Todo.where('a', '=', 't').first()
+
+        t.a = 's'
+        t.save()
+
+        all_records = list(db.all('todos'))
+        self.assertEqual(len(all_records), 1)
+
+        record = all_records[0]
+
+        self.assertEqual(record['a'], 's')
 
     def test_models_fetching_all(self):
         pass

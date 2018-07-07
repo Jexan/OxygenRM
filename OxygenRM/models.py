@@ -1,4 +1,4 @@
-from collections import namedtuple
+from copy import deepcopy
 
 from OxygenRM import internal_db as db
 from OxygenRM.internals.QueryBuilder import QueryBuilder
@@ -30,11 +30,6 @@ class Model(metaclass=MetaModel):
     '''
     _db_fields = None
 
-    ''' A namedtuple class constructor, to make model editing easier.
-        @static
-    '''
-    _Row = None
-
     ''' The model of this instance.
     '''
     _model = None
@@ -42,6 +37,10 @@ class Model(metaclass=MetaModel):
     ''' The values of the model per se.
     '''
     _db_values = {}
+
+    ''' The original values of the model.
+    '''
+    _original_values = {}
 
     @classmethod
     def _set_model_db_data(cls):
@@ -59,7 +58,6 @@ class Model(metaclass=MetaModel):
                 cls.table_name))
 
         cls._db_fields = db.table_fields_types(cls.table_name)
-        cls._Row = namedtuple(cls.__name__, list(cls._db_fields.keys()))
         cls._set_up = True
         cls._self_name = cls.__name__
 
@@ -71,6 +69,16 @@ class Model(metaclass=MetaModel):
             self._db_values[name] = value
         else:
             super().__setattr__(name, value)
+
+    def _convert_orig_values_to_conditions(self):
+        ''' Convert the internal _original_values
+            to conditions, for a where condition.
+
+            Yields:
+                Tuples of the form (field, '=', value)
+        '''
+        for field, value in self._original_values.items():
+            yield (field, '=', value)
 
     # PUBLIC
     ''' A string of the associated table name. Can be specified by
@@ -85,6 +93,9 @@ class Model(metaclass=MetaModel):
 
         self._db_values = values
         self._creating_new = creating_new
+
+        if not creating_new:
+            self._original_values = deepcopy(values)
 
     # Creates a new record and saves it right away
     @staticmethod
@@ -101,7 +112,8 @@ class Model(metaclass=MetaModel):
         if self._creating_new:
             db.create(self.table_name, **self._db_values)
         else:
-            raise NotImplementedError('Model dition not implemented yet')
+            s1 = self.__class__.where_many(self._convert_orig_values_to_conditions())
+            s2 = s1.update(self._db_values)
 
         return self
 
