@@ -2,17 +2,18 @@ import unittest
 
 from OxygenRM.migrations import *
 
+
 class CreatePosts(Migration):
     def create(self):
         posts = Table('posts')
 
         posts.create_cols(
-            id    = Col.Id(),
-            title = Col.String(),
-            body  = Col.Text(null=True),
-            user  = Col.Rel('users'),
+            id=Col.Id(),
+            title=Col.String(),
+            body=Col.Text(null=True),
+            user=Col.Rel('users'),
 
-            timestamps = True
+            timestamps=True
         )
 
         posts.create()
@@ -20,16 +21,17 @@ class CreatePosts(Migration):
     def destroy(self):
         Table('posts').destroy()
 
+
 class EditPosts(Migration):
     def mount(self):
         self.posts = Table.get('posts')
 
-    def create(self):      
+    def create(self):
         posts = self.posts
 
         posts.rename('publications')
         posts.drop_cols('edited_at')
-        posts.rename_cols(title = 'Título')
+        posts.rename_cols(title='Título')
 
         posts.edit()
 
@@ -37,10 +39,11 @@ class EditPosts(Migration):
         posts = self.posts
 
         posts.rename('posts')
-        posts.create_cols(edited_at = True)
-        posts.rename_cols(Título = 'title')
+        posts.create_cols(edited_at=True)
+        posts.rename_cols(Título='title')
 
         posts.edit()
+
 
 class TestMigrations(unittest.TestCase):
     def test_migration_class_inits(self):

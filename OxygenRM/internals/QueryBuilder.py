@@ -329,6 +329,14 @@ class QueryBuilder:
         '''
         return db.all(self._in_wait['table_name'], self._in_wait['select_fields'])
 
+    def first(self):
+        ''' Get the first record of the specified query.
+
+            Returns:
+                The first record specified.
+        '''
+        return next(self.limit(1).get())
+
     def __iter__(self):
         ''' Alias fot get.
 
