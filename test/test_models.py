@@ -138,24 +138,6 @@ class TestModels(unittest.TestCase):
     def test_models_converting_to_data(self):
         pass
 
-    def test_where_string_pattern(self):
-        pass
-
-    def test_where_array_pattern(self):
-        pass
-
-    def test_where_kwargs_pattern(self):
-        pass
-
-    def test_where_dict_pattern(self):
-        pass
-
-    def test_last(self):
-        pass
-
-    def test_getting_correct_table_prop(self):
-        pass
-
     def test_to_formats(self):
         pass
 
