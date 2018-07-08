@@ -75,18 +75,10 @@ class TestModelContainer(unittest.TestCase):
                 
     def test_model_pretty(self):
         pretty_str = self.mc.pretty()
-        self.assertEqual(pretty_str, 
-            '''Tests:
-                    1:
-                        a: a
-                    2:
-                        a: b
-                    3:
-                        a: c
-            ''')
+        self.assertEqual(pretty_str, 'Test:\n\t1:\n\t\ta: a\n\t2:\n\t\ta: b\n\t3:\n\t\ta: c\n')
 
-    # FOR SOME REASON THIS TEST FAILS IF WE ADD THE WORD 'DICT' TO IT
-    def test_to_what_would_be_ruby_hash(self):
+    # FOR SOME REASON THIS TEST FAILED IF WE ADDED THE WORD 'DICT' TO IT
+    def test_to_dict_container(self):
         cont_as_dict = list(self.mc.to_dict())
 
         self.assertEqual(len(cont_as_dict), 3)

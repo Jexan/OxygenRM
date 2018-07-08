@@ -56,4 +56,12 @@ class ModelContainer():
             yield row.to_dict()
 
     def pretty(self):
-        pass
+        pretty_str = self._model.__name__.capitalize() + ':\n'
+
+        for index, model_dict in enumerate(self.to_dict(), 1):
+            pretty_str +=  '\t' + str(index) + ':\n' 
+
+            for key, value in model_dict.items():
+                pretty_str += '\t\t' + key + ': ' + str(value) + '\n'
+
+        return pretty_str
