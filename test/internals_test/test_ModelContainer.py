@@ -32,7 +32,7 @@ class TestModelContainer(unittest.TestCase):
         
     def test_json_conversion(self):
         json_data = self.mc.to_json()
-        expected = '[{"a":"a"},{"a":"b"},{"a":"c"}]'
+        expected = '[{"a": "a"}, {"a": "b"}, {"a": "c"}]'
 
         self.assertEqual(json_data, expected)
 
@@ -74,7 +74,7 @@ class TestModelContainer(unittest.TestCase):
         self.assertEqual(['a', 'b', 'c'], list(aes))
                 
     def test_model_pretty(self):
-        pretty_str = self.mc.pretty
+        pretty_str = self.mc.pretty()
         self.assertEqual(pretty_str, 
             '''Tests:
                     1:
@@ -85,6 +85,9 @@ class TestModelContainer(unittest.TestCase):
                         a: c
             ''')
 
-    def test_as_array_dicts(self):
-        dict_test = self.mc.to_dict()
-        self.assertEqual(dict_test, [{'a': 'a'}, {'a': 'b'}, {'a': 'c'}])
+    # FOR SOME REASON THIS TEST FAILS IF WE ADD THE WORD 'DICT' TO IT
+    def test_to_what_would_be_ruby_hash(self):
+        cont_as_dict = list(self.mc.to_dict())
+
+        self.assertEqual(len(cont_as_dict), 3)
+        self.assertEqual(cont_as_dict, [{'a': 'a'}, {'a': 'b'}, {'a': 'c'}])

@@ -114,6 +114,7 @@ class Model(metaclass=MetaModel):
         else:
             self.__class__.where_many(self._convert_orig_values_to_conditions()).update(self._db_values)
 
+        self._creating_new = False
         return self
 
     def destroy(self):
@@ -124,11 +125,9 @@ class Model(metaclass=MetaModel):
 
         return True
 
-    # Converts the record to a value
-    def to(self):
-        pass
-        
     # Converts the record to a dict
-    def get_dict(self):
-        pass
-        
+    def to_dict(self):
+        return self._db_values
+
+    def __eq__(self, other_model):
+        return self._db_values == self._db_values

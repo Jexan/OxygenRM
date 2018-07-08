@@ -10,21 +10,19 @@ class ModelContainer():
 
     # An iterator that yields all the rows
     def __iter__(self):
-        def generator():
-            for row in self._calculated_models:
-                yield row
+        for row in self._calculated_models:
+            yield row
 
-            for row in self._result:
-                model_from_row = self._model(**dict(zip(row.keys(), tuple(row)))) 
-                self._calculated_models.append(model_from_row)
-                yield model_from_row
-            self._iteration_done = True
-        
-        return generator()    
-        
+        for row in self._result:
+            model_from_row = self._model(**dict(zip(row.keys(), tuple(row)))) 
+            self._calculated_models.append(model_from_row)
+            yield model_from_row
+
+        self._iteration_done = True
+            
     # Gets only unique values
     def distinct(self):
-        return list(frozenset(self))
+        return list(frozenset(iter(self)))
         
     def __getitem__(self, key):
         length = len(self._calculated_models) 
@@ -50,11 +48,11 @@ class ModelContainer():
         return json.dumps(list(self.to_dict()))
 
     def pluck(self, attr):
-        for row in iter(self):
+        for row in self:
             yield getattr(row, attr)
 
     def to_dict(self):
-        for row in iter(self):
+        for row in self:
             yield row.to_dict()
 
     def pretty(self):
