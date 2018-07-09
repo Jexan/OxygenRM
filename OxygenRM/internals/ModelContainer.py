@@ -13,7 +13,7 @@ class ModelContainer():
             yield row
 
         for row in self._result:
-            model_from_row = self._model(**dict(zip(row.keys(), tuple(row)))) 
+            model_from_row = self._model(False, **dict(zip(row.keys(), tuple(row)))) 
             self._calculated_models.append(model_from_row)
             yield model_from_row
 

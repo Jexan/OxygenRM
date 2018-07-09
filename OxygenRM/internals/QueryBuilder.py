@@ -2,6 +2,7 @@ from collections import defaultdict
 from itertools import chain
 
 from OxygenRM.internals.SQL_builders import *
+from OxygenRM.internals.ModelContainer import *
 from OxygenRM import internal_db as db
 
 class QueryBuilder:
@@ -339,7 +340,11 @@ class QueryBuilder:
             Returns:
                 The first record specified.
         '''
-        return next(self.limit(1).get())
+        result = self.limit(1).get()
+        if self._model:
+            return result.first()
+        else:
+            return result.fetchone()
 
     def __iter__(self):
         ''' Alias fot get.
@@ -351,27 +356,18 @@ class QueryBuilder:
 
     def _wrap_in_model(self, result):
         ''' Wrap the results of the query cursor in 
-            a passed model, if available.
+            a ModelContainer, if a model is available.
 
             Args:
                 result: An iterator with the rows
 
-            Yields:
-                The rows in the model, or just the rows if no Model available.
+            Return:
+                An iterator with the rows
         '''
         if not self._model:
-            for row in result:
-                yield row
-
-            return
-
-        first_row = next(result)
-        keys = first_row.keys()
-
-        yield self._model(creating_new=False, **dict(zip(keys, tuple(first_row))))
-
-        for row in result:
-            yield self._model(creating_new=False, **dict(zip(keys, tuple(row))))
+            return result
+        else:
+            return ModelContainer(result, self._model)
 
     ''' A dict indicating which operation is pending.
     '''

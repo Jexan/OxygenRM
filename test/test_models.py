@@ -63,7 +63,7 @@ class TestModels(unittest.TestCase):
     def test_model_where_queries(self):
         create_todo()
 
-        t = next(Todo.where('a', '=', 't').get())
+        t = Todo.where('a', '=', 't').get().first()
 
         record = db.all('todos').fetchone()
         self.assertEqual(t.a, record['a'])
