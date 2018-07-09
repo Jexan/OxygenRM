@@ -106,12 +106,6 @@ class TestColumns(unittest.TestCase):
         t.f = 123.2
         self.assertEqual(t.f, 123.2)
 
-    def test_id_cannot_be_reassigned(self):
-        t = T()
-
-        with self.assertRaises(AttributeError):
-            t.id = 23
-
     def test_rel_prop_creation(self):
         pass
 

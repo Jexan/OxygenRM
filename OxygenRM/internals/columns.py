@@ -1,3 +1,4 @@
+import sqlite3
 from abc import *
 from collections import namedtuple
 
@@ -167,7 +168,6 @@ class Float(Column):
 class Id(Integer):
     ''' An auto-incrementing, unsigned integer. Used as a primary key.
     '''
-
     null = False
     primary = True
     auto_increment = True
@@ -175,10 +175,10 @@ class Id(Integer):
     def __init__(self, name='id'):
         self.name = name
 
-    def __set__(self, *_):
-        raise AttributeError('Primary key can\'t be changed')
-
 class Date(Column):
+    pass
+
+class Datetime(Column):
     pass
 
 class Rel(Column):
