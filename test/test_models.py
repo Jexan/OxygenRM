@@ -2,6 +2,7 @@
 
 import unittest
 from OxygenRM import internal_db as db
+from OxygenRM.internals.fields import *
 from .internals_test import default_cols
 
 import OxygenRM.models as O
@@ -22,13 +23,20 @@ class TestModels(unittest.TestCase):
         self.assertIsInstance(t, Todo)
         self.assertIsInstance(t, O.Model)
 
+    def test_model_field_set_up_correctly(self):
+        t = Todo()
+
+        t.a = 'hey'
+        self.assertEqual(t.a, 'hey')
+
+        with self.assertRaises(TypeError):
+            t.a = 12
+
     def test_model_is_set_up_if_invoked(self):
         t = Todo()
         self.assertTrue(Todo._set_up)
-        self.assertIsNot(Todo._db_fields, None)
 
         self.assertEqual(Todo.table_name, 'todos')
-        self.assertEqual(Todo._db_fields, {'a': 'text'})
 
     def test_model_is_set_up_if_chained(self):
         db.create_table('users', default_cols(a='text'))
@@ -38,16 +46,14 @@ class TestModels(unittest.TestCase):
         User.limit(2).get()
 
         self.assertTrue(User._set_up)
-        self.assertIsNot(User._db_fields, None)
         self.assertEqual(User.table_name, 'users')
 
     def test_model_is_not_set_up_if_not_invoked(self):
         db.create_table('users', default_cols(a='text'))
         class User(O.Model):
-            pass
+            a = Text
 
         self.assertFalse(User._set_up)
-        self.assertIs(User._db_fields, None)
         self.assertEqual(User.table_name, '')
 
     def test_model_can_have_custom_table_name(self):
@@ -55,18 +61,45 @@ class TestModels(unittest.TestCase):
         class Crow(O.Model):
             table_name = 'murder'
 
+            name = Text()
+
         Crow()
 
         self.assertEqual(Crow.table_name, 'murder')
-        self.assertEqual(Crow._db_fields['name'], 'text')
 
     def test_model_where_queries(self):
         create_todo()
 
         t = Todo.where('a', '=', 't').get().first()
+        print(t.a)
 
         record = db.all('todos').fetchone()
         self.assertEqual(t.a, record['a'])
+
+    def test_multiple_models_dont_get_screwed_up(self):
+        create_todo()
+        create_todo()
+
+        t = Todo.all().first()
+        t.a = 's'
+
+        e = Todo.all()[1]
+        e.a = 't'
+
+        self.assertNotEqual(t.a, e.a)
+
+    def test_weird(self):
+        class R:
+            pass
+
+        R.e = Integer()
+        a = R()
+        b = R()
+
+        a.e = 1
+        b.e = 3
+
+        self.assertNotEqual(a, b)
 
     def test_model_limit(self):
         for i in range(100):
