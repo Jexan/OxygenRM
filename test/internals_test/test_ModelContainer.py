@@ -58,7 +58,7 @@ class TestModelContainer(unittest.TestCase):
         self.assertEqual(len(two_list), 3)
             
     def test_list_conversion(self):
-        as_list = self.mc.to_list()
+        as_list = list(self.mc)
 
         self.assertEqual(len(as_list), 3)
         self.assertIsInstance(as_list, list)
