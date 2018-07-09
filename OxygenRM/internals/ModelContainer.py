@@ -20,10 +20,6 @@ class ModelContainer():
 
         self._iteration_done = True
             
-    # Gets only unique values
-    def distinct(self):
-        return list(frozenset(iter(self)))
-        
     def __getitem__(self, key):
         length = len(self._calculated_models) 
         iterator = iter(self)

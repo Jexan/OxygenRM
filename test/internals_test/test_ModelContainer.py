@@ -45,19 +45,18 @@ class TestModelContainer(unittest.TestCase):
     def test_first(self):
         first = self.mc.first()
         self.assertEqual(first.a, 'a')
-        
-    def test_distinct_actually_gives_distinct(self):
-        db.create_many('tests', ('a', ), ('a', 'a'))
-        distinct = self.mc.distinct()
-        counter = {'a':0, 'b':0, 'c':0}
 
-        for row in distinct:
-            counter[row.a] += 1
+    def test_iterator_is_not_shared_behaves_as_expected(self):
+        one_list = []
+        two_list = []
 
-        self.assertEqual(counter['a'], 1)
-        self.assertEqual(counter['b'], 1)
-        self.assertEqual(counter['c'], 1)
-    
+        one_list.extend(self.mc)
+        two_list.extend(self.mc)
+
+        self.assertEqual(len(one_list), 3)
+        self.assertNotEqual(len(two_list), 0)
+        self.assertEqual(len(two_list), 3)
+            
     def test_list_conversion(self):
         as_list = self.mc.to_list()
 
