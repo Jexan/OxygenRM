@@ -28,14 +28,46 @@ class ModelContainer():
             Returns:
                 The model at position index.
         '''
-        length = len(self._calculated_models) 
-        iterator = iter(self)
-
-        while length < index + 1:
-            next(iterator)
-            length += 1
-
+        self._make_calculated_models_until(index)
         return self._calculated_models[index]
+
+    def __delitem__(self, index):
+        ''' Invoked when del self[index] is called
+
+            Args:
+                index: An nonegative integer.
+        '''
+        self._make_calculated_models_until(index)
+        del self._calculated_models[index]
+
+    def _make_calculated_models_until(self, wanted_access_index):
+        ''' Make sure that there's at least n calculated models
+
+            Args:
+                wanted_access_index: The number of minimum models to have cached.
+
+            Raises:
+                IndexError: If n is grether than the available models
+        '''
+        length = len(self._calculated_models)
+
+        if wanted_access_index < length:
+            return
+
+        for _ in self:
+            length += 1
+            if wanted_access_index < length:
+                return
+
+        raise IndexError('Container has {} elements, but tried to get element {}'.format(length, n))
+
+    def __len__(self):
+        ''' Calculate the number of models in the container.
+        '''
+        if self._iteration_done:
+            return len(self._calculated_models)
+        else:
+            return len(list(iter(self)))
     
     # Returns the first record
     def first(self):
@@ -44,6 +76,7 @@ class ModelContainer():
             Returns:
                 The first model.
         '''
+        self._make_calculated_models_until(0)
         return self[0]
 
     def to_json(self):
