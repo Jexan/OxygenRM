@@ -9,6 +9,27 @@ logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 
 from OxygenRM.internals.SQL_builders import *
 
+VALID_TABLE_TYPES = [
+    'integer', 
+    'int', 
+
+    'boolean', 
+
+    'real', 
+
+    'blob', 
+
+    'text', 
+
+    'datetime',
+    'date',
+
+    'json',
+    'xml',
+    'csv',
+    'foreign'
+]
+
 class SQLite3DB():
     ''' Init the connection to the database
 
@@ -39,7 +60,7 @@ class SQLite3DB():
             raise ValueError('Can\'t create {} without columns'.format(table_name))
 
         for column_data in columns:
-            if not column_data.type in ['text', 'integer', 'real', 'blob']:
+            if not column_data.type in VALID_TABLE_TYPES:
                 raise TypeError('Invalid column type: {}'.format(column_data.type))
 
         self.execute(create_table_clause(table_name, columns))

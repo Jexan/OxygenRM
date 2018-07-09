@@ -59,7 +59,7 @@ class ModelContainer():
             if wanted_access_index < length:
                 return
 
-        raise IndexError('Container has {} elements, but tried to get element {}'.format(length, n))
+        raise IndexError('Container has {} elements, but tried to get element {}'.format(length, wanted_access_index))
 
     def __len__(self):
         ''' Calculate the number of models in the container.
