@@ -12,7 +12,7 @@ class Field(metaclass=ABCMeta):
         if protocol is sqlite3.PrepareProtocol:
             return self._value
 
-    def __set__(self, instance, value):
+    def set(self, value):
         ''' Validate the set value and change the internal 
             _value of the class 
 
@@ -27,7 +27,7 @@ class Field(metaclass=ABCMeta):
             self.validate(value)
             self._value = self.value_processor(value)
 
-    def __get__(self, instance, owner):
+    def get(self):
         ''' Get the value of the column
 
             Returns:

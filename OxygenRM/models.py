@@ -2,7 +2,7 @@ from copy import deepcopy
 
 from OxygenRM import internal_db as db
 from OxygenRM.internals.QueryBuilder import QueryBuilder
-from OxygenRM.internals.columns import *
+from OxygenRM.internals.fields import *
 
 class MetaModel(type):
     def __getattr__(cls, name):
@@ -42,6 +42,10 @@ class Model(metaclass=MetaModel):
     '''
     _original_values = {}
 
+    '''  The fields that are subclasses of Field class
+    '''
+    _fields = {}
+
     @classmethod
     def _set_model_db_data(cls):
         ''' Set up the model internals that allows communication
@@ -57,6 +61,12 @@ class Model(metaclass=MetaModel):
             raise ValueError('The table {} does not exist.'.format(
                 cls.table_name))
 
+        cls._fields = {}
+
+        for attr, value in cls.__dict__.items():
+            if isinstance(value, Field):
+                cls._fields[attr] = value
+
         cls._db_fields = db.table_fields_types(cls.table_name)
         cls._set_up = True
         cls._self_name = cls.__name__
@@ -65,10 +75,22 @@ class Model(metaclass=MetaModel):
         return self._db_values.get(name, None)
 
     def __setattr__(self, name, value):
-        if name in self._db_fields:
+        field_class = self._fields.get(name, None)
+
+        if field_class:
+            field_class.set(value)
+        elif name in self._db_fields:
             self._db_values[name] = value
         else:
             super().__setattr__(name, value)
+
+    def __getattribute__(self, name):
+        value = super().__getattribute__('_fields').get(name, None)
+
+        if value:
+            return value.get()
+        else:
+            return super().__getattribute__(name)
 
     def _convert_orig_values_to_conditions(self):
         ''' Convert the internal _original_values

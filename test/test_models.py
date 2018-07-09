@@ -24,8 +24,11 @@ class TestModels(unittest.TestCase):
         self.assertIsInstance(t, O.Model)
 
     def test_model_field_set_up_correctly(self):
-        t = Todo()
+        db.create_table('tests', default_cols(a='text'))
+        class Test(O.Model):
+            a = Text()
 
+        t = Test()
         t.a = 'hey'
         self.assertEqual(t.a, 'hey')
 
@@ -71,7 +74,6 @@ class TestModels(unittest.TestCase):
         create_todo()
 
         t = Todo.where('a', '=', 't').get().first()
-        print(t.a)
 
         record = db.all('todos').fetchone()
         self.assertEqual(t.a, record['a'])
@@ -120,6 +122,15 @@ class TestModels(unittest.TestCase):
 
         record = db.all('todos').fetchone()
         self.assertEqual(record['a'], 't')
+
+        s = Todo()
+        t.a = 't2'
+
+        self.assertEqual(t.a, 't2')
+        t.save()
+
+        record = list(db.all('todos'))[-1]
+        self.assertEqual(record['a'], 't2')
 
     def test_models_destroy(self):
         create_todo()
