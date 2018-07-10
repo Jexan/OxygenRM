@@ -2,14 +2,15 @@
 
 import unittest
 from OxygenRM import internal_db as db
-from OxygenRM.internals.fields import *
 from OxygenRM.internals.ModelContainer import ModelContainer
 from .internals_test import default_cols
 
 import OxygenRM.models as O
 
+from OxygenRM.internals.fields import *
+
 class Todo(O.Model):
-    pass
+    a = Text()
 
 class TestModels(unittest.TestCase):
     def tearDown(self):
@@ -45,7 +46,7 @@ class TestModels(unittest.TestCase):
     def test_model_is_set_up_if_chained(self):
         db.create_table('users', default_cols(a='text'))
         class User(O.Model):
-            pass
+            a = Text()
 
         User.limit(2).get()
 
@@ -212,7 +213,7 @@ post_cols = [
     next(default_cols(id='integer'))._replace(primary=True, auto_increment=True),
 ] + list(default_cols(text='text', author_id='integer'))
 
-@unittest.skip('Not implemented yet')
+@unittest.skip('Not well implemented yet')
 class TestSimpleRelations(unittest.TestCase):
     def setUp(self):
         db.drop_table('posts')

@@ -2,6 +2,8 @@ import sqlite3
 from abc import *
 from collections import namedtuple
 
+from OxygenRM.internals.QueryBuilder import QueryBuilder
+
 class Field(metaclass=ABCMeta):
     ''' The base class for defining a Model column.
     '''
@@ -12,7 +14,7 @@ class Field(metaclass=ABCMeta):
         if protocol is sqlite3.PrepareProtocol:
             return self._value
 
-    def set(self, value):
+    def set(self, value, instance, attr):
         ''' Validate the set value and change the internal 
             _value of the class 
 
@@ -22,18 +24,20 @@ class Field(metaclass=ABCMeta):
         if value is None :
             if not self.null:
                 raise TypeError('Property not nullable')
-            self._value = self.none_processor()
+            instance._field_values[attr] = self.none_processor()  
         else:
             self.validate(value)
-            self._value = self.value_processor(value)
+            instance._field_values[attr] = self.value_processor(value)
 
-    def get(self):
+    def get(self, instance, attr):
         ''' Get the value of the column
 
             Returns:
                 The column internal value.
         '''
-        return self.pretty_value() if self._value is not None else self.pretty_none()
+        value = instance._field_values[attr]
+
+        return self.pretty_value(value) if value is not None else self.pretty_none()
 
     def validate(self, value):
         ''' Decide wheter a non-null value that wants to be set is valid.
@@ -64,9 +68,9 @@ class Field(metaclass=ABCMeta):
             Returns:
                 A convenient value
         '''
-        return self._value
+        return None
     
-    def pretty_value(self):
+    def pretty_value(self, value):
         ''' Filters the internal value, without changing it. Used when getting.
 
             Args:
@@ -75,7 +79,7 @@ class Field(metaclass=ABCMeta):
             Returns:
                 A processed value
         '''
-        return self._value
+        return value
 
     def pretty_none(self):
         ''' Filters the internal value, if it's null. 
@@ -111,8 +115,8 @@ class Bool(Field):
 
     # Return a boolean by itself, which is the most expected behaviour.
     # Or Null
-    def pretty_value(self):
-        return bool(self._value)
+    def pretty_value(self, value):
+        return bool(value)
 
 class Integer(Field):
     ''' A basic integer column.
@@ -157,7 +161,25 @@ class Has(Rel):
             on_self_col: The name of the own column, for use in the join.
                 By the default it will be the id column.
     '''
-    def __init__(self, how_much, model, on_other_col=None, on_self_col='id'):
+    def __init__(self, how_much, model, on_other_col='', on_self_col='id'):
+        if how_much not in ('many', 'one'):
+            raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
+
+        self.model = model
+        self.how_much = how_much
+        self.table_name = ''
+
+        self.on_self_col = on_self_col if not on_self_col else 'id' 
+        self.on_other_col = on_other_col  
+
+    def get(self, upper_class):
+        if not self.on_other_col:
+            self.on_other_col = upper_class.__name__.tolower() + '_id'
+        
+        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(upper_class, self.on_self_col))
+        return qb.get()
+
+    def set(self):
         pass
 
 class BelongsTo(Rel):

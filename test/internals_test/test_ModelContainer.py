@@ -2,13 +2,14 @@ import unittest
 from json import dump
 
 from OxygenRM.internals.ModelContainer import *
+from OxygenRM.internals.fields import *
 from OxygenRM.models import Model
 
 from .. import db
 from . import default_cols
 
 class Test(Model):
-    pass
+    a = Text()
 
 # A container for models
 class TestModelContainer(unittest.TestCase):

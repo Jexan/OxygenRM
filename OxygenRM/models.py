@@ -33,10 +33,6 @@ class Model(metaclass=MetaModel):
     ''' The model of this instance.
     '''
     _model = None
-    
-    ''' The values of the model per se.
-    '''
-    _db_values = {}
 
     ''' The original values of the model.
     '''
@@ -45,6 +41,10 @@ class Model(metaclass=MetaModel):
     '''  The fields that are subclasses of Field class
     '''
     _fields = {}
+
+    ''' Fields values
+    '''
+    _field_values = {}
 
     @classmethod
     def _set_model_db_data(cls):
@@ -67,16 +67,11 @@ class Model(metaclass=MetaModel):
         cls._set_up = True
         cls._self_name = cls.__name__
 
-    def __getattr__(self, name):
-        return self._db_values.get(name, None)
-
     def __setattr__(self, name, value):
         field_class = self._fields.get(name, None)
 
         if field_class:
-            field_class.set(value)
-        elif name in self._db_fields:
-            self._db_values[name] = value
+            field_class.set(value, self, name)
         else:
             super().__setattr__(name, value)
 
@@ -84,7 +79,7 @@ class Model(metaclass=MetaModel):
         value = super().__getattribute__('_fields').get(name, None)
 
         if value:
-            return value.get()
+            return value.get(self, name)
         else:
             return super().__getattribute__(name)
 
@@ -109,11 +104,18 @@ class Model(metaclass=MetaModel):
         if not self._set_up:
             self.__class__._set_model_db_data()
 
-        self._db_values = values
         self._creating_new = creating_new
 
         if not creating_new:
             self._original_values = deepcopy(values)
+
+        self._field_values = {}
+        for field in self._fields:
+            field_val = None
+            if not creating_new:
+                field_val = values[field]
+
+            self._field_values[field] = field_val
 
     # Creates a new record and saves it right away
     @staticmethod
@@ -128,9 +130,9 @@ class Model(metaclass=MetaModel):
     # Saves all changes
     def save(self):
         if self._creating_new:
-            db.create(self.table_name, **self._db_values)
+            db.create(self.table_name, **self._field_values)
         else:
-            self.__class__.where_many(self._convert_orig_values_to_conditions()).update(self._db_values)
+            self.__class__.where_many(self._convert_orig_values_to_conditions()).update(self._field_values)
 
         self._creating_new = False
         return self
@@ -145,7 +147,7 @@ class Model(metaclass=MetaModel):
 
     # Converts the record to a dict
     def to_dict(self):
-        return self._db_values
+        return self._field_values
 
     def __eq__(self, other_model):
-        return self._db_values == self._db_values
+        return self._field_values == self._field_values
