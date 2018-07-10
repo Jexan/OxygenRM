@@ -3,6 +3,7 @@
 import unittest
 from OxygenRM import internal_db as db
 from OxygenRM.internals.fields import *
+from OxygenRM.internals.ModelContainer import ModelContainer
 from .internals_test import default_cols
 
 import OxygenRM.models as O
@@ -190,3 +191,103 @@ class TestModels(unittest.TestCase):
 
 def create_todo():
     db.create('todos', a='t')
+
+class User(O.Model):
+    id = Id()
+    username = Text()
+
+class Post(O.Model):
+    id = Id()
+    text = Text()
+    author = BelongsTo('one', User)
+
+User.posts = Has('many', Post, on_other_col="author_id")
+
+user_cols = [
+    next(default_cols(id='integer'))._replace(primary=True, auto_increment=True),
+    next(default_cols(username='text'))
+]
+
+post_cols = [
+    next(default_cols(id='integer'))._replace(primary=True, auto_increment=True),
+] + list(default_cols(text='text', author_id='integer'))
+
+@unittest.skip('Not implemented yet')
+class TestSimpleRelations(unittest.TestCase):
+    def setUp(self):
+        db.drop_table('posts')
+        db.drop_table('users')
+        db.create_table('users', user_cols)
+        db.create_table('posts', post_cols)
+
+    def test_models_with_rels_initializing_correctly(self):
+        self.assertIsInstance(User(), User)
+        self.assertIsInstance(Post(), Post)
+
+        self.assertIsInstance(User.posts, Has)
+        self.assertIsInstance(Post.author, BelongsTo)
+
+    def test_has_queries_correctly_with_one_related_model(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 1),))
+
+        user_post = User.first().posts.first()
+        self.assertIsInstance(user_post, ModelContainer)
+
+        pure_post = Post.first()
+        self.assertEqual(user_post, pure_post)
+
+    def test_has_with_no_result_queries_empty(self):
+        db.create_many('users', ('username', ), (('t1',),))
+
+        user_post = User.first().posts
+
+        self.assertEqual(len(user_post), 0)
+
+    def test_has_queries_correctly_with_multiple_related_model(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 1), ('r', 1)))
+
+        user_posts = User.first().posts
+
+        self.assertEqual(len(user_posts), 3)
+        self.assertEqual(user_posts[2].text, 'r')
+        self.assertEqual(user_posts[1].text, 's')
+
+    def test_has_queries_correctly_even_with_other_unrelated_models_present(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 2)))
+
+        user_posts = User.first().posts
+
+        self.assertEqual(len(user_posts), 1)
+        self.assertEqual(user_posts.first.text, 't') 
+
+    # Belongs To!
+    def test_belongsTo_queries_correctly_with_one_related_model(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 1),))
+
+        post_author = Post.first().author
+
+        self.assertIsInstance(post_author, User)
+
+        pure_user = User.first()
+        self.assertEqual(post_author, pure_user)
+
+    def test_belongsTo_queries_correctly_even_with_other_unrelated_models_present(self):
+        db.create_many('users', ('username', ), (('t1',), ('t2',)) )
+        db.create_many('posts', ('text', 'author_id'), (('t', 1),))
+
+        post_author = Post.first().author
+        pure_user = User.first()
+
+        self.assertIsInstance(post_author, User)
+        self.assertEqual(user_post.first.text, 't')
+
+    def test_belongTo_with_no_records_gets_a_none(self):
+        db.create_many('posts', ('text', 'author_id'), (('t', 1),))
+        
+        post_author = Post.first().author
+
+        self.assertIs(post_author, None)

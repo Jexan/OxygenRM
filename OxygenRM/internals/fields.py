@@ -146,6 +146,50 @@ class Datetime(Field):
 class Rel(Field):
     pass
 
+class Has(Rel):
+    ''' Define a 'has' relationship with another database table.
+
+        Args:
+            how_much: Either 'one' or 'many'
+            model: The related model class
+            on_other_col: The name of the related model column to use for the join.
+                By default it will be the #{lower case model name}_id
+            on_self_col: The name of the own column, for use in the join.
+                By the default it will be the id column.
+    '''
+    def __init__(self, how_much, model, on_other_col=None, on_self_col='id'):
+        pass
+
+class BelongsTo(Rel):
+    ''' Define a 'belongs to' relationship with another database table.
+
+        Args:
+            how_much: Either 'one' or 'many'
+            model: The related model class
+            on_other_col: The name of the related model column to use for the join.
+                By default it will be the #{lower case model name}_id
+            on_self_col: The name of the own column, for use in the join.
+                By the default it will be the id column.
+    '''
+    def __init__(self, how_much, model, on_other_col='id', on_self_col=None):
+        pass
+    
+class Multiple(Rel):
+    ''' Define a 'many to many' relationship with another database table.
+
+        Args:
+            model: The related model class
+            table: The name of the table to use for the join.
+                By default, it will be the tables names, sorted alphabetically,
+                with an underscore as a separation.
+            on_other_id: The name of the related model column to use for the join.
+                By default it will be the #{lower case model name}_id
+            on_self: The name of the own column, for use in the join.
+                By the default it will be the id column.
+    '''
+    def __init__(self, model, table=None, on_other_col='id', on_self_col=None):
+        pass
+
 class Multiple(Field):
     pass
 
