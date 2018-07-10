@@ -49,17 +49,14 @@ class ModelContainer():
             Raises:
                 IndexError: If n is grether than the available models
         '''
-        length = len(self._calculated_models)
+        length = 0
 
-        if wanted_access_index < length:
-            return
-
-        for _ in self:
+        for row in self:
             length += 1
             if wanted_access_index < length:
                 return
 
-        raise IndexError('Container has {} elements, but tried to get element {}'.format(length, wanted_access_index))
+        raise IndexError('Container has {} elements, but tried to get the element {}'.format(length, wanted_access_index + 1))
 
     def __len__(self):
         ''' Calculate the number of models in the container.
@@ -76,8 +73,7 @@ class ModelContainer():
             Returns:
                 The first model.
         '''
-        self._make_calculated_models_until(0)
-        return self[0]
+        return self.__getitem__(0)
 
     def to_json(self):
         ''' Give the models representation as a JSON structure.

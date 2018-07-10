@@ -172,12 +172,16 @@ class Has(Rel):
         self.on_self_col = on_self_col if not on_self_col else 'id' 
         self.on_other_col = on_other_col  
 
-    def get(self, upper_class):
+    def get(self, upper_class, _):
         if not self.on_other_col:
             self.on_other_col = upper_class.__name__.tolower() + '_id'
         
         qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(upper_class, self.on_self_col))
-        return qb.get()
+        
+        if self.how_much == 'many':
+            return qb.get()
+        else:
+            return qb.first()
 
     def set(self):
         pass

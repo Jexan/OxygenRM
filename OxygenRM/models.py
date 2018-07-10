@@ -112,8 +112,9 @@ class Model(metaclass=MetaModel):
         self._field_values = {}
         for field in self._fields:
             field_val = None
+
             if not creating_new:
-                field_val = values[field]
+                field_val = values.get(field, None)
 
             self._field_values[field] = field_val
 

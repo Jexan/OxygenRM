@@ -213,7 +213,9 @@ post_cols = [
     next(default_cols(id='integer'))._replace(primary=True, auto_increment=True),
 ] + list(default_cols(text='text', author_id='integer'))
 
-@unittest.skip('Not well implemented yet')
+User()
+Post()
+
 class TestSimpleRelations(unittest.TestCase):
     def setUp(self):
         db.drop_table('posts')
@@ -232,11 +234,12 @@ class TestSimpleRelations(unittest.TestCase):
         db.create_many('users', ('username', ), (('t1',),))
         db.create_many('posts', ('text', 'author_id'), (('t', 1),))
 
-        user_post = User.first().posts.first()
+        user_post = User.first().posts
         self.assertIsInstance(user_post, ModelContainer)
 
+        bullshit_i_have_to_do_because_the_test_are_fucking_broken = user_post.first()
         pure_post = Post.first()
-        self.assertEqual(user_post, pure_post)
+        self.assertEqual(bullshit_i_have_to_do_because_the_test_are_fucking_broken, pure_post)
 
     def test_has_with_no_result_queries_empty(self):
         db.create_many('users', ('username', ), (('t1',),))
@@ -262,7 +265,7 @@ class TestSimpleRelations(unittest.TestCase):
         user_posts = User.first().posts
 
         self.assertEqual(len(user_posts), 1)
-        self.assertEqual(user_posts.first.text, 't') 
+        self.assertEqual(user_posts.first().text, 't') 
 
     # Belongs To!
     def test_belongsTo_queries_correctly_with_one_related_model(self):
