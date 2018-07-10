@@ -57,10 +57,6 @@ class Model(metaclass=MetaModel):
         if not cls.table_name:
             cls.table_name = cls.__name__.lower() + 's'
 
-        if not db.table_exists(cls.table_name):
-            raise ValueError('The table {} does not exist.'.format(
-                cls.table_name))
-
         cls._fields = {}
 
         for attr, value in cls.__dict__.items():

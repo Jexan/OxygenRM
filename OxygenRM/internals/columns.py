@@ -18,29 +18,6 @@ class Column(metaclass=ABCMeta):
         self.default = options.get('default', None)
         self._value = self.default
 
-    def __set__(self, instance, value):
-        ''' Validate the set value and change the internal 
-            _value of the class 
-
-            Raises: 
-                Typerror: If property is not nullable and tried to be assigned a Null.
-        '''
-        if value is None :
-            if not self.null:
-                raise TypeError('Property not nullable')
-            self._value = self.none_processor()
-        else:
-            self.validate(value)
-            self._value = self.value_processor(value)
-            
-    def __get__(self, instance, owner):
-        ''' Get the value of the column
-
-            Returns:
-                The column internal value.
-        '''
-        return self.pretty_value() if self._value is not None else self.pretty_none()
-
     def get_data(self, name, driver):
         ''' Get the relevant data of the column to craft
 
@@ -57,58 +34,6 @@ class Column(metaclass=ABCMeta):
             self.primary, self.auto_increment,
             self.unique, self.check)
 
-    def validate(self, value):
-        ''' Decide wheter a non-null value that wants to be set is valid.
-
-            Args:
-                value: The value to be set internally
-        
-            Raises:
-                TypeError: If the value is invalid.
-        '''
-        ...
-
-    def value_processor(self, value):
-        ''' Process the value given. Used when setting.
-
-            Args:
-                value: The value to be set internally
-        
-            Returns:
-                A processed value
-        '''
-        return value
-
-    def none_processor(self):
-        ''' Returns a customized value to be setted if the value is none.
-
-            Returns:
-                A convenient value
-        '''
-        return self._value
-    
-    def pretty_value(self):
-        ''' Filters the internal value, without changing it. Used when getting.
-
-            Args:
-                value: The value to be shown.
-        
-            Returns:
-                A processed value
-        '''
-        return self._value
-
-    def pretty_none(self):
-        ''' Filters the internal value, if it's null. 
-        
-            Returns:
-                A processed value
-        '''
-        return None
-
-    ''' The value of the column itself
-    '''
-    _value = None
 
     ''' A dict with the types this column represents
         in various database systems.
@@ -120,10 +45,6 @@ class Text(Column):
     '''
     driver_type = {'sqlite3': 'text'}
 
-    def validate(self, value):
-        if not isinstance(value, str):
-            raise TypeError('Invalid value {}. Expected str.'.format(value))
-
 class Bool(Column):
     ''' A boolean column. Implemented as a small int.
 
@@ -131,39 +52,15 @@ class Bool(Column):
     '''
     driver_type = {'sqlite3': 'integer'}
 
-    def validate(self, value):
-        if value not in (0, 1, True, False):
-            raise TypeError('Invalid value {}. Expected 1, 0 or bool.'.format(value))
-
-    # We want to keep the value internally as a 1 or 0.
-    def value_processor(self, value):
-        return 1 if value else 0
-
-    # Return a boolean by itself, which is the most expected behaviour.
-    # Or Null
-    def pretty_value(self):
-        return bool(self._value)
-
 class Integer(Column):
     ''' A basic integer column.
     '''
     driver_type = {'sqlite3': 'integer'}
-
-    def validate(self, value):
-        if not isinstance(value, int) or isinstance(value, bool):
-            raise TypeError('Invalid value {}. Expected an int.'.format(value))
     
 class Float(Column):
     ''' A basic float column.
     '''
     driver_type = {'sqlite3': 'real'}
-
-    def validate(self, value):
-        if type(value) not in (int, float) or isinstance(value, bool):
-            raise TypeError('Invalid value {}. Expected a float or int.'.format(value))
-
-    def value_processor(self, value):
-        return float(value)
 
 class Id(Integer):
     ''' An auto-incrementing, unsigned integer. Used as a primary key.
