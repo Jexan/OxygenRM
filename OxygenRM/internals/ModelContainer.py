@@ -66,7 +66,6 @@ class ModelContainer():
         else:
             return len(list(iter(self)))
     
-    # Returns the first record
     def first(self):
         ''' Get the first value of the collection.
 
@@ -74,6 +73,17 @@ class ModelContainer():
                 The first model.
         '''
         return self.__getitem__(0)
+
+    def first_or_none(self):
+        ''' Get the first value of the collection or None if empty.
+
+            Returns:
+                The first model if exists, else None. 
+        '''
+        try:
+            return self.__getitem__(0)
+        except IndexError:
+            return None
 
     def to_json(self):
         ''' Give the models representation as a JSON structure.

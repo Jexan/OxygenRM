@@ -167,16 +167,15 @@ class Has(Rel):
 
         self.model = model
         self.how_much = how_much
-        self.table_name = ''
 
         self.on_self_col = on_self_col if not on_self_col else 'id' 
         self.on_other_col = on_other_col  
 
-    def get(self, upper_class, _):
+    def get(self, instance, _):
         if not self.on_other_col:
-            self.on_other_col = upper_class.__name__.tolower() + '_id'
+            self.on_other_col = instance.__class__.__name__.tolower() + '_id'
         
-        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(upper_class, self.on_self_col))
+        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(instance, self.on_self_col))
         
         if self.how_much == 'many':
             return qb.get()
@@ -197,8 +196,26 @@ class BelongsTo(Rel):
             on_self_col: The name of the own column, for use in the join.
                 By the default it will be the id column.
     '''
-    def __init__(self, how_much, model, on_other_col='id', on_self_col=None):
-        pass
+    def __init__(self, how_much, model, on_other_col='id', on_self_col=''):
+        if how_much not in ('many', 'one'):
+            raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
+
+        self.model = model
+        self.how_much = how_much
+
+        self.on_self_col = on_self_col 
+        self.on_other_col = on_other_col  
+
+    def get(self, instance, _):
+        if not self.on_self_col:
+            self.on_self_col = instance.__class__.__name__.tolower() + '_id'
+        
+        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(instance, self.on_self_col))
+        
+        if self.how_much == 'many':
+            return qb.get()
+        else:
+            return qb.limit(1).get().first_or_none()
     
 class Multiple(Rel):
     ''' Define a 'many to many' relationship with another database table.

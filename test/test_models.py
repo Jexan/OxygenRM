@@ -200,7 +200,9 @@ class User(O.Model):
 class Post(O.Model):
     id = Id()
     text = Text()
-    author = BelongsTo('one', User)
+    author_id = Integer()
+
+    author = BelongsTo('one', User, on_self_col='author_id')
 
 User.posts = Has('many', Post, on_other_col="author_id")
 
@@ -240,6 +242,16 @@ class TestSimpleRelations(unittest.TestCase):
         bullshit_i_have_to_do_because_the_test_are_fucking_broken = user_post.first()
         pure_post = Post.first()
         self.assertEqual(bullshit_i_have_to_do_because_the_test_are_fucking_broken, pure_post)
+
+    def test_that_models_has_key_access_is_not_broken_on_simple_methods(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 1),))
+
+        def get_text(model):
+            return model.text
+
+        posts = User.first().posts
+        self.assertEqual('t', get_text(posts[0]))
 
     def test_has_with_no_result_queries_empty(self):
         db.create_many('users', ('username', ), (('t1',),))
@@ -287,11 +299,11 @@ class TestSimpleRelations(unittest.TestCase):
         pure_user = User.first()
 
         self.assertIsInstance(post_author, User)
-        self.assertEqual(user_post.first.text, 't')
+        self.assertEqual(post_author.username, 't1')
 
     def test_belongTo_with_no_records_gets_a_none(self):
         db.create_many('posts', ('text', 'author_id'), (('t', 1),))
         
         post_author = Post.first().author
-
+        
         self.assertIs(post_author, None)
