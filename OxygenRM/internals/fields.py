@@ -183,7 +183,7 @@ class Has(Rel):
             return qb.first()
 
     def set(self):
-        pass
+        raise NotImplementedError('Setting relationship models not yet allowed')
 
 class BelongsTo(Rel):
     ''' Define a 'belongs to' relationship with another database table.
@@ -216,6 +216,9 @@ class BelongsTo(Rel):
             return qb.get()
         else:
             return qb.limit(1).get().first_or_none()
+
+    def set(self):
+        raise NotImplementedError('Setting relationship models not yet allowed')
     
 class Multiple(Rel):
     ''' Define a 'many to many' relationship with another database table.

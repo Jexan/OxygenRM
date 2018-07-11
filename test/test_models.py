@@ -305,5 +305,64 @@ class TestSimpleRelations(unittest.TestCase):
         db.create_many('posts', ('text', 'author_id'), (('t', 1),))
         
         post_author = Post.first().author
-        
+
         self.assertIs(post_author, None)
+
+class T1(O.Model):
+    id = Id()
+
+class T2(O.Model):
+    id = Id()
+    t1s = Multiple(T1)
+    
+T1.t2s = Multiple(T2)
+
+ts_cols = next(default_cols(id='integer'))._replace(primary=True, auto_increment=True)
+
+@unittest.skip('Not yet implemented')
+class TestManyToMany(unittest.TestCase):
+    def setUp(self):
+        db.drop_table('t1')
+        db.drop_table('t2')
+        db.drop_table('t1s_t2s')
+        
+        db.create_table('t1', (ts_cols, ))
+        db.create_table('t2', (ts_cols, ))
+        db.create_table('t1s_t2s', default_cols(t1_id='integer', t2_id='integer'))
+
+    def test_initialization_ok(self):
+        self.assertIsInstance(T1(), T1)
+        self.assertIsInstance(T2(), T2)
+
+        self.assertIsInstance(T1.t2s, Multiple)
+        self.assertIsInstance(T2.t1s, Multiple)
+
+    def test_many_to_many_with_one_works(self):
+        db.create_many('t1', (), ((),))
+        db.create_many('t2', (), ((),))
+        db.create_many('t1s_t2s', ('t1_id', 't2_id'), ((1,1),))
+
+        first_t2 = T1.first().t2s.first()
+        self.assertEqual(first_t2.id, 1)
+
+        first_t1 = T2.first().t1s.first()
+        self.assertEqual(first_t1.id, 1)
+
+    def test_many_to_many_with_zero_its_an_empty_collection(self):
+        db.create_many('t1', (), ((),))
+        db.create_many('t2', (), ((),))
+
+        first_t2 = T1.first().t2s
+        self.assertEqual(len(first_t2), 0)
+
+        first_t1 = T2.first().t1s
+        self.assertEqual(len(first_t1), 0)
+
+    def test_many_to_many_with_multiple_work(self):
+        db.create_many('t1', (), ((),))
+        db.create_many('t2', (), ((),)*4)
+        db.create_many('t1s_t2s', ('t1_id', 't2_id'), tuple((1, i) for i in range(1, 5)))
+
+        t2s = T1.first().t2s
+        self.assertEqual(len(t2s), 4)
+        self.assertTrue(all(t2.t1s.first().id == 1 for t2 in t2s))
