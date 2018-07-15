@@ -1,39 +1,73 @@
 import argparse
+import os
+import os.path
 
-parser = argparse.ArgumentParser()
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
 
-parser.add_argument(
-    "--init", "-i", 
-    help="Start up the migrations dir and status file", 
-)
+    parser.add_argument(
+        "--init", "-i", 
+        help="Start up the migrations dir and status file", 
+    )
 
-parser.add_argument(
-    "--create", "-c", 
-    help="Create a migration", 
-)
+    parser.add_argument(
+        "--create", "-c", 
+        help="Create a migration", 
+    )
 
-parser.add_argument(
-    "--migrate", "-m", 
-    help="Commit the given number of migrations. Negative numbers will rollback migrations",
-)
+    parser.add_argument(
+        "--migrate", "-m", 
+        help="Commit the given number of migrations. Negative numbers will rollback migrations",
+    )
 
-parser.add_argument(
-    "--reboot", "-r",
-    help="Reset all migrations and recommit them all",
-)
+    parser.add_argument(
+        "--reboot", "-r",
+        help="Reset all migrations and recommit them all",
+        action='store_true'
+    )
 
-parser.add_argument(
-    "--status", "-s", 
-    help="Show the current migration version",
-)
+    parser.add_argument(
+        "--status", "-s", 
+        help="Show the current migration version",
+        action='store_true'
+    )
 
-parser.add_argument(
-    "--clean", "-r", 
-    help="Clean up the migration numbers and order",
-)
+    parser.add_argument(
+        "--clean", "-cu", 
+        help="Clean up the migration numbers and order",
+        action='store_true'
+    )
 
-def init_migrations(folder="migrations"):
-    # create the migration directory
+DEFAULT_MIGRATION_DIR = 'migrations'
+
+# -----------------------------------
+def migration_dir(directory):
+    ''' Prepare the given directory for doing migrations
+
+        Args:
+            directory: The directory to use for the migrations 
+
+        Returns:
+            The path of the migration directory
+    '''
+    path = os.path.join(os.getcwd(), directory)
+
+    if not os.path.isdir(path):
+        os.mkdir(path)
+
+    return path
+
+# ------------------------------------
+def init_migrations(rel_directory=None):
+    ''' Start up the migration config and directory
+
+        Args:
+            rel_directory: The directory to use for the migrations 
+    '''
+    if rel_directory is None:
+        rel_directory = DEFAULT_MIGRATION_DIR
+
+    directory_path = migration_dir(rel_directory)
     
     # create a config file. It should include "db_config data" and log status
     ...
