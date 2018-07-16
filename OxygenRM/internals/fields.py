@@ -9,6 +9,8 @@ from OxygenRM.internals.QueryBuilder import QueryBuilder
 class Field(metaclass=abc.ABCMeta):
     _attr = None
 
+    _valid_types = []
+
     ''' The base class for defining a Model column.
     '''
     def __init__(self, null=False):
@@ -23,7 +25,7 @@ class Field(metaclass=abc.ABCMeta):
             Returns:
                 The value of the model
         '''
-        return model._field_values[self._attr]
+        return self.value_formatter(model._field_values[self._attr])
 
     def set(self, model, value):
         ''' Validate and set the the value of the column.
@@ -45,13 +47,24 @@ class Field(metaclass=abc.ABCMeta):
             Raises:
                 TypeError: If the value is invalid.
         '''
-        return 
+        return True
 
     def value_processor(self, value):
-        ''' Process the value given. Used when setting.
+        ''' Transform the value given. Used in the setter.
 
             Args:
-                value: The value to be set internally
+                value: The value to be processed
+        
+            Returns:
+                A processed value
+        '''
+        return value
+
+    def value_formatter(self, value):
+        ''' Format the value given. Used in the getter.
+
+            Args:
+                value: The value to be processed
         
             Returns:
                 A processed value
@@ -77,11 +90,6 @@ class Bool(Field):
     # We want to keep the value internally as a 1 or 0.
     def value_processor(self, value):
         return 1 if value else 0
-
-    # Return a boolean by itself, which is the most expected behaviour.
-    # Or Null
-    def pretty_value(self, value):
-        return bool(value)
 
 class Integer(Field):
     ''' A basic integer column.
@@ -133,18 +141,18 @@ class Has(Field):
         self.on_self_col = on_self_col if not on_self_col else 'id' 
         self.on_other_col = on_other_col  
 
-    def get(self, instance, _):
+    def get(self, starting_model):
         if not self.on_other_col:
-            self.on_other_col = instance.__class__.__name__.tolower() + '_id'
+            self.on_other_col = starting_model.__class__.__name__.tolower() + '_id'
         
-        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(instance, self.on_self_col))
+        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
         
         if self.how_much == 'many':
             return qb.get()
         else:
             return qb.first()
 
-    def set(self):
+    def set(self, *_):
         raise NotImplementedError('Setting relationship models not yet allowed')
 
 class BelongsTo(Field):
@@ -168,11 +176,11 @@ class BelongsTo(Field):
         self.on_self_col = on_self_col 
         self.on_other_col = on_other_col  
 
-    def get(self, instance, _):
+    def get(self, starting_model):
         if not self.on_self_col:
-            self.on_self_col = instance.__class__.__name__.tolower() + '_id'
+            self.on_self_col = starting_model.__class__.__name__.tolower() + '_id'
         
-        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(instance, self.on_self_col))
+        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
         
         if self.how_much == 'many':
             return qb.get()

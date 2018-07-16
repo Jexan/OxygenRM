@@ -222,7 +222,6 @@ post_cols = [
 User()
 Post()
 
-@unittest.skip('Not yet implemented')
 class TestSimpleRelations(unittest.TestCase):
     def setUp(self):
         db.drop_table('posts')
@@ -234,8 +233,8 @@ class TestSimpleRelations(unittest.TestCase):
         self.assertIsInstance(User(), User)
         self.assertIsInstance(Post(), Post)
 
-        self.assertIsInstance(User.posts, Has)
-        self.assertIsInstance(Post.author, BelongsTo)
+        self.assertIsInstance(User._fields['posts'], Has)
+        self.assertIsInstance(Post._fields['author'], BelongsTo)
 
     def test_has_queries_correctly_with_one_related_model(self):
         db.create_many('users', ('username', ), (('t1',),))
