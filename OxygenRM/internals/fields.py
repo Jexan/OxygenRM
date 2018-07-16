@@ -1,18 +1,16 @@
 import sqlite3
-from abc import *
+import json
+import abc
+
 from collections import namedtuple
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 
-class Field(metaclass=ABCMeta):
+class Field(metaclass=abc.ABCMeta):
     ''' The base class for defining a Model column.
     '''
     def __init__(self, null=False):
         self.null = null
-
-    def __conform__(self, protocol):
-        if protocol is sqlite3.PrepareProtocol:
-            return self._value
 
     def set(self, value, instance, attr):
         ''' Validate the set value and change the internal 
@@ -48,8 +46,7 @@ class Field(metaclass=ABCMeta):
             Raises:
                 TypeError: If the value is invalid.
         '''
-        ...
-
+        pass
 
     def value_processor(self, value):
         ''' Process the value given. Used when setting.
@@ -147,10 +144,7 @@ class Date(Field):
 class Datetime(Field):
     pass
 
-class Rel(Field):
-    pass
-
-class Has(Rel):
+class Has(Field):
     ''' Define a 'has' relationship with another database table.
 
         Args:
@@ -185,7 +179,7 @@ class Has(Rel):
     def set(self):
         raise NotImplementedError('Setting relationship models not yet allowed')
 
-class BelongsTo(Rel):
+class BelongsTo(Field):
     ''' Define a 'belongs to' relationship with another database table.
 
         Args:
@@ -220,7 +214,7 @@ class BelongsTo(Rel):
     def set(self):
         raise NotImplementedError('Setting relationship models not yet allowed')
     
-class Multiple(Rel):
+class Multiple(Field):
     ''' Define a 'many to many' relationship with another database table.
 
         Args:
@@ -236,9 +230,6 @@ class Multiple(Rel):
     def __init__(self, model, table=None, on_other_col='id', on_self_col=None):
         pass
 
-class Multiple(Field):
-    pass
-
 class Email(Field):
     pass
 
@@ -246,7 +237,28 @@ class Password(Field):
     pass
 
 class JSON(Field):
-    pass
+    ''' A field for dealing with JSON strings boilerplate.
+    '''
+
+    class JSONableDict(dict):
+        ''' A dict that makes easier the conversion to JSON.
+        '''    
+        def __str__(self):
+            return self.to_json()
+
+        def to_json(self, *args):
+            return json.dumps(self, *args)
+
+        def __conform__(self, protocol):
+            if protocol is sqlite3.PrepareProtocol:
+                return str(self)
+
+    def validate(self):
+        if not isinstance(value, (dict, str)):
+            raise TypeError('Invalid value {}. Expected a dict or string.'.format(value))
+
+    def value_processor(self, value):
+        return self.JSONableDict(value)
 
 class XML(Field):
     pass
@@ -274,6 +286,5 @@ field_types = {
         'json': JSON,
         'xml': XML,
         'csv': CSV,
-        'foreign': Rel
     }
 }

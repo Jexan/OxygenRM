@@ -9,6 +9,8 @@ import OxygenRM.models as O
 
 from OxygenRM.internals.fields import *
 
+##############################################################
+
 class Todo(O.Model):
     a = Text()
 
@@ -193,6 +195,8 @@ class TestModels(unittest.TestCase):
 def create_todo():
     db.create('todos', a='t')
 
+##############################################################
+
 class User(O.Model):
     id = Id()
     username = Text()
@@ -308,6 +312,8 @@ class TestSimpleRelations(unittest.TestCase):
 
         self.assertIs(post_author, None)
 
+##############################################################
+
 class T1(O.Model):
     id = Id()
 
@@ -366,3 +372,29 @@ class TestManyToMany(unittest.TestCase):
         t2s = T1.first().t2s
         self.assertEqual(len(t2s), 4)
         self.assertTrue(all(t2.t1s.first().id == 1 for t2 in t2s))
+
+
+##############################################################
+
+class JsonModel(O.Model):
+    a = JSON()
+
+class TestJSONFields(unittest.TestCase):
+    def setUp(self):
+        db.create_table('JsonModels', default_cols(a='json'))
+
+    def tearDown(self):
+        db.drop_table('JsonModels')
+
+    def test_initialization_of_class(self):
+        self.assertIsInstance(JsonModel.a, JSON)
+
+    def test_model_initialization(self):
+        t1 = JsonModel()
+
+        self.assertIsInstance(JsonModel, JSON.JSONableDict)
+
+    def test_json_works(self):
+        t1 = JsonModel()
+
+        t1.a['2'] = 
