@@ -222,6 +222,7 @@ post_cols = [
 User()
 Post()
 
+@unittest.skip('Not yet implemented')
 class TestSimpleRelations(unittest.TestCase):
     def setUp(self):
         db.drop_table('posts')
@@ -379,6 +380,7 @@ class TestManyToMany(unittest.TestCase):
 class JsonModel(O.Model):
     a = JSON()
 
+@unittest.skip('Not yet implemented')
 class TestJSONFields(unittest.TestCase):
     def setUp(self):
         db.create_table('JsonModels', default_cols(a='json'))
@@ -396,5 +398,3 @@ class TestJSONFields(unittest.TestCase):
 
     def test_json_works(self):
         t1 = JsonModel()
-
-        t1.a['2'] = 

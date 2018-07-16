@@ -7,35 +7,34 @@ from collections import namedtuple
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
+    _attr = None
+
     ''' The base class for defining a Model column.
     '''
     def __init__(self, null=False):
         self.null = null
 
-    def set(self, value, instance, attr):
-        ''' Validate the set value and change the internal 
-            _value of the class 
+    def get(self, model):
+        ''' The getter for model fields.
 
-            Raises: 
-                Typerror: If property is not nullable and tried to be assigned a Null.
-        '''
-        if value is None :
-            if not self.null:
-                raise TypeError('Property not nullable')
-            instance._field_values[attr] = self.none_processor()  
-        else:
-            self.validate(value)
-            instance._field_values[attr] = self.value_processor(value)
-
-    def get(self, instance, attr):
-        ''' Get the value of the column
+            Args:
+                model: The model instance. 
 
             Returns:
-                The column internal value.
+                The value of the model
         '''
-        value = instance._field_values[attr]
+        return model._field_values[self._attr]
 
-        return self.pretty_value(value) if value is not None else self.pretty_none()
+    def set(self, model, value):
+        ''' Validate and set the the value of the column.
+
+            Args:
+                model: The model instance.
+                value: The value to be assigned.
+        '''
+        self.validate(value)
+        
+        model._field_values[self._attr] = self.value_processor(value)
 
     def validate(self, value):
         ''' Decide wheter a non-null value that wants to be set is valid.
@@ -46,7 +45,7 @@ class Field(metaclass=abc.ABCMeta):
             Raises:
                 TypeError: If the value is invalid.
         '''
-        pass
+        return 
 
     def value_processor(self, value):
         ''' Process the value given. Used when setting.
@@ -58,37 +57,6 @@ class Field(metaclass=abc.ABCMeta):
                 A processed value
         '''
         return value
-
-    def none_processor(self):
-        ''' Returns a customized value to be setted if the value is none.
-
-            Returns:
-                A convenient value
-        '''
-        return None
-    
-    def pretty_value(self, value):
-        ''' Filters the internal value, without changing it. Used when getting.
-
-            Args:
-                value: The value to be shown.
-        
-            Returns:
-                A processed value
-        '''
-        return value
-
-    def pretty_none(self):
-        ''' Filters the internal value, if it's null. 
-        
-            Returns:
-                A processed value
-        '''
-        return None
-
-    ''' The value of the column itself
-    '''
-    _value = None
 
 class Text(Field):
     ''' A basic Text column.

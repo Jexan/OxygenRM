@@ -25,11 +25,6 @@ class Model(metaclass=MetaModel):
     '''
     _set_up = False
 
-    ''' A dict with the format field name: field type
-        @static
-    '''
-    _db_fields = None
-
     ''' The model of this instance.
     '''
     _model = None
@@ -57,31 +52,18 @@ class Model(metaclass=MetaModel):
         if not cls.table_name:
             cls.table_name = cls.__name__.lower() + 's'
 
-        cls._fields = {}
+        cls._fields = dict()
 
         for attr, value in cls.__dict__.items():
             if isinstance(value, Field):
                 cls._fields[attr] = value
+                value._attr = attr
 
-        cls._db_fields = db.table_fields_types(cls.table_name)
+                row_prop = property(fget=value.get, fset=value.set) 
+                setattr(cls, attr, row_prop)
+
         cls._set_up = True
         cls._self_name = cls.__name__
-
-    def __setattr__(self, name, value):
-        field_class = self._fields.get(name, None)
-
-        if field_class:
-            field_class.set(value, self, name)
-        else:
-            super().__setattr__(name, value)
-
-    def __getattribute__(self, name):
-        value = super().__getattribute__('_fields').get(name, None)
-
-        if value:
-            return value.get(self, name)
-        else:
-            return super().__getattribute__(name)
 
     def _convert_orig_values_to_conditions(self):
         ''' Convert the internal _original_values
@@ -121,11 +103,6 @@ class Model(metaclass=MetaModel):
     # Creates a new record and saves it right away
     @staticmethod
     def create():
-        pass
-        
-    # Returns a row that matches the record
-    @staticmethod
-    def find():
         pass
                                 
     # Saves all changes
