@@ -143,7 +143,7 @@ class Has(Field):
 
     def get(self, starting_model):
         if not self.on_other_col:
-            self.on_other_col = starting_model.__class__.__name__.tolower() + '_id'
+            self.on_other_col = starting_model.__class__.__name__.lower() + '_id'
         
         qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
         
@@ -203,8 +203,39 @@ class Multiple(Field):
             on_self: The name of the own column, for use in the join.
                 By the default it will be the id column.
     '''
-    def __init__(self, model, table=None, on_other_col='id', on_self_col=None):
-        pass
+    def __init__(self, model, table=None, on_other_col='id', 
+            on_self_col='id', on_other_middle_col=None, on_self_middle_col=None):
+        self.model = model
+        self.table = table
+        self.on_other_col = on_other_col
+        self.on_self_col = on_self_col
+        self.on_self_middle_col = on_self_middle_col
+        
+        if not on_other_middle_col:
+            self.on_other_middle_col = model.__name__.lower() + '_id'
+        else:
+            self.on_other_middle_col = on_other_middle_col
+            
+        self._setted_up = False
+
+    def get(self, current_model):
+        if not self._setted_up:
+            self._set_up()
+
+        qb = QueryBuilder.table(self.model.table_name, self.model)
+        qb.where(current_model.table_name + '.' + self.on_self_col, '=', self.table + '.' + self.on_self_middle_col)
+        qb.where(self.model.table_name + '.' + self.on_other_col, '=', self.table + '.' + self.on_other_middle_col)
+
+        print(qb.get_sql())
+
+    def _set_up(self, parting_model):
+        if not self.table:
+            self.table = '_'.join(sorted((self.model.table_name, current_model.table_name)))
+
+        if not self.on_self_middle_col is None:
+            self.on_self_middle_col = parting_model.__class__.__name__.tolower() + '_id'  
+
+        self._setted_up = True
 
 class Email(Field):
     pass
@@ -229,7 +260,16 @@ class JSON(Field):
             if protocol is sqlite3.PrepareProtocol:
                 return str(self)
 
-    def validate(self):
+    def get(self, model):
+        original_val = super().get(model)
+        
+        if not isinstance(original_val, dict):
+            super().set(model, self.JSONableDict())
+            return super().get(model)
+        else:
+            return original_val
+
+    def validate(self, value):
         if not isinstance(value, (dict, str)):
             raise TypeError('Invalid value {}. Expected a dict or string.'.format(value))
 

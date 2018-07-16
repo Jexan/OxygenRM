@@ -379,7 +379,6 @@ class TestManyToMany(unittest.TestCase):
 class JsonModel(O.Model):
     a = JSON()
 
-@unittest.skip('Not yet implemented')
 class TestJSONFields(unittest.TestCase):
     def setUp(self):
         db.create_table('JsonModels', default_cols(a='json'))
@@ -393,7 +392,4 @@ class TestJSONFields(unittest.TestCase):
     def test_model_initialization(self):
         t1 = JsonModel()
 
-        self.assertIsInstance(JsonModel, JSON.JSONableDict)
-
-    def test_json_works(self):
-        t1 = JsonModel()
+        self.assertIsInstance(t1.a, JSON.JSONableDict)
