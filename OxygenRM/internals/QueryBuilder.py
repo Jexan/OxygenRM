@@ -82,6 +82,23 @@ class QueryBuilder:
         self._in_wait['where_cond'].extend(map(condition_packer, conditions))
         return self    
 
+    def or_where_many(self, conditions):
+        ''' Add multiple OR WHERE condition to the prepared query.
+
+            Args: 
+                conditions: An iterator that yields lists/tuples, such that:
+                    0: The column name.
+                    1: The operator.
+                    2: The value to compare the rows.
+
+            Returns:
+                self
+        '''
+        condition_packer = lambda cond: ConditionClause('OR', *cond)
+
+        self._in_wait['where_cond'].extend(map(condition_packer, conditions))
+        return self    
+
     def group_by(self, field, order='ASC'):
         ''' Add a GROUP BY to the prepared query.
 
@@ -320,9 +337,7 @@ class QueryBuilder:
         if options['having']:
             values_to_prepare = chain(values_to_prepare, options['having'].value)
 
-        exists = db.table_exists('todos')
-
-        result = db.execute_without_saving(query, tuple(values_to_prepare))
+        result = lambda: db.execute_without_saving(query, tuple(values_to_prepare))
         return self._wrap_in_model(result)
 
     def all(self):
@@ -331,7 +346,7 @@ class QueryBuilder:
             Returns:
                 The queried rows.
         '''
-        result = db.all(self._in_wait['table_name'], self._in_wait['select_fields']) 
+        result = lambda: db.all(self._in_wait['table_name'], self._in_wait['select_fields']) 
         return self._wrap_in_model(result)
 
     def first(self):
@@ -365,7 +380,7 @@ class QueryBuilder:
                 An iterator with the rows
         '''
         if not self._model:
-            return result
+            return result()
         else:
             return ModelContainer(result, self._model)
 

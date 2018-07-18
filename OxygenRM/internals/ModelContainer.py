@@ -9,6 +9,9 @@ class ModelContainer():
         self._iteration_done = False
 
     def __iter__(self):
+        if callable(self._result):
+            self._result = self._result()
+
         for row in self._calculated_models:
             yield row
 
