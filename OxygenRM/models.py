@@ -7,7 +7,7 @@ from OxygenRM.internals.fields import *
 class MetaModel(type):
     def __getattr__(cls, name):
         if not cls._set_up:
-            cls._set_model_db_data()
+            cls._set_up_model()
 
         if getattr(QueryBuilder, name, None):
             return getattr(QueryBuilder.table(cls.table_name, cls), name)
@@ -19,43 +19,46 @@ class Model(metaclass=MetaModel):
         it's supossed to be subclassed.
     '''
 
-    # INTERNAL
+    # PRIVATE
+    ''' The original field values of the model.
+    '''
+    _original_values = {}
+
+    ''' Internal values of the record fields
+    '''
+    _field_values = {}
+
+    ''' A tracker of this model associated relations
+        @static
+    '''
+    _relations = {}
+
+    ''' A tracker of this model associated fields
+        @static
+    '''
+    _fields = {}
+
+    ''' The name of the table. Used in the metaclass
+        @static
+    '''
+    _self_name = ''
+
     ''' Bool of whether the model internal data is ready
         @static
     '''
     _set_up = False
 
-    ''' The model of this instance.
-    '''
-    _model = None
-
-    ''' The original values of the model.
-    '''
-    _original_values = {}
-
-    '''  The fields that are subclasses of Field class
-    '''
-    _fields = {}
-
-    ''' Fields values
-    '''
-    _field_values = {}
-
     @classmethod
-    def _set_model_db_data(cls):
-        ''' Set up the model internals that allows communication
-            with the database.
-
-            Raises:
-                ValueError: If the table doesn't exist.
+    def _set_up_model(cls):
+        ''' Set up the internals and relations of the Model
         '''
         if not cls.table_name:
             cls.table_name = cls.__name__.lower() + 's'
 
         cls._fields = dict()
         cls._relations = dict()
-        primary = None
-
+        
+        primary_key = None
         for attr, value in cls.__dict__.items():
             if isinstance(value, Field):
                 if not isinstance(value, Relation):
@@ -70,9 +73,9 @@ class Model(metaclass=MetaModel):
                 cls._relations[attr] = value
 
             if isinstance(value, Id):
-                primary = attr
+                primary_key = attr
 
-        cls.primary = primary
+        cls.primary_key = primary_key
 
         cls._set_up = True
         cls._self_name = cls.__name__
@@ -88,18 +91,21 @@ class Model(metaclass=MetaModel):
             yield (field, '=', value)
 
     # PUBLIC
+    
     ''' A string of the associated table name. Can be specified by
         subclasses. If not, it will be assumed to be the model name + s.
         @static
     '''
     table_name = ''
 
-    def get_primary(self):
-        return getattr(self, self.primary)
+    ''' The table primary key name.
+        @static
+    '''
+    primary_key = ''
 
     def __init__(self, creating_new=True, **values):
         if not self._set_up:
-            self.__class__._set_model_db_data()
+            self.__class__._set_up_model()
 
         self._creating_new = creating_new
 
@@ -115,13 +121,21 @@ class Model(metaclass=MetaModel):
                 field_val = values.get(field, None)
 
             self._field_values[field] = field_val
+    
+    def get_primary(self):
+        ''' Get the primary key value of the model.
 
-    # Creates a new record and saves it right away
-    @staticmethod
-    def create():
-        pass
+            Return:
+                The primary key value of the model
+        '''
+        return getattr(self, self.primary_key)
                                 
     def save(self):
+        ''' Commit the current changes to the database.
+
+            Return:
+                self
+        '''
         if self._creating_new:
             db.create(self.table_name, **self._field_values)
         else:
@@ -134,6 +148,8 @@ class Model(metaclass=MetaModel):
         return self
 
     def destroy(self):
+        ''' Remove the working model from the database.
+        '''
         if self._creating_new:
             raise Exception('Can not destroy model that doesn\'t exist in the database')
 
@@ -142,6 +158,11 @@ class Model(metaclass=MetaModel):
         return True
 
     def to_dict(self):
+        ''' Fetch a dict with the model values.
+
+            Return:
+                A dict with the field names and values.
+        '''
         return self._field_values
 
     def __eq__(self, other_model):

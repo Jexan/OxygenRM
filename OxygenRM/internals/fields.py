@@ -145,7 +145,7 @@ class Has(Relation):
             self.on_other_col = starting_model.__class__.__name__.lower() + '_id'
 
         if not self.on_self_col:
-            self.on_self_col = starting_model.primary
+            self.on_self_col = starting_model.primary_key
 
         qb = HasQueryBuilder(self.model, starting_model, self).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
         

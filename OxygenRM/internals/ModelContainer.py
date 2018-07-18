@@ -132,3 +132,9 @@ class ModelContainer():
                 pretty_str += '\t\t' + key + ': ' + str(value) + '\n'
 
         return pretty_str
+
+    def __repr__(self):
+        return self.pretty()
+
+    def __str__(self):
+        return self.pretty()
