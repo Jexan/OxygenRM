@@ -53,14 +53,26 @@ class Model(metaclass=MetaModel):
             cls.table_name = cls.__name__.lower() + 's'
 
         cls._fields = dict()
+        cls._relations = dict()
+        primary = None
 
         for attr, value in cls.__dict__.items():
             if isinstance(value, Field):
-                cls._fields[attr] = value
+                if not isinstance(value, Relation):
+                    cls._fields[attr] = value
+                
                 value._attr = attr
 
                 row_prop = property(fget=value.get, fset=value.set) 
                 setattr(cls, attr, row_prop)
+
+            if isinstance(value, Relation):
+                cls._relations[attr] = value
+
+            if isinstance(value, Id):
+                primary = attr
+
+        cls.primary = primary
 
         cls._set_up = True
         cls._self_name = cls.__name__
@@ -82,6 +94,9 @@ class Model(metaclass=MetaModel):
     '''
     table_name = ''
 
+    def get_primary(self):
+        return getattr(self, self.primary)
+
     def __init__(self, creating_new=True, **values):
         if not self._set_up:
             self.__class__._set_model_db_data()
@@ -91,6 +106,7 @@ class Model(metaclass=MetaModel):
         if not creating_new:
             self._original_values = deepcopy(values)
 
+        self._rel_queue = []
         self._field_values = {}
         for field in self._fields:
             field_val = None
@@ -105,12 +121,14 @@ class Model(metaclass=MetaModel):
     def create():
         pass
                                 
-    # Saves all changes
     def save(self):
         if self._creating_new:
             db.create(self.table_name, **self._field_values)
         else:
             self.__class__.where_many(self._convert_orig_values_to_conditions()).update(self._field_values)
+
+        for rel_function in self._rel_queue:
+            rel_function()
 
         self._creating_new = False
         return self
@@ -123,7 +141,6 @@ class Model(metaclass=MetaModel):
 
         return True
 
-    # Converts the record to a dict
     def to_dict(self):
         return self._field_values
 

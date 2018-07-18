@@ -5,6 +5,8 @@ import abc
 from collections import namedtuple
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
+from OxygenRM.internals.ModelContainer import ModelContainer
+from OxygenRM.internals.RelationQueryBuilder import HasQueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
     _attr = None
@@ -114,13 +116,10 @@ class Id(Integer):
     def __init__(self):
         self.null = False
 
-class Date(Field):
+class Relation(Field):
     pass
 
-class Datetime(Field):
-    pass
-
-class Has(Field):
+class Has(Relation):
     ''' Define a 'has' relationship with another database table.
 
         Args:
@@ -131,31 +130,32 @@ class Has(Field):
             on_self_col: The name of the own column, for use in the join.
                 By the default it will be the id column.
     '''
-    def __init__(self, how_much, model, on_other_col='', on_self_col='id'):
+    def __init__(self, how_much, model, on_other_col='', on_self_col=None):
         if how_much not in ('many', 'one'):
             raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
 
         self.model = model
         self.how_much = how_much
 
-        self.on_self_col = on_self_col if not on_self_col else 'id' 
+        self.on_self_col = on_self_col
         self.on_other_col = on_other_col  
 
     def get(self, starting_model):
         if not self.on_other_col:
             self.on_other_col = starting_model.__class__.__name__.lower() + '_id'
-        
-        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
-        
-        if self.how_much == 'many':
-            return qb.get()
-        else:
-            return qb.first()
 
-    def set(self, *_):
-        raise NotImplementedError('Setting relationship models not yet allowed')
+        if not self.on_self_col:
+            self.on_self_col = starting_model.primary
 
-class BelongsTo(Field):
+        qb = HasQueryBuilder(self.model, starting_model, self).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
+        
+        return qb
+
+    def set(self, starting_model, value):
+        if not isinstance(starting_model, ModelContainer):
+            self.get(starting_model).assign(value)
+
+class BelongsTo(Relation):
     ''' Define a 'belongs to' relationship with another database table.
 
         Args:
@@ -190,7 +190,7 @@ class BelongsTo(Field):
     def set(self):
         raise NotImplementedError('Setting relationship models not yet allowed')
     
-class Multiple(Field):
+class Multiple(Relation):
     ''' Define a 'many to many' relationship with another database table.
 
         Args:
@@ -226,8 +226,6 @@ class Multiple(Field):
         qb.where(current_model.table_name + '.' + self.on_self_col, '=', self.table + '.' + self.on_self_middle_col)
         qb.where(self.model.table_name + '.' + self.on_other_col, '=', self.table + '.' + self.on_other_middle_col)
 
-        print(qb.get_sql())
-
     def _set_up(self, parting_model):
         if not self.table:
             self.table = '_'.join(sorted((self.model.table_name, current_model.table_name)))
@@ -236,12 +234,6 @@ class Multiple(Field):
             self.on_self_middle_col = parting_model.__class__.__name__.tolower() + '_id'  
 
         self._setted_up = True
-
-class Email(Field):
-    pass
-
-class Password(Field):
-    pass
 
 class JSON(Field):
     ''' A field for dealing with JSON strings boilerplate.
@@ -276,15 +268,6 @@ class JSON(Field):
     def value_processor(self, value):
         return self.JSONableDict(value)
 
-class XML(Field):
-    pass
-
-class CSV(Field):
-    pass
-
-class Pickle(Field):
-    pass
-
 field_types = {
     'sqlite3': {
         'text': Text,
@@ -296,11 +279,6 @@ field_types = {
 
         'boolean': Bool,
 
-        'datetime': Datetime,
-        'date': Date,
-
         'json': JSON,
-        'xml': XML,
-        'csv': CSV,
     }
 }

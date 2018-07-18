@@ -168,30 +168,6 @@ class TestModels(unittest.TestCase):
 
         self.assertEqual(record['a'], 's')
 
-    def test_models_fetching_all(self):
-        pass
-
-    def test_models_fetching_specific(self):
-        pass
-
-    def test_models_where_clauses(self):
-        pass
-
-    def test_models_first_and_last(self):
-        pass
-
-    def test_models_ordering(self):
-        pass
-
-    def test_models_converting_to_data(self):
-        pass
-
-    def test_to_formats(self):
-        pass
-
-    def test_get_dict(self):
-        pass
-
 def create_todo():
     db.create('todos', a='t')
 
@@ -222,6 +198,7 @@ post_cols = [
 User()
 Post()
 
+# @unittest.skip('Not yet finished')
 class TestSimpleRelations(unittest.TestCase):
     def setUp(self):
         db.drop_table('posts')
@@ -233,15 +210,15 @@ class TestSimpleRelations(unittest.TestCase):
         self.assertIsInstance(User(), User)
         self.assertIsInstance(Post(), Post)
 
-        self.assertIsInstance(User._fields['posts'], Has)
-        self.assertIsInstance(Post._fields['author'], BelongsTo)
+        self.assertIsInstance(User._relations['posts'], Has)
+        self.assertIsInstance(Post._relations['author'], BelongsTo)
 
     def test_has_queries_correctly_with_one_related_model(self):
         db.create_many('users', ('username', ), (('t1',),))
         db.create_many('posts', ('text', 'author_id'), (('t', 1),))
 
         user_post = User.first().posts
-        self.assertIsInstance(user_post, ModelContainer)
+        self.assertIsInstance(user_post, QueryBuilder)
 
         bullshit_i_have_to_do_because_the_test_are_fucking_broken = user_post.first()
         pure_post = Post.first()
@@ -254,7 +231,7 @@ class TestSimpleRelations(unittest.TestCase):
         def get_text(model):
             return model.text
 
-        posts = User.first().posts
+        posts = User.first().posts.get()
         self.assertEqual('t', get_text(posts[0]))
 
     def test_has_with_no_result_queries_empty(self):
@@ -262,13 +239,13 @@ class TestSimpleRelations(unittest.TestCase):
 
         user_post = User.first().posts
 
-        self.assertEqual(len(user_post), 0)
+        self.assertEqual(len(user_post.get()), 0)
 
     def test_has_queries_correctly_with_multiple_related_model(self):
         db.create_many('users', ('username', ), (('t1',),))
         db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 1), ('r', 1)))
 
-        user_posts = User.first().posts
+        user_posts = User.first().posts.get()
 
         self.assertEqual(len(user_posts), 3)
         self.assertEqual(user_posts[2].text, 'r')
@@ -278,11 +255,79 @@ class TestSimpleRelations(unittest.TestCase):
         db.create_many('users', ('username', ), (('t1',),))
         db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 2)))
 
-        user_posts = User.first().posts
+        user_posts = User.first().posts.get()
 
         self.assertEqual(len(user_posts), 1)
         self.assertEqual(user_posts.first().text, 't') 
 
+    def test_has_assigning_one(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 2),))
+        
+        user = User.first()
+        user.posts.assign(Post.first())
+
+        user.save()
+
+        self.assertEqual(User.first().posts.get()[0], Post.first())
+        self.assertEqual(1, Post.first().author_id)
+        
+    def test_has_assigning_some(self):
+        db.create_many('users', ('username', ), (('t1',), ('t2',)))
+        db.create_many('posts', ('text', 'author_id'), (('t', 2), ('s', 2)))
+        
+        user = User.get()[0]
+        user.posts.add_many(Post.get())
+        user.save()
+
+        user_posts = User.get()[0].posts.get()
+
+        self.assertEqual(len(user_posts), 2)
+        self.assertEqual(user_posts[0].text, 't')
+        self.assertEqual(user_posts[1].text, 's')
+
+    def test_has_reassigning_some(self):
+        db.create_many('users', ('username', ), (('t1',), ('t2',)))
+        db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 2), ('r', 2)))
+        
+        posts_not_belong_to_1 = Post.where('id', '!=', 1).get()
+
+        user = User.get()[0]
+        user.posts.reassign(posts_not_belong_to_1)
+        user.save()
+
+        user_posts = User.get()[0].posts.get()
+
+        self.assertEqual(len(user_posts), 2)
+        self.assertEqual(user_posts[0].text, 's')
+        self.assertEqual(user_posts[1].text, 'r')
+
+    def test_deassigning_all(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 2)))
+        
+        user = User.first()
+        user.posts.deassign()
+        user.save()
+
+        user_posts = User.get()[0].posts.get()
+
+        self.assertEqual(len(user_posts), 0)
+
+    def test_has_adding_one(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 2), ('s', 1)))
+        
+        user = User.first()
+        user.posts.add(Post.first())
+        user.save()
+
+        user_posts = User.first().posts.get()
+
+        self.assertEqual(len(user_posts), 2)
+        self.assertEqual(user_posts[0].text, 't')
+        self.assertEqual(user_posts[1].text, 's')
+       
     # Belongs To!
     def test_belongsTo_queries_correctly_with_one_related_model(self):
         db.create_many('users', ('username', ), (('t1',),))
