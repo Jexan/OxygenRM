@@ -71,33 +71,3 @@ class Id(Integer):
 
     def __init__(self, name='id'):
         self.name = name
-
-class Date(Column):
-    pass
-
-class Datetime(Column):
-    pass
-
-class Rel(Column):
-    pass
-
-class Multiple(Column):
-    pass
-
-class Email(Column):
-    pass
-
-class Password(Column):
-    pass
-
-class JSON(Column):
-    pass
-
-class XML(Column):
-    pass
-
-class CSV(Column):
-    pass
-
-class Pickle(Column):
-    pass

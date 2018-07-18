@@ -101,12 +101,6 @@ class Table():
 
             self._delete_columns.append(col)
 
-    def rename_columns(self, **kwargs):
-        pass
-
-    def edit_columns_props(self, **kwargs):
-        pass  
-
     def drop(self):
         ''' Destroy the table and deletes self.
 
