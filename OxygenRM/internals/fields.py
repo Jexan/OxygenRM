@@ -155,7 +155,7 @@ class Has(Relation):
         if self.how_much == 'many':
             return qb
         else:
-            model = qb.first()
+            model = qb.get()
             model.parting_model = starting_model
             return model
 
@@ -164,8 +164,27 @@ class Has(Relation):
             self.get(starting_model).assign(value)
 
     def _extend_model(self):
-        class HasModelWrapper(self.model):
-            pass
+        model = self.model
+        class HasModelWrapper(model):
+            _lazy_load = True
+
+            def __init__(self, result):
+                self.result = result
+                self._loaded = False
+
+            def __getattribute__(self, attr):
+                prop = getattr(model, attr, None)
+
+                if not super().__getattribute__('_loaded') and (isinstance(prop, property) or callable(prop)):
+                    super().__getattribute__('_load')()
+
+                return super().__getattribute__(attr)
+
+            def _load(self):
+                self._loaded = True
+
+                row = next(self.result())
+                super().__init__(False, **dict(zip(row.keys(), tuple(row))))
 
         def assign(wrapped_self, other_model):
             ''' Make the specified model the only model that the parent possesses.

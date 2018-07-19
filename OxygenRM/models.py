@@ -12,7 +12,7 @@ class MetaModel(type):
         if getattr(QueryBuilder, name, None):
             return getattr(QueryBuilder.table(cls.table_name, cls), name)
         else:
-            raise AttributeError('The model {} has no attribute {}'.format(cls._self_name, name))
+            return None
 
 class Model(metaclass=MetaModel):
     ''' The model base class. It allows ORM operations, and

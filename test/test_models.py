@@ -348,10 +348,10 @@ class TestSimpleRelations(unittest.TestCase):
         db.create_many('posts', ('text', 'author_id'), (('t', 2), ('s', 1)))
 
         user = OnePostUser.first()
-        user.post.assign(Post.first())
-        user.save()
-
         post = user.post
+
+        post.assign(Post.first())
+        user.save()
 
         self.assertEqual(Post.first().author_id, 1)
         self.assertEqual(Post.get()[1].author_id, None)
@@ -361,9 +361,11 @@ class TestSimpleRelations(unittest.TestCase):
         db.create_many('posts', ('text', 'author_id'), (('s', 1),))
 
         user = OnePostUser.first()
-        user.post.deassign()
-        user.save()
+        post = user.post
 
+        post.deassign()
+        
+        user.save()
         self.assertEqual(Post.first().author_id, None)
         
     # Belongs To!
