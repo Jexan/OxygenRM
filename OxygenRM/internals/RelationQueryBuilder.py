@@ -4,7 +4,6 @@ from OxygenRM.internals.ModelContainer import ModelContainer
 class HasQueryBuilder(QueryBuilder):
     ''' A query builder specially designed for Has Many relationships.
     '''
-
     def __init__(self, target_model, parting_model, relation):
         super().__init__(target_model.table_name, target_model)
 
@@ -12,6 +11,7 @@ class HasQueryBuilder(QueryBuilder):
         self.on_self_col = relation.on_self_col
         self.on_other_col = relation.on_other_col
         self.table_name = target_model.table_name
+        self.how_much = relation.how_much
 
         self.where(self.on_other_col, '=', getattr(parting_model, self.on_self_col))
 

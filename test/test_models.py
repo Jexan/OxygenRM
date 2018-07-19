@@ -186,6 +186,13 @@ class Post(O.Model):
 
 User.posts = Has('many', Post, on_other_col="author_id")
 
+class OnePostUser(O.Model):
+            table_name = 'users'
+
+            id = Id()
+            username = Text()
+            post = Has('one', Post, on_other_col='author_id')
+
 user_cols = [
     next(default_cols(id='integer'))._replace(primary=True, auto_increment=True),
     next(default_cols(username='text'))
@@ -197,6 +204,7 @@ post_cols = [
 
 User()
 Post()
+OnePostUser()
 
 # @unittest.skip('Not yet finished')
 class TestSimpleRelations(unittest.TestCase):
@@ -317,7 +325,6 @@ class TestSimpleRelations(unittest.TestCase):
     def test_has_adding_one(self):
         db.create_many('users', ('username', ), (('t1',),))
         db.create_many('posts', ('text', 'author_id'), (('t', 2), ('s', 1)))
-        
         user = User.first()
         user.posts.add(Post.first())
         user.save()
@@ -327,7 +334,38 @@ class TestSimpleRelations(unittest.TestCase):
         self.assertEqual(len(user_posts), 2)
         self.assertEqual(user_posts[0].text, 't')
         self.assertEqual(user_posts[1].text, 's')
-       
+
+    def test_has_one_works(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('s', 1),))
+
+        post = OnePostUser.first().post
+
+        self.assertIsInstance(post, Post)
+    
+    def test_has_one_assignal(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('t', 2), ('s', 1)))
+
+        user = OnePostUser.first()
+        user.post.assign(Post.first())
+        user.save()
+
+        post = user.post
+
+        self.assertEqual(Post.first().author_id, 1)
+        self.assertEqual(Post.get()[1].author_id, None)
+
+    def test_has_one_deassignal(self):
+        db.create_many('users', ('username', ), (('t1',),))
+        db.create_many('posts', ('text', 'author_id'), (('s', 1),))
+
+        user = OnePostUser.first()
+        user.post.deassign()
+        user.save()
+
+        self.assertEqual(Post.first().author_id, None)
+        
     # Belongs To!
     def test_belongsTo_queries_correctly_with_one_related_model(self):
         db.create_many('users', ('username', ), (('t1',),))

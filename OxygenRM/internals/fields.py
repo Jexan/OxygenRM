@@ -137,6 +137,9 @@ class Has(Relation):
         self.model = model
         self.how_much = how_much
 
+        if how_much == 'one':
+            self._extend_model()
+
         self.on_self_col = on_self_col
         self.on_other_col = on_other_col  
 
@@ -149,11 +152,53 @@ class Has(Relation):
 
         qb = HasQueryBuilder(self.model, starting_model, self).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
         
-        return qb
+        if self.how_much == 'many':
+            return qb
+        else:
+            model = qb.first()
+            model.parting_model = starting_model
+            return model
 
     def set(self, starting_model, value):
         if not isinstance(starting_model, ModelContainer):
             self.get(starting_model).assign(value)
+
+    def _extend_model(self):
+        class HasModelWrapper(self.model):
+            pass
+
+        def assign(wrapped_self, other_model):
+            ''' Make the specified model the only model that the parent possesses.
+
+                Args:
+                    other_model: The new model to assign
+            '''
+            other_id = other_model.get_primary()
+            self_id = getattr(wrapped_self.parting_model, self.on_self_col)
+
+            def pending_function():
+                QueryBuilder.table(wrapped_self.table_name).where(self.on_other_col, '=', self_id).update({self.on_other_col: None})
+                QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self.on_other_col: self_id})
+
+            wrapped_self.parting_model._rel_queue.append(pending_function)
+
+            return wrapped_self
+
+        def deassign(wrapped_self):
+            ''' Remove the associated model(s) from the parent.
+            '''
+            self_id = getattr(wrapped_self.parting_model, self.on_self_col)
+
+            def pending_function():
+                QueryBuilder.table(wrapped_self.table_name).where(self.on_other_col, '=', self_id).update({self.on_other_col: None})
+
+            wrapped_self.parting_model._rel_queue.append(pending_function)
+            return wrapped_self
+
+        HasModelWrapper.assign = assign
+        HasModelWrapper.deassign = deassign
+
+        self.model = HasModelWrapper
 
 class BelongsTo(Relation):
     ''' Define a 'belongs to' relationship with another database table.
