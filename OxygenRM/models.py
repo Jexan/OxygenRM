@@ -16,43 +16,43 @@ class MetaModel(type):
             return None
 
 class Model(metaclass=MetaModel):
-    ''' The model base class. It allows ORM operations, and
+    """ The model base class. It allows ORM operations, and
         it's supossed to be subclassed.
-    '''
+    """
 
     # PRIVATE
-    ''' The original field values of the model.
-    '''
+    """ The original field values of the model.
+    """
     _original_values = {}
 
-    ''' Internal values of the record fields
-    '''
+    """ Internal values of the record fields
+    """
     _field_values = {}
 
-    ''' A tracker of this model associated relations
+    """ A tracker of this model associated relations
         @static
-    '''
+    """
     _relations = {}
 
-    ''' A tracker of this model associated fields
+    """ A tracker of this model associated fields
         @static
-    '''
+    """
     _fields = {}
 
-    ''' The name of the table. Used in the metaclass
+    """ The name of the table. Used in the metaclass
         @static
-    '''
+    """
     _self_name = ''
 
-    ''' Bool of whether the model internal data is ready
+    """ Bool of whether the model internal data is ready
         @static
-    '''
+    """
     _set_up = False
 
     @classmethod
     def _set_up_model(cls):
-        ''' Set up the internals and relations of the Model
-        '''
+        """ Set up the internals and relations of the Model
+        """
         if not cls.table_name:
             cls.table_name = cls.__name__.lower() + 's'
 
@@ -82,26 +82,26 @@ class Model(metaclass=MetaModel):
         cls._self_name = cls.__name__
 
     def _convert_orig_values_to_conditions(self):
-        ''' Convert the internal _original_values
+        """ Convert the internal _original_values
             to conditions, for a where condition.
 
             Yields:
                 Tuples of the form (field, '=', value)
-        '''
+        """
         for field, value in self._original_values.items():
             yield (field, '=', value)
 
     # PUBLIC
     
-    ''' A string of the associated table name. Can be specified by
+    """ A string of the associated table name. Can be specified by
         subclasses. If not, it will be assumed to be the model name + s.
         @static
-    '''
+    """
     table_name = ''
 
-    ''' The table primary key name.
+    """ The table primary key name.
         @static
-    '''
+    """
     primary_key = ''
 
     def __init__(self, creating_new=True, **values):
@@ -121,19 +121,19 @@ class Model(metaclass=MetaModel):
             self._field_values[field] = field_val
     
     def get_primary(self):
-        ''' Get the primary key value of the model.
+        """ Get the primary key value of the model.
 
             Return:
                 The primary key value of the model
-        '''
+        """
         return getattr(self, self.primary_key)
                                 
     def save(self):
-        ''' Commit the current changes to the database.
+        """ Commit the current changes to the database.
 
             Return:
                 self
-        '''
+        """
         if self._creating_new:
             O.db.create(self.table_name, **self._field_values)
         else:
@@ -146,8 +146,8 @@ class Model(metaclass=MetaModel):
         return self
 
     def destroy(self):
-        ''' Remove the working model from the database.
-        '''
+        """ Remove the working model from the database.
+        """
         if self._creating_new:
             raise Exception('Can not destroy model that doesn\'t exist in the database')
 
@@ -156,11 +156,11 @@ class Model(metaclass=MetaModel):
         return True
 
     def to_dict(self):
-        ''' Fetch a dict with the model values.
+        """ Fetch a dict with the model values.
 
             Return:
                 A dict with the field names and values.
-        '''
+        """
         return self._field_values
 
     def __eq__(self, other_model):

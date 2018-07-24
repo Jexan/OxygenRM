@@ -13,78 +13,78 @@ class Field(metaclass=abc.ABCMeta):
 
     _valid_types = []
 
-    ''' The base class for defining a Model column.
-    '''
+    """ The base class for defining a Model column.
+    """
     def __init__(self, null=False):
         self.null = null
 
     def get(self, model):
-        ''' The getter for model fields.
+        """ The getter for model fields.
 
             Args:
                 model: The model instance. 
 
             Returns:
                 The value of the model
-        '''
+        """
         return self.value_formatter(model._field_values[self._attr])
 
     def set(self, model, value):
-        ''' Validate and set the the value of the column.
+        """ Validate and set the the value of the column.
 
             Args:
                 model: The model instance.
                 value: The value to be assigned.
-        '''
+        """
         self.validate(value)
         
         model._field_values[self._attr] = self.value_processor(value)
 
     def validate(self, value):
-        ''' Decide wheter a non-null value that wants to be set is valid.
+        """ Decide wheter a non-null value that wants to be set is valid.
 
             Args:
                 value: The value to be set internally
         
             Raises:
                 TypeError: If the value is invalid.
-        '''
+        """
         return True
 
     def value_processor(self, value):
-        ''' Transform the value given. Used in the setter.
+        """ Transform the value given. Used in the setter.
 
             Args:
                 value: The value to be processed
         
             Returns:
                 A processed value
-        '''
+        """
         return value
 
     def value_formatter(self, value):
-        ''' Format the value given. Used in the getter.
+        """ Format the value given. Used in the getter.
 
             Args:
                 value: The value to be processed
         
             Returns:
                 A processed value
-        '''
+        """
         return value
 
 class Text(Field):
-    ''' A basic Text column.
-    '''
+    """ A basic Text column.
+    """
     def validate(self, value):
         if not isinstance(value, str):
             raise TypeError('Invalid value {}. Expected str.'.format(value))
 
 class Bool(Field):
-    ''' A boolean column. Implemented as a small int.
+    """ A boolean column. Implemented as a small int.
 
         The possible values to be setted, in a model, are bool, 1 or 0. 
-    '''
+    """
     def validate(self, value):
         if value not in (0, 1, True, False):
             raise TypeError('Invalid value {}. Expected 1, 0 or bool.'.format(value))
@@ -94,15 +94,15 @@ class Bool(Field):
         return 1 if value else 0
 
 class Integer(Field):
-    ''' A basic integer column.
-    '''
+    """ A basic integer column.
+    """
     def validate(self, value):
         if not isinstance(value, int) or isinstance(value, bool):
             raise TypeError('Invalid value {}. Expected an int.'.format(value))
     
 class Float(Field):
-    ''' A basic float column.
-    '''
+    """ A basic float column.
+    """
     def validate(self, value):
         if type(value) not in (int, float) or isinstance(value, bool):
             raise TypeError('Invalid value {}. Expected a float or int.'.format(value))
@@ -111,8 +111,8 @@ class Float(Field):
         return float(value)
 
 class Id(Integer):
-    ''' An auto-incrementing, unsigned integer. Used as a primary key.
-    '''
+    """ An auto-incrementing, unsigned integer. Used as a primary key.
+    """
     def __init__(self):
         self.null = False
 
@@ -120,7 +120,7 @@ class Relation(Field):
     pass
 
 class Has(Relation):
-    ''' Define a 'has' relationship with another database table.
+    """ Define a 'has' relationship with another database table.
 
         Args:
             how_much: Either 'one' or 'many'
@@ -129,7 +129,7 @@ class Has(Relation):
                 By default it will be the #{lower case model name}_id
             on_self_col: The name of the own column, for use in the join.
                 By the default it will be the id column.
-    '''
+    """
     def __init__(self, how_much, model, on_other_col='', on_self_col=None):
         if how_much not in ('many', 'one'):
             raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
@@ -187,11 +187,11 @@ class Has(Relation):
                 super().__init__(False, **dict(zip(row.keys(), tuple(row))))
 
         def assign(wrapped_self, other_model):
-            ''' Make the specified model the only model that the parent possesses.
+            """ Make the specified model the only model that the parent possesses.
 
                 Args:
                     other_model: The new model to assign
-            '''
+            """
             other_id = other_model.get_primary()
             self_id = getattr(wrapped_self.parting_model, self.on_self_col)
 
@@ -204,8 +204,8 @@ class Has(Relation):
             return wrapped_self
 
         def deassign(wrapped_self):
-            ''' Remove the associated model(s) from the parent.
-            '''
+            """ Remove the associated model(s) from the parent.
+            """
             self_id = getattr(wrapped_self.parting_model, self.on_self_col)
 
             def pending_function():
@@ -220,7 +220,7 @@ class Has(Relation):
         self.model = HasModelWrapper
 
 class BelongsTo(Relation):
-    ''' Define a 'belongs to' relationship with another database table.
+    """ Define a 'belongs to' relationship with another database table.
 
         Args:
             how_much: Either 'one' or 'many'
@@ -229,7 +229,7 @@ class BelongsTo(Relation):
                 By default it will be the #{lower case model name}_id
             on_self_col: The name of the own column, for use in the join.
                 By the default it will be the id column.
-    '''
+    """
     def __init__(self, how_much, model, on_other_col='id', on_self_col=''):
         if how_much not in ('many', 'one'):
             raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
@@ -255,7 +255,7 @@ class BelongsTo(Relation):
         raise NotImplementedError('Setting relationship models not yet allowed')
     
 class Multiple(Relation):
-    ''' Define a 'many to many' relationship with another database table.
+    """ Define a 'many to many' relationship with another database table.
 
         Args:
             model: The related model class
@@ -266,7 +266,7 @@ class Multiple(Relation):
                 By default it will be the #{lower case model name}_id
             on_self: The name of the own column, for use in the join.
                 By the default it will be the id column.
-    '''
+    """
     def __init__(self, model, table=None, on_other_col='id', 
             on_self_col='id', on_other_middle_col=None, on_self_middle_col=None):
         self.model = model
@@ -300,12 +300,12 @@ class Multiple(Relation):
         self._setted_up = True
 
 class JSON(Field):
-    ''' A field for dealing with JSON strings boilerplate.
-    '''
+    """ A field for dealing with JSON strings boilerplate.
+    """
 
     class JSONableDict(dict):
-        ''' A dict that makes easier the conversion to JSON.
-        '''    
+        """ A dict that makes easier the conversion to JSON.
+        """    
         def __str__(self):
             return self.to_json()
 

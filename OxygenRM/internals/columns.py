@@ -5,9 +5,9 @@ from collections import namedtuple
 ColumnData = namedtuple('ColumnData', 'name type null default primary auto_increment unique check')
 
 class Column(metaclass=ABCMeta):
-    ''' The base class for defining a Model (or Migration)
+    """ The base class for defining a Model (or Migration)
         column.
-    '''
+    """
     def __init__(self, **options):
         self.null    = options.get('null', True)
         self.primary = options.get('primary', False)
@@ -19,7 +19,7 @@ class Column(metaclass=ABCMeta):
         self._value = self.default
 
     def get_data(self, name, driver):
-        ''' Get the relevant data of the column to craft
+        """ Get the relevant data of the column to craft
 
             Args:
                 name: The name of the column to add.
@@ -27,7 +27,7 @@ class Column(metaclass=ABCMeta):
 
             Returns:
                 A ColumnData tuple.
-        '''
+        """
         return ColumnData(
             name, self.driver_type[driver], 
             self.null, self.default, 
@@ -35,36 +35,36 @@ class Column(metaclass=ABCMeta):
             self.unique, self.check)
 
 
-    ''' A dict with the types this column represents
+    """ A dict with the types this column represents
         in various database systems.
-    '''
+    """
     driver_type = {}
 
 class Text(Column):
-    ''' A basic Text column.
-    '''
+    """ A basic Text column.
+    """
     driver_type = {'sqlite3': 'text'}
 
 class Bool(Column):
-    ''' A boolean column. Implemented as a small int.
+    """ A boolean column. Implemented as a small int.
 
         The possible values to be setted, in a model, are bool, 1 or 0. 
-    '''
+    """
     driver_type = {'sqlite3': 'integer'}
 
 class Integer(Column):
-    ''' A basic integer column.
-    '''
+    """ A basic integer column.
+    """
     driver_type = {'sqlite3': 'integer'}
     
 class Float(Column):
-    ''' A basic float column.
-    '''
+    """ A basic float column.
+    """
     driver_type = {'sqlite3': 'real'}
 
 class Id(Integer):
-    ''' An auto-incrementing, unsigned integer. Used as a primary key.
-    '''
+    """ An auto-incrementing, unsigned integer. Used as a primary key.
+    """
     null = False
     primary = True
     auto_increment = True

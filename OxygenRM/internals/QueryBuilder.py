@@ -7,8 +7,8 @@ from OxygenRM.internals.ModelContainer import ModelContainer
 import OxygenRM as O
 
 class QueryBuilder:
-    ''' A class for building and chaining queries.
-    '''
+    """ A class for building and chaining queries.
+    """
     def __init__(self, table_name, model=None):
         self._in_wait = defaultdict(list)
         self._in_wait['table_name'] = table_name
@@ -17,29 +17,29 @@ class QueryBuilder:
 
     @classmethod
     def table(cls, table_name, model=None):
-        ''' Prepare the table to edit.
+        """ Prepare the table to edit.
 
             Args:
                 table_name: The table to edit
 
             Returns:
                 A QueryBuilder instance
-        '''
+        """
         return cls(table_name, model)
 
     def select(self, *fields):
-        ''' Specify which fields will be selected. 
+        """ Specify which fields will be selected. 
 
             Args:
                 *fields: The fields as string that will be used.
-        ''' 
+        """ 
         self._in_wait['select'] = True
         self._in_wait['select_fields'] = fields
 
         return self
 
     def where(self, field, symbol, value):
-        ''' Add an AND WHERE condition to the prepared query.
+        """ Add an AND WHERE condition to the prepared query.
 
             Args: 
                 field: The column name.
@@ -48,12 +48,12 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['where_cond'].append(ConditionClause('AND', field, symbol, value))
         return self
 
     def or_where(self, field, symbol, value):
-        ''' Add an OR WHERE condition to the prepared query.
+        """ Add an OR WHERE condition to the prepared query.
 
             Args: 
                 field: The column name.
@@ -62,12 +62,12 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['where_cond'].append(ConditionClause('OR', field, symbol, value))
         return self
 
     def where_in(self, field, values):
-        ''' Add an AND field IN values condition to the prepared query.
+        """ Add an AND field IN values condition to the prepared query.
 
             Args: 
                 field: The column name.
@@ -75,12 +75,12 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['where_cond'].append(ConditionClause('AND', field, 'IN', tuple(values)))
         return self
 
     def where_many(self, conditions):
-        ''' Add multiple AND WHERE condition to the prepared query.
+        """ Add multiple AND WHERE condition to the prepared query.
 
             Args: 
                 conditions: An iterator that yields lists/tuples, such that:
@@ -90,14 +90,14 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         condition_packer = lambda cond: ConditionClause('AND', *cond)
 
         self._in_wait['where_cond'].extend(map(condition_packer, conditions))
         return self    
 
     def or_where_many(self, conditions):
-        ''' Add multiple OR WHERE condition to the prepared query.
+        """ Add multiple OR WHERE condition to the prepared query.
 
             Args: 
                 conditions: An iterator that yields lists/tuples, such that:
@@ -107,14 +107,14 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         condition_packer = lambda cond: ConditionClause('OR', *cond)
 
         self._in_wait['where_cond'].extend(map(condition_packer, conditions))
         return self    
 
     def group_by(self, field, order='ASC'):
-        ''' Add a GROUP BY to the prepared query.
+        """ Add a GROUP BY to the prepared query.
 
             Args:
                 fields: The field to group by.
@@ -122,12 +122,12 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['group_by'].append(OrderClause(field, order))
         return self
 
     def having(self, field, symbol, value):
-        ''' Add an AND HAVING condition to the prepared query.
+        """ Add an AND HAVING condition to the prepared query.
 
             Args: 
                 field: The column name.
@@ -136,12 +136,12 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['having'] = ConditionClause('AND', field, symbol, value)
         return self
 
     def order_by(self, field, order='ASC'):
-        ''' Add an ORDER BY to the prepared query.
+        """ Add an ORDER BY to the prepared query.
 
             Args:
                 field: The field to order by.
@@ -149,100 +149,100 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['order_by'].append(OrderClause(field, order))
         return self
 
     def limit(self, n):
-        ''' Add a LIMIT to the prepared query.
+        """ Add a LIMIT to the prepared query.
 
             Args:
                 n: The number of fields to take.
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['limit'] = n
         return self
 
     def offset(self, n):
-        ''' Add an OFFSET to the prepared query.
+        """ Add an OFFSET to the prepared query.
 
             Args:
                 n: The number of fields to offset.
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['offset'] = n
         return self
 
     def distinct(self, distinct=True):
-        ''' Add a DISTINCT clause to the prepared query
+        """ Add a DISTINCT clause to the prepared query
 
             Args:
                 distinct: A bool indicating if you want to add the distinct clause.
 
             Returns: 
                 self
-        '''
+        """
         self._in_wait['distinct'] = distinct
         return self
 
     def join(self, table):
-        ''' Add an INNER JOIN to the prepared query.
+        """ Add an INNER JOIN to the prepared query.
 
             Args: 
                 table: The table to join the current one.
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['join_type'] = 'INNER'
         self._in_wait['join_with'] = table
         return self
 
     def outer_join(self, table):
-        ''' Add an OUTER JOIN to the prepared query.
+        """ Add an OUTER JOIN to the prepared query.
 
             Args: 
                 table: The table to join the current one.
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['join_type'] = 'OUTER'
         self._in_wait['join_with'] = table
         return self
 
     def using(self, fields):
-        ''' Add a USING for a JOIN.
+        """ Add a USING for a JOIN.
 
             Args: 
                 using: The columns to compare and outer_join.
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['using'] = fields
 
         return self
 
     def cross_join(self, table):
-        ''' Add a CROSS JOIN to the prepared query.
+        """ Add a CROSS JOIN to the prepared query.
 
             Args: 
                 table: The table to join the current one.
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['join_type'] = 'CROSS'
         self._in_wait['join_with'] = table 
         return self
 
     def on(self, field, symbol, value):
-        ''' Add an ON AND condtion to the prepared query.
+        """ Add an ON AND condtion to the prepared query.
 
             Args: 
                 field: The column name.
@@ -251,13 +251,13 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['join_on'].append(ConditionClause('AND', field, symbol, value))
 
         return self
 
     def or_on(self, field, symbol, value):
-        ''' Add a ON OR condtion to the prepared query.
+        """ Add a ON OR condtion to the prepared query.
 
             Args: 
                 field: The column name.
@@ -266,17 +266,17 @@ class QueryBuilder:
 
             Returns:
                 self
-        '''
+        """
         self._in_wait['join_on'].append(ConditionClause('OR', field, symbol, value))
 
         return self
 
     def get_sql(self):
-        '''  Craft a get sql command.
+        """  Craft a get sql command.
 
             Returns:
                 A query string
-        '''
+        """
         options = self._in_wait
 
         if options['join_type']:
@@ -307,42 +307,42 @@ class QueryBuilder:
         return query
 
     def delete_sql(self):
-        '''  Craft a delete sql command.
+        """  Craft a delete sql command.
 
             Returns:
                 A query string
-        '''
+        """
         return delete_clause(self._in_wait['table_name'], self._in_wait['where_cond'])
 
     def update_sql(self, values):
-        ''' Craft a update sql command.
+        """ Craft a update sql command.
 
             Args:
                 values: A dict with the keys as the fields and the values as the values to be set.
-        '''
+        """
         return update_clause(self._in_wait['table_name'], values.keys(), self._in_wait['where_cond'])
     
     def delete(self):
-        '''  Delete records according to the chained methods.
-        '''
+        """  Delete records according to the chained methods.
+        """
         O.db.execute(self.delete_sql(), tuple(extract_values(self._in_wait['where_cond'])))
 
     def update(self, values):
-        ''' Update records in the database according with the given values.
+        """ Update records in the database according with the given values.
 
             Args:
                 values: A dict with the keys as the fields and the values as the values to be set.
-        '''
+        """
         values_to_prepare = chain(values.values(), extract_values(self._in_wait['where_cond']))
 
         O.db.execute(self.update_sql(values), tuple(values_to_prepare))
 
     def get(self):
-        '''  Get the specified records.
+        """  Get the specified records.
 
             Returns:
                 The rows obtained.
-        '''
+        """
         query = self.get_sql()
         options = self._in_wait
 
@@ -355,20 +355,20 @@ class QueryBuilder:
         return self._wrap_in_model(result)
 
     def all(self):
-        ''' Gets all the records.
+        """ Gets all the records.
 
             Returns:
                 The queried rows.
-        '''
+        """
         result = lambda: O.db.all(self._in_wait['table_name'], self._in_wait['select_fields']) 
         return self._wrap_in_model(result)
 
     def first(self):
-        ''' Get the first record of the specified query.
+        """ Get the first record of the specified query.
 
             Returns:
                 The first record specified.
-        '''
+        """
         result = self.limit(1).get()
         if self._model:
             return result.first()
@@ -376,15 +376,15 @@ class QueryBuilder:
             return result.fetchone()
 
     def __iter__(self):
-        ''' Alias fot get.
+        """ Alias fot get.
 
             Returns:
                 The rows obtained.
-        '''
+        """
         return self.get()
 
     def _wrap_in_model(self, result):
-        ''' Wrap the results of the query cursor in 
+        """ Wrap the results of the query cursor in 
             a ModelContainer, if a model is available.
 
             Args:
@@ -392,7 +392,7 @@ class QueryBuilder:
 
             Return:
                 An iterator with the rows
-        '''
+        """
         if not self._model:
             return result()
         if self._model._lazy_load:
@@ -400,19 +400,19 @@ class QueryBuilder:
         else:
             return ModelContainer(result, self._model)
 
-    ''' A dict indicating which operation is pending.
-    '''
+    """ A dict indicating which operation is pending.
+    """
     _in_wait = defaultdict(list)
 
 def extract_values(conditions):
-    ''' Get every value of the passed conditions.
+    """ Get every value of the passed conditions.
 
         Args:
             conditions: An iterator of ConditionClause.
 
         Yields:
             The values of every condition.
-    '''
+    """
     for condition in conditions:
         if condition.symbol == 'IN':
             for value in condition.value:
