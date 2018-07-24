@@ -303,34 +303,57 @@ class JSON(Field):
     """ A field for dealing with JSON strings boilerplate.
     """
 
-    class JSONableDict(dict):
-        """ A dict that makes easier the conversion to JSON.
-        """    
-        def __str__(self):
-            return self.to_json()
+    def __init__(self, default=dict, null=False):
+        if default not in (dict, list):
+            raise ValueError('Wrong default constructor {}. Must be a class constructor of dict or list'.format(default))
 
-        def to_json(self, *args):
-            return json.dumps(self, *args)
-
-        def __conform__(self, protocol):
-            if protocol is sqlite3.PrepareProtocol:
-                return str(self)
+        self.default_constructor = self._make_container_jsonable(default)
 
     def get(self, model):
         original_val = super().get(model)
         
-        if not isinstance(original_val, dict):
-            super().set(model, self.JSONableDict())
-            return super().get(model)
-        else:
+        if getattr(original_val, 'conformable', False):
             return original_val
 
+        if original_val is None:
+            value = self.default_constructor()
+        else:
+            json_val = json.loads(original_val)
+            constructor = self._make_container_jsonable(json_val.__class__)
+            
+            value = constructor(json_val)
+            
+        model._field_values[self._attr] = value
+        return value
+
     def validate(self, value):
-        if not isinstance(value, (dict, str)):
+        if not isinstance(value, (dict, list, str)):
             raise TypeError('Invalid value {}. Expected a dict or string.'.format(value))
 
     def value_processor(self, value):
-        return self.JSONableDict(value)
+        if isinstance(value, str):
+            value = json.loads(value)
+        
+        constructor = self._make_container_jsonable(value.__class__)
+        return constructor(value)
+
+    def _make_container_jsonable(self, constructor):
+        class JSONableContainer(constructor):
+            """ A container that makes easier the conversion to JSON.
+            """    
+            def __str__(self):
+                return self.to_json()
+
+            def to_json(self, *args):
+                return json.dumps(self, *args)
+
+            def __conform__(self, protocol):
+                if protocol is sqlite3.PrepareProtocol:
+                    return str(self)
+
+            conformable = True
+
+        return JSONableContainer
 
 field_types = {
     'sqlite3': {
