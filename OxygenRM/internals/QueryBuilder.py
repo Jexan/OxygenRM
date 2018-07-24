@@ -77,6 +77,19 @@ class QueryBuilder:
                 self
         """
         self._in_wait['where_cond'].append(ConditionClause('AND', field, 'IN', tuple(values)))
+        return self    
+
+    def where_not_in(self, field, values):
+        """ Add an AND field NOT IN values condition to the prepared query.
+
+            Args: 
+                field: The column name.
+                values: An iterator with the values to check
+
+            Returns:
+                self
+        """
+        self._in_wait['where_cond'].append(ConditionClause('AND', field, 'NOT IN', tuple(values)))
         return self
 
     def where_many(self, conditions):
@@ -414,7 +427,7 @@ def extract_values(conditions):
             The values of every condition.
     """
     for condition in conditions:
-        if condition.symbol == 'IN':
+        if 'IN' in condition.symbol:
             for value in condition.value:
                 yield value
         else:

@@ -42,6 +42,10 @@ class TestQueryBuilderSQL(unittest.TestCase):
         t = QueryBuilder.table('t').where_in('a', (1,2,3))
         self.assertEqual(t.get_sql(), saft + ' WHERE a IN (?, ?, ?)')
 
+    def test_where_not_in(self):
+        t = QueryBuilder.table('t').where_not_in('a', (1,2,3))
+        self.assertEqual(t.get_sql(), saft + ' WHERE a NOT IN (?, ?, ?)')
+
     def test_order_by(self):
         t = QueryBuilder.table('t').order_by('id', 'ASC')
         self.assertEqual(t.get_sql(), saft + ' ORDER BY id ASC')
@@ -194,6 +198,15 @@ class RecordManipulationTest(unittest.TestCase):
         
         self.assertEqual(len(even_fields), 2)
         self.assertEqual(even_fields[0]['b'], '2')
+
+    def test_where_not_in(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create_many('t', ('a', 'b'), [(1, '1'), (2, '2'), (3, '3'), (4, '4')])
+
+        odd_fields = tuple(qb.table('t').where_not_in('a', (2, 3)))
+        
+        self.assertEqual(len(odd_fields), 2)
+        self.assertEqual(odd_fields[0]['b'], '1')
 
     def test_where_equals_works(self):
         db.create_table('t', default_cols(id='integer', name='text'))
