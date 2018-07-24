@@ -66,6 +66,19 @@ class QueryBuilder:
         self._in_wait['where_cond'].append(ConditionClause('OR', field, symbol, value))
         return self
 
+    def where_in(self, field, values):
+        ''' Add an AND field IN values condition to the prepared query.
+
+            Args: 
+                field: The column name.
+                values: An iterator with the values to check
+
+            Returns:
+                self
+        '''
+        self._in_wait['where_cond'].append(ConditionClause('AND', field, 'IN', tuple(values)))
+        return self
+
     def where_many(self, conditions):
         ''' Add multiple AND WHERE condition to the prepared query.
 
@@ -401,4 +414,8 @@ def extract_values(conditions):
             The values of every condition.
     '''
     for condition in conditions:
-        yield condition.value
+        if condition.symbol == 'IN':
+            for value in condition.value:
+                yield value
+        else:
+            yield condition.value

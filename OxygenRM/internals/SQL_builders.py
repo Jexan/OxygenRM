@@ -8,7 +8,7 @@ from collections import namedtuple
 from OxygenRM.internals.columns import ColumnData
 
 VALID_CONNECTORS = ('AND', 'OR')
-VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
+VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<', 'IN')
 COLUMN_RE = re.compile(
         r'''\ ?(?P<col_name>\w+)\ 
             (?P<col_type>\w+)\ ?
@@ -288,6 +288,12 @@ def conditions_gen(conditions, safe=True):
             value = '?'
         else:
             value = condition.value
+
+        if condition.symbol == 'IN':
+            if value == '?':
+                value *= len(condition.value)
+
+            value = '({})'.format(', '.join(value))
 
         condition_str = '' if index == 0 else condition.connector + ' '
 
