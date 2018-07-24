@@ -6,3 +6,5 @@ __pycache__
 
 OxygenRM Spec.py
 *.sublime*
+
+htmlcov

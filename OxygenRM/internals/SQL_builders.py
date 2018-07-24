@@ -142,7 +142,7 @@ def order_by_clause(conditions):
         Returns:
             The sql clause.
     '''
-    return 'ORDER BY {}'.format(order_gen(condtions))
+    return 'ORDER BY {}'.format(order_gen(conditions))
 
 def limit_clause(n, offset=None):
     ''' Generate an LIMIT clause, with OFFSET if provided.

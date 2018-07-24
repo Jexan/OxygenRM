@@ -38,6 +38,10 @@ class TestQueryBuilderSQL(unittest.TestCase):
         t = QueryBuilder.table('t').where('a', '=', 2).or_where('b', 'IS', None)
         self.assertEqual(t.get_sql(), saft + ' WHERE a = ? OR b IS ?')
 
+    def test_order_by(self):
+        t = QueryBuilder.table('t').order_by('id', 'ASC')
+        self.assertEqual(t.get_sql(), saft + ' ORDER BY id ASC')
+
     def test_group_by(self):
         t = QueryBuilder.table('t').group_by('a')
         self.assertEqual(t.get_sql(), saft + ' GROUP BY a ASC')
@@ -106,21 +110,27 @@ class TestQueryBuilderSQL(unittest.TestCase):
         t = QueryBuilder.table('t').where('id', '=', 2)
         self.assertEqual(t.update_sql({'a': None}), 'UPDATE t SET a = ? WHERE id = ?')
 
+
 class RecordManipulationTest(unittest.TestCase):
     def tearDown(self):
         db.drop_table('t')
 
     def test_table_querying_all(self):
         db.create_table('t', default_cols(name='text', number='integer'))
-
-        self.assertEqual(len(list(db.all('t'))), 0)
-        
         db.create('t', name='t1', number=1)
-        self.assertEqual(len(list(db.all('t'))), 1)
-
+        
         created = next(qb.table('t').all())
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
+
+    def test_table_first(self):
+        db.create_table('t', default_cols(a='text', b='integer'))
+        db.create_many('t', ('a', 'b'), (('t1', 1), ('t2', 2)))
+
+        first = qb.table('t').first()
+
+        self.assertEqual(first['a'], 't1')
+        self.assertEqual(first['b'], 1)
 
     # FIND WHERE GET
     def test_where_inequality_works_even_with_null_records(self):

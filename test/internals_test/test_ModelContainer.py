@@ -30,6 +30,12 @@ class TestModelContainer(unittest.TestCase):
     def test_iterable_properties(self):
         for row in self.mc:
             self.assertIsInstance(row, self.mc._model)
+
+    def test_model_deletion(self):
+        del self.mc[1]
+
+        self.assertEqual(2, len(self.mc))
+        self.assertEqual('c', self.mc[1].a)
         
     def test_json_conversion(self):
         json_data = self.mc.to_json()
@@ -72,10 +78,15 @@ class TestModelContainer(unittest.TestCase):
     def test_pluck(self):
         aes = self.mc.pluck('a')
         self.assertEqual(['a', 'b', 'c'], list(aes))
-                
+    
+    pretty_model_container = 'Test:\n\t1:\n\t\ta: a\n\t2:\n\t\ta: b\n\t3:\n\t\ta: c\n'
     def test_model_pretty(self):
         pretty_str = self.mc.pretty()
-        self.assertEqual(pretty_str, 'Test:\n\t1:\n\t\ta: a\n\t2:\n\t\ta: b\n\t3:\n\t\ta: c\n')
+        self.assertEqual(pretty_str, self.pretty_model_container)
+
+    def test_str_repr_aliases_of_pretty(self):
+        self.assertEqual(str(self.mc), self.pretty_model_container)
+        self.assertEqual(self.mc.__repr__(), self.pretty_model_container)
 
     # FOR SOME REASON THIS TEST FAILED IF WE ADDED THE WORD 'DICT' TO IT
     def test_to_dict_container(self):
