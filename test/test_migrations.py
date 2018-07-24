@@ -2,7 +2,6 @@ import unittest
 
 from OxygenRM.migrations import *
 
-
 class CreatePosts(Migration):
     def create(self):
         posts = Table('posts')

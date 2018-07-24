@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import wraps
 
-from OxygenRM import internal_db as db
+import OxygenRM as O
 
 class TableDoesNotExistError(Exception):
     ''' A exception to be raised when a method that involves
@@ -40,7 +40,7 @@ class Table():
     def __init__(self, table_name):
         self.table_name = table_name
 
-        if db.table_exists(table_name):
+        if O.db.table_exists(table_name):
             self.state = self.State.EDITING 
         else:
             self.state = self.State.CREATING
@@ -67,7 +67,7 @@ class Table():
         '''
         self._exists_guard()
 
-        db.rename_table(self.table_name, new_name)
+        O.db.rename_table(self.table_name, new_name)
 
     def create_columns(self, timestamps=False, **columns):
         ''' Queue the creation of the given columns.
@@ -81,7 +81,7 @@ class Table():
         for col_name, column_type in columns.items():
             if col_name in self.columns:
                 raise ColumnAlreadyExistsError('The table {} aready has a column {}'.format(self.table_name, col_name))
-            self._add_columns.append(column_type.get_data(col_name, db.driver))
+            self._add_columns.append(column_type.get_data(col_name, O.db.driver))
 
     def drop_columns(self, *columns):
         ''' Queue the droppage of the given columns.
@@ -109,12 +109,12 @@ class Table():
         '''
         self._exists_guard()
 
-        db.drop_table(self.table_name)
+        O.db.drop_table(self.table_name)
 
     def drop_if_exists(self):
         ''' Destroy the table if exists.
         '''
-        db.drop_table(self.table_name)
+        O.db.drop_table(self.table_name)
 
     def save(self):
         if self.exists():
@@ -129,13 +129,13 @@ class Table():
         if not self._add_columns:
             raise ValueError('No column has been specified to be added to the table')
 
-        db.create_table(self.table_name, self._add_columns)
+        O.db.create_table(self.table_name, self._add_columns)
 
     def _assign_tables(self):
         ''' Fetch the table currently created columns.
         '''
         if self.exists():
-            self.columns = {col.name: col for col in db.get_all_columns(self.table_name)}
+            self.columns = {col.name: col for col in O.db.get_all_columns(self.table_name)}
         else:
             self.columns = {}
 

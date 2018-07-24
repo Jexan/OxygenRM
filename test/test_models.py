@@ -1,7 +1,8 @@
 # Test cases for OxygenRM Models
 
 import unittest
-from OxygenRM import internal_db as db
+
+from OxygenRM import db
 from OxygenRM.internals.ModelContainer import ModelContainer
 from .internals_test import default_cols
 

@@ -1,8 +1,9 @@
 from copy import deepcopy
 
-from OxygenRM import internal_db as db
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.fields import *
+
+import OxygenRM as O
 
 class MetaModel(type):
     def __getattr__(cls, name):
@@ -115,10 +116,7 @@ class Model(metaclass=MetaModel):
         self._rel_queue = []
         self._field_values = {}
         for field in self._fields:
-            field_val = None
-
-            if not creating_new:
-                field_val = values.get(field, None)
+            field_val = values.get(field, None)
 
             self._field_values[field] = field_val
     
@@ -137,7 +135,7 @@ class Model(metaclass=MetaModel):
                 self
         '''
         if self._creating_new:
-            db.create(self.table_name, **self._field_values)
+            O.db.create(self.table_name, **self._field_values)
         else:
             self.__class__.where_many(self._convert_orig_values_to_conditions()).update(self._field_values)
 

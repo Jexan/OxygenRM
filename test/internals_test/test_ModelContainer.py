@@ -1,11 +1,11 @@
 import unittest
 from json import dump
 
+from OxygenRM import db
 from OxygenRM.internals.ModelContainer import *
 from OxygenRM.internals.fields import *
 from OxygenRM.models import Model
 
-from .. import db
 from . import default_cols
 
 class Test(Model):

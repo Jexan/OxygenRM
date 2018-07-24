@@ -2,8 +2,9 @@ from collections import defaultdict
 from itertools import chain
 
 from OxygenRM.internals.SQL_builders import *
-from OxygenRM.internals.ModelContainer import *
-from OxygenRM import internal_db as db
+from OxygenRM.internals.ModelContainer import ModelContainer
+
+import OxygenRM as O
 
 class QueryBuilder:
     ''' A class for building and chaining queries.
@@ -311,7 +312,7 @@ class QueryBuilder:
     def delete(self):
         '''  Delete records according to the chained methods.
         '''
-        db.execute(self.delete_sql(), tuple(extract_values(self._in_wait['where_cond'])))
+        O.db.execute(self.delete_sql(), tuple(extract_values(self._in_wait['where_cond'])))
 
     def update(self, values):
         ''' Update records in the database according with the given values.
@@ -321,7 +322,7 @@ class QueryBuilder:
         '''
         values_to_prepare = chain(values.values(), extract_values(self._in_wait['where_cond']))
 
-        db.execute(self.update_sql(values), tuple(values_to_prepare))
+        O.db.execute(self.update_sql(values), tuple(values_to_prepare))
 
     def get(self):
         '''  Get the specified records.
@@ -337,7 +338,7 @@ class QueryBuilder:
         if options['having']:
             values_to_prepare = chain(values_to_prepare, options['having'].value)
 
-        result = lambda: db.execute_without_saving(query, tuple(values_to_prepare))
+        result = lambda: O.db.execute_without_saving(query, tuple(values_to_prepare))
         return self._wrap_in_model(result)
 
     def all(self):
@@ -346,7 +347,7 @@ class QueryBuilder:
             Returns:
                 The queried rows.
         '''
-        result = lambda: db.all(self._in_wait['table_name'], self._in_wait['select_fields']) 
+        result = lambda: O.db.all(self._in_wait['table_name'], self._in_wait['select_fields']) 
         return self._wrap_in_model(result)
 
     def first(self):

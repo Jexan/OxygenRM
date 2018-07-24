@@ -30,6 +30,8 @@ VALID_TABLE_TYPES = [
     'foreign'
 ]
 
+SEQUENCE_TABLE = 'sqlite_sequence'
+
 class SQLite3DB():
     ''' Init the connection to the database
 
@@ -156,7 +158,8 @@ class SQLite3DB():
         '''
         # We better transform the iterator to list if we don't want messy behaviour.
         for table in list(self.get_all_tables()):
-            self.drop_table(table)
+            if table != SEQUENCE_TABLE:
+                self.drop_table(table)
 
     def create(self, table_name, **values):
         ''' Create a new record in the database. 

@@ -9,7 +9,7 @@ class Column(metaclass=ABCMeta):
         column.
     '''
     def __init__(self, **options):
-        self.null    = options.get('null', False)
+        self.null    = options.get('null', True)
         self.primary = options.get('primary', False)
         self.unique  = options.get('unique', False)
         self.check   = options.get('check', None)
@@ -71,3 +71,6 @@ class Id(Integer):
 
     def __init__(self, name='id'):
         self.name = name
+        self.default = None
+        self.check = None
+        self.unique = False

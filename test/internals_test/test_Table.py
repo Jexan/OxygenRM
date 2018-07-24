@@ -1,6 +1,6 @@
 import unittest
-from .. import db
 
+from OxygenRM import db
 from OxygenRM.internals.Table import *
 from OxygenRM.internals.columns import *
 
