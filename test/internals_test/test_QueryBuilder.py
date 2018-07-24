@@ -46,6 +46,14 @@ class TestQueryBuilderSQL(unittest.TestCase):
         t = QueryBuilder.table('t').where_not_in('a', (1,2,3))
         self.assertEqual(t.get_sql(), saft + ' WHERE a NOT IN (?, ?, ?)')
 
+    def test_where_null(self):
+        t = QueryBuilder.table('t').where_null('a')
+        self.assertEqual(t.get_sql(), saft + ' WHERE a IS ?')
+
+    def test_where_not_null(self):
+        t = QueryBuilder.table('t').where_not_null('a')
+        self.assertEqual(t.get_sql(), saft + ' WHERE a IS NOT ?')
+
     def test_order_by(self):
         t = QueryBuilder.table('t').order_by('id', 'ASC')
         self.assertEqual(t.get_sql(), saft + ' ORDER BY id ASC')
@@ -236,6 +244,22 @@ class RecordManipulationTest(unittest.TestCase):
         field_with_null_val = list(qb.table('t').where('a', '=', None))
         self.assertEqual(field_with_null_val[0]['a'], None)
         self.assertEqual(field_with_null_val[0]['b'], 't1')
+
+    def test_where_null_finding_null_values(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create('t', b='t1')
+
+        field_with_null_val = list(qb.table('t').where_null('a'))
+        self.assertEqual(field_with_null_val[0]['a'], None)
+        self.assertEqual(field_with_null_val[0]['b'], 't1')    
+
+    def test_where_not_null_finding_not_null_values(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create('t', b='t1')
+        db.create('t', a='t2')
+
+        field_with_null_val = list(qb.table('t').where_not_null('a'))
+        self.assertEqual(field_with_null_val[0]['a'], 't2')
 
     def test_db_deletion_equality(self):
         db.create_table('t', default_cols(id='integer', name='text'))

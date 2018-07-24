@@ -92,6 +92,30 @@ class QueryBuilder:
         self._in_wait['where_cond'].append(ConditionClause('AND', field, 'NOT IN', tuple(values)))
         return self
 
+    def where_null(self, field):
+        """ Add a condition to get records where field is NULL
+
+            Args:
+                field: The column name.
+
+            Returns:
+                self
+        """
+        self._in_wait['where_cond'].append(ConditionClause('AND', field, 'IS', None))
+        return self
+
+    def where_not_null(self, field):
+        """ Add a condition to get records where field is NOT NULL
+
+            Args:
+                field: The column name.
+
+            Returns:
+                self
+        """
+        self._in_wait['where_cond'].append(ConditionClause('AND', field, 'IS NOT', None))
+        return self
+
     def where_many(self, conditions):
         """ Add multiple AND WHERE condition to the prepared query.
 
