@@ -258,46 +258,89 @@ class Multiple(Relation):
     """ Define a 'many to many' relationship with another database table.
 
         Args:
-            model: The related model class
-            table: The name of the table to use for the join.
+            target_model: The related model class
+            middle_table: The name of the table to use for the join.
                 By default, it will be the tables names, sorted alphabetically,
                 with an underscore as a separation.
-            on_other_id: The name of the related model column to use for the join.
+            self_name: The name of the current model reference in the middle table.
                 By default it will be the #{lower case model name}_id
-            on_self: The name of the own column, for use in the join.
-                By the default it will be the id column.
+            other_name: The name of the target model reference in the middle table.
+                By default it will be the #{lower case model name}_id
+            middle_class: The class to use for the pivot table model.
+                By default one will be created with just the fields.
     """
-    def __init__(self, model, table=None, on_other_col='id', 
-            on_self_col='id', on_other_middle_col=None, on_self_middle_col=None):
-        self.model = model
-        self.table = table
-        self.on_other_col = on_other_col
-        self.on_self_col = on_self_col
-        self.on_self_middle_col = on_self_middle_col
-        
-        if not on_other_middle_col:
-            self.on_other_middle_col = model.__name__.lower() + '_id'
-        else:
-            self.on_other_middle_col = on_other_middle_col
-            
+    def __init__(self, target_model, middle_table=None, self_name=None, other_name=None, middle_class=None):
+        self.model = target_model
+        self.table = middle_table
+        self.self_name = self_name
+        self.other_name = other_name
+        self.middle_class = middle_class
+
         self._setted_up = False
 
-    def get(self, current_model):
+    def get(self, parting_model):
         if not self._setted_up:
-            self._set_up()
+            self._set_up(parting_model)
 
-        qb = QueryBuilder.table(self.model.table_name, self.model)
-        qb.where(current_model.table_name + '.' + self.on_self_col, '=', self.table + '.' + self.on_self_middle_col)
-        qb.where(self.model.table_name + '.' + self.on_other_col, '=', self.table + '.' + self.on_other_middle_col)
+        return QueryBuilder.raw(self.query, (parting_model.get_primary(),), self.model, False)
+
+        # builder = QueryBuilder.table(self.model.table_name + ' oxygent', self.model)
+        # builder.where(self.self_name,'=', parting_model.get_primary()).join(self.table).on('oxygent' + self.model.primary_key, '=', )
 
     def _set_up(self, parting_model):
-        if not self.table:
-            self.table = '_'.join(sorted((self.model.table_name, current_model.table_name)))
+        """ Set up the relation with the relevant variables
 
-        if not self.on_self_middle_col is None:
-            self.on_self_middle_col = parting_model.__class__.__name__.tolower() + '_id'  
+            Args:
+                parting_model: The model to part from.
+        """
+        parting_model_name = parting_model.__class__.__name__.lower()
+        target_model_name = self.model.__name__.lower()
+
+        if not self.table:
+            self.table = '_'.join(sorted((parting_model_name, target_model_name)))
+
+        if not self.self_name:
+            self.self_name = self.table + '.' + parting_model_name + '_id'
+
+        if not self.other_name:
+            self.other_name = target_model_name + '_id'
+
+        # if not self.middle_class:
+        #     self.middle_class = _create_middle_model_class()
+            
+        query = '''SELECT oxygent.* FROM {target_table} oxygent CROSS JOIN {middle_table} 
+                    ON oxygent.{target_primary} = {middle_table}.{middle_target_name}
+                    WHERE {middle_self_name} = ?'''
+
+        self.query = query.format(
+            target_table=self.model.table_name,
+            middle_table=self.table,
+            target_primary=self.model.primary_key,
+            middle_target_name=self.other_name,
+            middle_self_name=self.self_name
+        )
 
         self._setted_up = True
+
+    def _create_middle_model_class(self):
+        """ Craft the model class to be used for the middle classes
+
+            Returns:
+                The crafted class.
+        """
+        table_name = self.table
+
+        class MiddleClass(self.model.__class__):
+            table_name = table_name
+
+        cols_types = OxygenRM.db.table_fields_types(table_name)
+
+        for col_name, col_type in cols_types.items():
+            setattr(MiddleClass, col_name, field_types[OxygenRM.db.driver][col_type])
+
+        MiddleClass.set_up()
+
+        return MiddleClass
 
 class JSON(Field):
     """ A field for dealing with JSON strings boilerplate.
