@@ -27,6 +27,29 @@ class QueryBuilder:
         """
         return cls(table_name, model)
 
+    @classmethod
+    def raw(cls, sql, values=(), model=None, save=True):
+        """ Run the raw sql and return the result wrapped.
+
+            Args:
+                sql: The query as a string.
+                values: An iterator with the values, if it
+                model: The model to wrap the result into.
+                save: Whether the operation should be saved.
+
+            Returns:
+                A model container.
+        """
+        if save:
+            result = lambda: O.db.execute(sql, values)
+        else:
+            result = lambda: O.db.execute_without_saving(sql, values)
+        
+        if model:
+            return ModelContainer(result, model)
+        else:
+            return result()
+
     def select(self, *fields):
         """ Specify which fields will be selected. 
 
