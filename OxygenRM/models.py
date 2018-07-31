@@ -163,5 +163,10 @@ class Model(metaclass=MetaModel):
         """
         return self._field_values
 
+    @classmethod
+    def set_up(cls):
+        if not cls._set_up:
+            cls._set_up_model()
+
     def __eq__(self, other_model):
         return self._field_values == self._field_values
