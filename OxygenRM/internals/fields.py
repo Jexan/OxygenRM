@@ -9,12 +9,15 @@ from OxygenRM.internals.ModelContainer import ModelContainer
 from OxygenRM.internals.RelationQueryBuilder import HasQueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
+    """ The base class for defining a Model property that is in the database as a column.
+    """
+
+    """ The name of the attribute of this field in the belonging model.
+    """
     _attr = None
 
     _valid_types = []
 
-    """ The base class for defining a Model column.
-    """
     def __init__(self, null=False):
         self.null = null
 
@@ -134,25 +137,25 @@ class Has(Relation):
         if how_much not in ('many', 'one'):
             raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
 
-        self.model = model
-        self.how_much = how_much
+        self._model = model
+        self._how_much = how_much
 
         if how_much == 'one':
             self._extend_model()
 
-        self.on_self_col = on_self_col
-        self.on_other_col = on_other_col  
+        self._on_self_col = on_self_col
+        self._on_other_col = on_other_col  
 
     def get(self, starting_model):
-        if not self.on_other_col:
-            self.on_other_col = starting_model.__class__.__name__.lower() + '_id'
+        if not self._on_other_col:
+            self._on_other_col = starting_model.__class__.__name__.lower() + '_id'
 
-        if not self.on_self_col:
-            self.on_self_col = starting_model.primary_key
+        if not self._on_self_col:
+            self._on_self_col = starting_model.primary_key
 
-        qb = HasQueryBuilder(self.model, starting_model, self).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
+        qb = HasQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
         
-        if self.how_much == 'many':
+        if self._how_much == 'many':
             return qb
         else:
             model = qb.get()
@@ -164,12 +167,24 @@ class Has(Relation):
             self.get(starting_model).assign(value)
 
     def _extend_model(self):
-        model = self.model
+        """ Extend the base model class, adding Relational Operations and lazy loading.
+        """
+        model = self._model
+
         class HasModelWrapper(model):
+            """ A model with the possibility to add simple relations.
+
+                Args:
+                    result: A SQL result function.
+            """
+
+            """ A flag to let ModelContainer know that the model to wrap 
+                has lazy loading.
+            """
             _lazy_load = True
 
             def __init__(self, result):
-                self.result = result
+                self._result = result
                 self._loaded = False
 
             def __getattribute__(self, attr):
@@ -181,43 +196,42 @@ class Has(Relation):
                 return super().__getattribute__(attr)
 
             def _load(self):
+                """ Load the model from the database.
+                """
                 self._loaded = True
 
-                row = next(self.result())
+                row = next(self._result())
                 super().__init__(False, **dict(zip(row.keys(), tuple(row))))
 
-        def assign(wrapped_self, other_model):
-            """ Make the specified model the only model that the parent possesses.
+            def assign(wrapped_self, other_model):
+                """ Queue the action of making the specified model the only model that the parent possesses.
 
-                Args:
-                    other_model: The new model to assign
-            """
-            other_id = other_model.get_primary()
-            self_id = getattr(wrapped_self.parting_model, self.on_self_col)
+                    Args:
+                        other_model: The new model to assign
+                """
+                other_id = other_model.get_primary()
+                self_id = getattr(wrapped_self.parting_model, self._on_self_col)
 
-            def pending_function():
-                QueryBuilder.table(wrapped_self.table_name).where(self.on_other_col, '=', self_id).update({self.on_other_col: None})
-                QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self.on_other_col: self_id})
+                def pending_function():
+                    QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
+                    QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self._on_other_col: self_id})
 
-            wrapped_self.parting_model._rel_queue.append(pending_function)
+                wrapped_self.parting_model._rel_queue.append(pending_function)
 
-            return wrapped_self
+                return wrapped_self
 
-        def deassign(wrapped_self):
-            """ Remove the associated model(s) from the parent.
-            """
-            self_id = getattr(wrapped_self.parting_model, self.on_self_col)
+            def deassign(wrapped_self):
+                """ Queue the removal of the associated model(s) from the parent.
+                """
+                self_id = getattr(wrapped_self.parting_model, self._on_self_col)
 
-            def pending_function():
-                QueryBuilder.table(wrapped_self.table_name).where(self.on_other_col, '=', self_id).update({self.on_other_col: None})
+                def pending_function():
+                    QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
 
-            wrapped_self.parting_model._rel_queue.append(pending_function)
-            return wrapped_self
+                wrapped_self.parting_model._rel_queue.append(pending_function)
+                return wrapped_self
 
-        HasModelWrapper.assign = assign
-        HasModelWrapper.deassign = deassign
-
-        self.model = HasModelWrapper
+        self._model = HasModelWrapper
 
 class BelongsTo(Relation):
     """ Define a 'belongs to' relationship with another database table.
@@ -234,19 +248,19 @@ class BelongsTo(Relation):
         if how_much not in ('many', 'one'):
             raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
 
-        self.model = model
-        self.how_much = how_much
+        self._model = model
+        self._how_much = how_much
 
-        self.on_self_col = on_self_col 
-        self.on_other_col = on_other_col  
+        self._on_self_col = on_self_col 
+        self._on_other_col = on_other_col  
 
     def get(self, starting_model):
-        if not self.on_self_col:
-            self.on_self_col = starting_model.__class__.__name__.tolower() + '_id'
+        if not self._on_self_col:
+            self._on_self_col = starting_model.__class__.__name__.tolower() + '_id'
         
-        qb = QueryBuilder(self.model.table_name, self.model).where(self.on_other_col, '=', getattr(starting_model, self.on_self_col))
+        qb = QueryBuilder(self._model.table_name, self._model).where(self._on_other_col, '=', getattr(starting_model, self._on_self_col))
         
-        if self.how_much == 'many':
+        if self._how_much == 'many':
             return qb.get()
         else:
             return qb.limit(1).get().first_or_none()
@@ -270,11 +284,11 @@ class Multiple(Relation):
                 By default one will be created with just the fields.
     """
     def __init__(self, target_model, middle_table=None, self_name=None, other_name=None, middle_class=None):
-        self.model = target_model
-        self.table = middle_table
-        self.self_name = self_name
-        self.other_name = other_name
-        self.middle_class = middle_class
+        self._model = target_model
+        self._middle_table = middle_table
+        self._self_name = self_name
+        self._other_name = other_name
+        self._middle_class = middle_class
 
         self._setted_up = False
 
@@ -282,10 +296,10 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up(parting_model)
 
-        return QueryBuilder.raw(self.query, (parting_model.get_primary(),), self.model, False)
+        return QueryBuilder.raw(self.query, (parting_model.get_primary(),), self._model, False)
 
-        # builder = QueryBuilder.table(self.model.table_name + ' oxygent', self.model)
-        # builder.where(self.self_name,'=', parting_model.get_primary()).join(self.table).on('oxygent' + self.model.primary_key, '=', )
+        # builder = QueryBuilder.table(self._model.table_name + ' oxygent', self._model)
+        # builder.where(self._self_name,'=', parting_model.get_primary()).join(self._middle_table).on('oxygent' + self._model.primary_key, '=', )
 
     def _set_up(self, parting_model):
         """ Set up the relation with the relevant variables
@@ -294,30 +308,30 @@ class Multiple(Relation):
                 parting_model: The model to part from.
         """
         parting_model_name = parting_model.__class__.__name__.lower()
-        target_model_name = self.model.__name__.lower()
+        target_model_name = self._model.__name__.lower()
 
-        if not self.table:
-            self.table = '_'.join(sorted((parting_model_name, target_model_name)))
+        if not self._middle_table:
+            self._middle_table = '_'.join(sorted((parting_model_name, target_model_name)))
 
-        if not self.self_name:
-            self.self_name = self.table + '.' + parting_model_name + '_id'
+        if not self._self_name:
+            self._self_name = self._middle_table + '.' + parting_model_name + '_id'
 
-        if not self.other_name:
-            self.other_name = target_model_name + '_id'
+        if not self._other_name:
+            self._other_name = target_model_name + '_id'
 
-        # if not self.middle_class:
-        #     self.middle_class = _create_middle_model_class()
+        # if not self._middle_class:
+        #     self._middle_class = _create_middle_model_class()
             
         query = '''SELECT oxygent.* FROM {target_table} oxygent CROSS JOIN {middle_table} 
                     ON oxygent.{target_primary} = {middle_table}.{middle_target_name}
                     WHERE {middle_self_name} = ?'''
 
         self.query = query.format(
-            target_table=self.model.table_name,
-            middle_table=self.table,
-            target_primary=self.model.primary_key,
-            middle_target_name=self.other_name,
-            middle_self_name=self.self_name
+            target_table=self._model.table_name,
+            middle_table=self._middle_table,
+            target_primary=self._model.primary_key,
+            middle_target_name=self._other_name,
+            middle_self_name=self._self_name
         )
 
         self._setted_up = True
@@ -328,9 +342,9 @@ class Multiple(Relation):
             Returns:
                 The crafted class.
         """
-        table_name = self.table
+        table_name = self._middle_table
 
-        class MiddleClass(self.model.__class__):
+        class MiddleClass(self._model.__class__):
             table_name = table_name
 
         cols_types = OxygenRM.db.table_fields_types(table_name)
@@ -344,13 +358,21 @@ class Multiple(Relation):
 
 class JSON(Field):
     """ A field for dealing with JSON strings boilerplate.
+        
+        Allows the edition of the column as JSONable Python data structures without
+        worrying about the conversion when it's time to update/create the model.
+
+        Args:
+            default_class: A constructor that will determine which should be the 
+                default Python data structure to use if the field is empty.
+                The class passed must subclass dict or list.
     """
 
-    def __init__(self, default=dict, null=False):
-        if default not in (dict, list):
-            raise ValueError('Wrong default constructor {}. Must be a class constructor of dict or list'.format(default))
+    def __init__(self, default_class=dict):
+        if default_class not in (dict, list):
+            raise ValueError('Wrong default constructor {}. Must be a class constructor of dict or list'.format(default_class))
 
-        self.default_constructor = self._make_container_jsonable(default)
+        self._default_constructor = JSON._make_container_jsonable(default_class)
 
     def get(self, model):
         original_val = super().get(model)
@@ -359,7 +381,7 @@ class JSON(Field):
             return original_val
 
         if original_val is None:
-            value = self.default_constructor()
+            value = self._default_constructor()
         else:
             json_val = json.loads(original_val)
             constructor = self._make_container_jsonable(json_val.__class__)
@@ -380,21 +402,40 @@ class JSON(Field):
         constructor = self._make_container_jsonable(value.__class__)
         return constructor(value)
 
-    def _make_container_jsonable(self, constructor):
+    @staticmethod
+    def _make_container_jsonable(constructor):
+        """ Wrap the default data structure in a conformable and easy to jsonize 
+            structure.
+
+            Args:
+                constructor: The data structure class to wrap.
+
+            Returns:
+                The wrapped class.
+
+        """
         class JSONableContainer(constructor):
             """ A container that makes easier the conversion to JSON.
-            """    
+            """ 
+
+            """ A flag to identify the model as already wrapped.
+            """
+            conformable = True
+
             def __str__(self):
                 return self.to_json()
 
             def to_json(self, *args):
+                """ Transform the data structure to JSON.
+
+                    Args:
+                        *args: The same args that would be passed to json.dumps
+                """
                 return json.dumps(self, *args)
 
             def __conform__(self, protocol):
                 if protocol is sqlite3.PrepareProtocol:
                     return str(self)
-
-            conformable = True
 
         return JSONableContainer
 
