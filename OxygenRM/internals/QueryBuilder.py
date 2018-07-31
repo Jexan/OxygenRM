@@ -15,8 +15,8 @@ class QueryBuilder:
 
         self._model = model
 
-    @classmethod
-    def table(cls, table_name, model=None):
+    @staticmethod
+    def table(table_name, model=None):
         """ Prepare the table to edit.
 
             Args:
@@ -25,10 +25,10 @@ class QueryBuilder:
             Returns:
                 A QueryBuilder instance
         """
-        return cls(table_name, model)
+        return QueryBuilder(table_name, model)
 
-    @classmethod
-    def raw(cls, sql, values=(), model=None, save=True):
+    @staticmethod
+    def raw(sql, values=(), model=None, save=True):
         """ Run the raw sql and return the result wrapped.
 
             Args:
