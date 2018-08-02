@@ -188,11 +188,11 @@ class Post(O.Model):
 User.posts = Has('many', Post, on_other_col="author_id")
 
 class OnePostUser(O.Model):
-            table_name = 'users'
+    table_name = 'users'
 
-            id = Id()
-            username = Text()
-            post = Has('one', Post, on_other_col='author_id')
+    id = Id()
+    username = Text()
+    post = Has('one', Post, on_other_col='author_id')
 
 user_cols = [
     next(default_cols(id='integer'))._replace(primary=True, auto_increment=True),
@@ -207,7 +207,6 @@ User()
 Post()
 OnePostUser()
 
-# @unittest.skip('Not yet finished')
 class TestSimpleRelations(unittest.TestCase):
     def setUp(self):
         db.drop_table('posts')
@@ -396,7 +395,7 @@ class TestSimpleRelations(unittest.TestCase):
         
         post_author = Post.first().author
 
-        self.assertIs(post_author, None)
+        self.assertFalse(post_author)
 
 ##############################################################
 

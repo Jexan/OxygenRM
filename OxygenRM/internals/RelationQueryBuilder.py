@@ -1,7 +1,7 @@
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.ModelContainer import ModelContainer
 
-class HasQueryBuilder(QueryBuilder):
+class RelationQueryBuilder(QueryBuilder):
     """ A query builder specially designed for Has Many relationships.
 
         Args:
@@ -17,8 +17,8 @@ class HasQueryBuilder(QueryBuilder):
         self._on_self_col = on_self_col
         self._on_other_col = on_other_col
         self._table_name = target_model.table_name
-
-        self.where(self._on_other_col, '=', getattr(parting_model, self._on_self_col))
+        
+        self.where(on_other_col, '=', getattr(parting_model, on_self_col))
 
     def assign(self, other_model):
         """ Make the specified model the only model that the parent possesses.

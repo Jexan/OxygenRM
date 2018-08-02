@@ -6,7 +6,7 @@ from collections import namedtuple
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.ModelContainer import ModelContainer
-from OxygenRM.internals.RelationQueryBuilder import HasQueryBuilder
+from OxygenRM.internals.RelationQueryBuilder import RelationQueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
     """ The base class for defining a Model property that is in the database as a column.
@@ -120,20 +120,17 @@ class Id(Integer):
         self.null = False
 
 class Relation(Field):
-    pass
-
-class Has(Relation):
     """ Define a 'has' relationship with another database table.
 
         Args:
             how_much: Either 'one' or 'many'
             model: The related model class
             on_other_col: The name of the related model column to use for the join.
-                By default it will be the #{lower case model name}_id
+                By default it will be the #{lower case model name}_id (HAS) or primary key (BELONGS) 
             on_self_col: The name of the own column, for use in the join.
-                By the default it will be the id column.
+                By the default it will be the primary key (HAS) or #{lower case model name}_id (BELONGS) column.
     """
-    def __init__(self, how_much, model, on_other_col='', on_self_col=None):
+    def __init__(self, how_much, model, on_other_col=None, on_self_col=None):
         if how_much not in ('many', 'one'):
             raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
 
@@ -141,37 +138,18 @@ class Has(Relation):
         self._how_much = how_much
 
         if how_much == 'one':
-            self._extend_model()
+            self._model = self._extend_model()
 
         self._on_self_col = on_self_col
         self._on_other_col = on_other_col  
-
-    def get(self, starting_model):
-        if not self._on_other_col:
-            self._on_other_col = starting_model.__class__.__name__.lower() + '_id'
-
-        if not self._on_self_col:
-            self._on_self_col = starting_model.primary_key
-
-        qb = HasQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
-        
-        if self._how_much == 'many':
-            return qb
-        else:
-            model = qb.get()
-            model.parting_model = starting_model
-            return model
-
-    def set(self, starting_model, value):
-        if not isinstance(starting_model, ModelContainer):
-            self.get(starting_model).assign(value)
+        self._setted_up = False
 
     def _extend_model(self):
         """ Extend the base model class, adding Relational Operations and lazy loading.
         """
         model = self._model
 
-        class HasModelWrapper(model):
+        class ModelWrapper(model):
             """ A model with the possibility to add simple relations.
 
                 Args:
@@ -186,6 +164,10 @@ class Has(Relation):
             def __init__(self, result):
                 self._result = result
                 self._loaded = False
+                self.empty = False
+
+            def __bool__(self):
+                return self.empty
 
             def __getattribute__(self, attr):
                 prop = getattr(model, attr, None)
@@ -201,72 +183,83 @@ class Has(Relation):
                 self._loaded = True
 
                 row = next(self._result())
-                super().__init__(False, **dict(zip(row.keys(), tuple(row))))
+                if row:
+                    super().__init__(False, **dict(zip(row.keys(), tuple(row))))
+                else:
+                    self.empty = True 
 
-            def assign(wrapped_self, other_model):
-                """ Queue the action of making the specified model the only model that the parent possesses.
-
-                    Args:
-                        other_model: The new model to assign
-                """
-                other_id = other_model.get_primary()
-                self_id = getattr(wrapped_self.parting_model, self._on_self_col)
-
-                def pending_function():
-                    QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
-                    QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self._on_other_col: self_id})
-
-                wrapped_self.parting_model._rel_queue.append(pending_function)
-
-                return wrapped_self
-
-            def deassign(wrapped_self):
-                """ Queue the removal of the associated model(s) from the parent.
-                """
-                self_id = getattr(wrapped_self.parting_model, self._on_self_col)
-
-                def pending_function():
-                    QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
-
-                wrapped_self.parting_model._rel_queue.append(pending_function)
-                return wrapped_self
-
-        self._model = HasModelWrapper
-
-class BelongsTo(Relation):
-    """ Define a 'belongs to' relationship with another database table.
-
-        Args:
-            how_much: Either 'one' or 'many'
-            model: The related model class
-            on_other_col: The name of the related model column to use for the join.
-                By default it will be the #{lower case model name}_id
-            on_self_col: The name of the own column, for use in the join.
-                By the default it will be the id column.
-    """
-    def __init__(self, how_much, model, on_other_col='id', on_self_col=''):
-        if how_much not in ('many', 'one'):
-            raise ValueError('Invalid relation {}. Expected "many" or "one"'.format(how_much))
-
-        self._model = model
-        self._how_much = how_much
-
-        self._on_self_col = on_self_col 
-        self._on_other_col = on_other_col  
+        return ModelWrapper
 
     def get(self, starting_model):
-        if not self._on_self_col:
-            self._on_self_col = starting_model.__class__.__name__.tolower() + '_id'
-        
-        qb = QueryBuilder(self._model.table_name, self._model).where(self._on_other_col, '=', getattr(starting_model, self._on_self_col))
+        if not self._setted_up:
+            self._set_up(starting_model)
+
+        qb = RelationQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
         
         if self._how_much == 'many':
-            return qb.get()
+            return qb
         else:
-            return qb.limit(1).get().first_or_none()
+            model = qb.get()
+            model.parting_model = starting_model
+            return model
 
+class Has(Relation):
+    def set(self, starting_model, value):
+        if not isinstance(starting_model, ModelContainer):
+            self.get(starting_model).assign(value)
+
+    def _set_up(self, starting_model):
+        if not self._on_other_col:
+            self._on_other_col = starting_model.__class__.__name__.lower() + '_id'
+
+        if not self._on_self_col:
+            self._on_self_col = starting_model.primary_key
+
+    def _extend_model(self):
+        ext_model = super()._extend_model()
+
+        def assign(wrapped_self, other_model):
+            """ Queue the action of making the specified model the only model that the parent possesses.
+
+                Args:
+                    other_model: The new model to assign
+            """
+            other_id = other_model.get_primary()
+            self_id = getattr(wrapped_self.parting_model, self._on_self_col)
+
+            def pending_function():
+                QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
+                QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self._on_other_col: self_id})
+
+            wrapped_self.parting_model._rel_queue.append(pending_function)
+
+            return wrapped_self
+
+        def deassign(wrapped_self):
+            """ Queue the removal of the associated model(s) from the parent.
+            """
+            self_id = getattr(wrapped_self.parting_model, self._on_self_col)
+
+            def pending_function():
+                QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
+
+            wrapped_self.parting_model._rel_queue.append(pending_function)
+            return wrapped_self
+
+        ext_model.assign = assign
+        ext_model.deassign = deassign
+        return ext_model
+
+class BelongsTo(Relation):
     def set(self):
         raise NotImplementedError('Setting relationship models not yet allowed')
+
+    def _set_up(self, starting_model):
+        if not self._on_other_col:
+            self._on_other_col = starting_model.primary_key
+
+        if not self._on_self_col:
+            self._on_self_col = starting_model.__class__.__name__.lower() + '_id'
     
 class Multiple(Relation):
     """ Define a 'many to many' relationship with another database table.
