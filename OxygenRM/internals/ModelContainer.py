@@ -4,11 +4,16 @@ from itertools import chain
 
 # A container for models
 class ModelContainer():
-    def __init__(self, result, model):
-        self._result = result
-        self._model = model 
-        self._calculated_models = []
-        self._iteration_done = False
+    def __init__(self, result, model, calculated_models=None):
+        self._calculated_models = calculated_models
+
+        if calculated_models:
+            self._iteration_done = True
+        else:
+            self._calculated_models = list()
+            self._result = result
+            self._model = model 
+            self._iteration_done = False
 
     def __iter__(self):
         for row in chain(self._calculated_models, self._craft_own_result()):
@@ -24,8 +29,9 @@ class ModelContainer():
 
             Returns:
                 The model at position index.
-        """        
-        if isinstance(index, slice):
+        """
+        is_slice = isinstance(index, slice)
+        if is_slice:
             wanted_index = index.stop
 
             if not wanted_index:
@@ -33,8 +39,15 @@ class ModelContainer():
         else:
             wanted_index = index
 
+            if wanted_index < 0:
+                wanted_index = float('inf')
+
         self._make_calculated_models_until(wanted_index)
-        return self._calculated_models[index]
+
+        if is_slice:
+            return ModelContainer(None, None, self._calculated_models[index])
+        else:
+            return self._calculated_models[index]
 
     def __delitem__(self, index):
         """ Invoked when del self[index] is called

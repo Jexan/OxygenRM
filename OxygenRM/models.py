@@ -189,4 +189,4 @@ class Model(metaclass=MetaModel):
             cls._set_up_model()
 
     def __eq__(self, other_model):
-        return self._field_values == self._field_values
+        return isinstance(other_model, Model) and self._field_values == other_model._field_values
