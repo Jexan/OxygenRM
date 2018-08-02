@@ -15,6 +15,14 @@ class QueryBuilder:
 
         self._model = model
 
+    def reset(self):
+        table_name = self._in_wait['table_name']
+
+        self._in_wait = defaultdict(list)
+        self._in_wait['table_name'] = table_name
+
+        return self
+
     @staticmethod
     def table(table_name, model=None):
         """ Prepare the table to edit.
@@ -411,7 +419,8 @@ class QueryBuilder:
         if options['having']:
             values_to_prepare = chain(values_to_prepare, options['having'].value)
 
-        result = lambda: O.db.execute_without_saving(query, tuple(values_to_prepare))
+        values_to_prepare = tuple(values_to_prepare)
+        result = lambda: O.db.execute_without_saving(query, values_to_prepare)
         return self._wrap_in_model(result)
 
     def all(self):

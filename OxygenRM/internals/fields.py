@@ -161,6 +161,12 @@ class Relation(Field):
             """
             _lazy_load = True
 
+            def reset(self):
+                self.empty = False
+                self._loaded = False
+
+                return self
+
             def __init__(self, result):
                 self._result = result
                 self._loaded = False
@@ -182,9 +188,9 @@ class Relation(Field):
                 """
                 self._loaded = True
 
-                row = next(self._result())
+                row = tuple(self._result())
                 if row:
-                    super().__init__(False, **dict(zip(row.keys(), tuple(row))))
+                    super().__init__(False, **dict(zip(row[0].keys(), tuple(row[0]))))
                 else:
                     self.empty = True 
 
@@ -194,14 +200,16 @@ class Relation(Field):
         if not self._setted_up:
             self._set_up(starting_model)
 
-        qb = RelationQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
-        
+            self._qb = RelationQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
+            
+            if self._how_much == 'one':
+                self._result_model = self._qb.get()
+                self._result_model.parting_model = starting_model
+
         if self._how_much == 'many':
-            return qb
+            return self._qb.reset()
         else:
-            model = qb.get()
-            model.parting_model = starting_model
-            return model
+            return self._result_model.reset()
 
 class Has(Relation):
     def set(self, starting_model, value):
@@ -233,7 +241,7 @@ class Has(Relation):
 
             wrapped_self.parting_model._rel_queue.append(pending_function)
 
-            return wrapped_self
+            return wrapped_self.parting_model
 
         def deassign(wrapped_self):
             """ Queue the removal of the associated model(s) from the parent.
@@ -244,7 +252,7 @@ class Has(Relation):
                 QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
 
             wrapped_self.parting_model._rel_queue.append(pending_function)
-            return wrapped_self
+            return wrapped_self.parting_model
 
         ext_model.assign = assign
         ext_model.deassign = deassign
@@ -260,6 +268,36 @@ class BelongsTo(Relation):
 
         if not self._on_self_col:
             self._on_self_col = starting_model.__class__.__name__.lower() + '_id'
+
+    def _extend_model(self):
+        ext_model = super()._extend_model()
+
+        def assign(wrapped_self, other_model):
+            """ Queue the action of making the specified model the only model that the parent possesses.
+
+                Args:
+                    other_model: The new model to assign
+            """
+            other_id = getattr(other_model, self._on_other_col)
+            self_id = wrapped_self.parting_model.get_primary()
+            self_primary = wrapped_self.parting_model.primary_key
+
+            def pending_function():
+                QueryBuilder.table(wrapped_self.parting_model.table_name).where(self_primary, '=', self_id).update({self._on_self_col: other_id})
+
+            wrapped_self.parting_model._rel_queue.append(pending_function)
+
+            return wrapped_self.parting_model
+
+        def deassign(wrapped_self):
+            """ Queue the removal of the associated model(s) from the parent.
+            """
+            return wrapped_self.assign(None)
+
+        ext_model.assign = assign
+        ext_model.deassign = deassign
+        return ext_model
+
     
 class Multiple(Relation):
     """ Define a 'many to many' relationship with another database table.

@@ -20,6 +20,11 @@ class RelationQueryBuilder(QueryBuilder):
         
         self.where(on_other_col, '=', getattr(parting_model, on_self_col))
 
+    def reset(self):
+        super().reset()
+        
+        return self.where(self._on_other_col, '=', getattr(self._parting_model, self._on_self_col))
+
     def assign(self, other_model):
         """ Make the specified model the only model that the parent possesses.
 
