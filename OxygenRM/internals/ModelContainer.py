@@ -1,5 +1,7 @@
 import json
 
+from itertools import chain
+
 # A container for models
 class ModelContainer():
     def __init__(self, result, model):
@@ -9,17 +11,9 @@ class ModelContainer():
         self._iteration_done = False
 
     def __iter__(self):
-        if callable(self._result):
-            self._result = self._result()
-
-        for row in self._calculated_models:
+        for row in chain(self._calculated_models, self._craft_own_result()):
             yield row
-
-        for row in self._result:
-            model_from_row = self._model(False, **dict(zip(row.keys(), tuple(row)))) 
-            self._calculated_models.append(model_from_row)
-            yield model_from_row
-
+        
         self._iteration_done = True
             
     def __getitem__(self, index):
@@ -30,8 +24,16 @@ class ModelContainer():
 
             Returns:
                 The model at position index.
-        """
-        self._make_calculated_models_until(index)
+        """        
+        if isinstance(index, slice):
+            wanted_index = index.stop
+
+            if not wanted_index:
+                wanted_index = float('inf')
+        else:
+            wanted_index = index
+
+        self._make_calculated_models_until(wanted_index)
         return self._calculated_models[index]
 
     def __delitem__(self, index):
@@ -43,6 +45,18 @@ class ModelContainer():
         self._make_calculated_models_until(index)
         del self._calculated_models[index]
 
+    def _craft_own_result(self):
+        if self._iteration_done:
+            return
+
+        if callable(self._result):
+            self._result = self._result()
+
+        for row in self._result:
+            model_from_row = self._model(False, **dict(zip(row.keys(), tuple(row)))) 
+            self._calculated_models.append(model_from_row)
+            yield model_from_row 
+
     def _make_calculated_models_until(self, wanted_access_index):
         """ Make sure that there's at least n calculated models
 
@@ -52,14 +66,16 @@ class ModelContainer():
             Raises:
                 IndexError: If n is grether than the available models
         """
-        length = 0
+        if self._iteration_done:
+            return 
 
-        for row in self:
+        length = len(self._calculated_models)
+        for row in self._craft_own_result():
             length += 1
             if wanted_access_index < length:
                 return
 
-        raise IndexError('Container has {} elements, but tried to get the element {}'.format(length, wanted_access_index + 1))
+        return
 
     def __len__(self):
         """ Calculate the number of models in the container.

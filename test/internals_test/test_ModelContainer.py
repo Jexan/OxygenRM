@@ -74,7 +74,22 @@ class TestModelContainer(unittest.TestCase):
         item = self.mc[1]
 
         self.assertEqual(item.a, 'b')
-        
+
+    def test_array_slicing_works_as_expected(self):
+        items = self.mc[0:2]
+
+        self.assertEqual(items, ['a', 'b'])
+
+    def test_array_slicing_with_no_stop_works_as_intended(self):
+        items = self.mc[1:]
+
+        self.assertEqual(items, ['b', 'c'])
+
+    def test_array_negative_index_works(self):
+        item = self.mc[-1]
+
+        self.assertEqual(item, 'c')
+
     def test_pluck(self):
         aes = self.mc.pluck('a')
         self.assertEqual(['a', 'b', 'c'], list(aes))
