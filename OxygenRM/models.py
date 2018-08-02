@@ -1,3 +1,5 @@
+import warnings
+
 from copy import deepcopy
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
@@ -80,6 +82,9 @@ class Model(metaclass=MetaModel):
 
         cls.primary_key = primary_key
 
+        # if not primary_key:
+        #     warnings.warn('The model {} has no id column. Deletion and updating may behave in an unexpected way.'.format(cls.__name__), UserWarning)
+
         cls._set_up = True
         cls._self_name = cls.__name__
 
@@ -140,6 +145,27 @@ class Model(metaclass=MetaModel):
         else:
             return True
 
+    @classmethod
+    def find(cls, *indeces):
+        if not cls._set_up:
+            cls._set_up_model()
+
+        result = cls.where_in(cls.primary_key, indeces)
+        
+        if len(indeces) == 1:
+            return result.first()
+        else:
+            return result.get()
+
+    @classmethod
+    def destroy(cls, *indeces):
+        if not cls._set_up:
+            cls._set_up_model()
+
+        cls.where_in(cls.primary_key, indeces).delete() 
+
+        return True
+
     def get_primary(self):
         """ Get the primary key value of the model.
 
@@ -165,7 +191,7 @@ class Model(metaclass=MetaModel):
         self._creating_new = False
         return self
 
-    def destroy(self):
+    def delete(self):
         """ Remove the working model from the database.
         """
         if self._creating_new:

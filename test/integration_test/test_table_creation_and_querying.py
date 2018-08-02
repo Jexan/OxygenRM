@@ -31,7 +31,7 @@ class TestTableCreationAndQuerying(unittest.TestCase):
         Table('tests').drop()        
 
     def tearDown(self):
-        Test.delete()
+        Test.truncate()
     
     def test_db_init(self):
         self.assertIsInstance(OxygenRM.db, OxygenRM.internals.SQLite3DB.SQLite3DB)

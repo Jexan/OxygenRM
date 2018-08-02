@@ -15,6 +15,18 @@ from OxygenRM.internals.fields import *
 class Todo(O.Model):
     a = Text()
 
+def todoWithId():
+    db.drop_table('todos')
+    db.create_table('todos', 
+        (next(default_cols(a='text')), next(default_cols(id='integer'))._replace(primary=True, auto_increment=True))
+    )
+
+    class Todo(O.Model):
+        a = Text()
+        id = Id()
+
+    return Todo
+
 class TestModels(unittest.TestCase):
     def tearDown(self):
         db.drop_all_tables()
@@ -138,14 +150,7 @@ class TestModels(unittest.TestCase):
         self.assertEqual(record['a'], 't2')
 
     def test_model_craft_with_id_model(self):
-        db.drop_table('todos')
-        db.create_table('todos', 
-            (next(default_cols(a='text')), next(default_cols(id='integer'))._replace(primary=True, auto_increment=True))
-        )
-
-        class Todo(O.Model):
-            a = Text()
-            id = Id()
+        Todo = todoWithId()
 
         t = Todo.craft(a='t')
         self.assertEqual(t.a, 't')
@@ -163,11 +168,11 @@ class TestModels(unittest.TestCase):
     def test_models_craft_with_model_with_no_primary_key_returns_no_model(self):
         self.assertTrue(Todo.craft(a='t'))
 
-    def test_models_destroy(self):
+    def test_models_delete(self):
         create_todo()
 
         t = Todo.where('a', '=', 't').first()
-        t.destroy()
+        t.delete()
 
         record = db.all('todos').fetchone()
         self.assertIs(record, None)
@@ -176,6 +181,22 @@ class TestModels(unittest.TestCase):
         create_todo()
 
         t = Todo.where('a', '=', 't').delete()
+
+        record = db.all('todos').fetchone()
+        self.assertIs(record, None)
+
+    def test_models_destroy(self):
+        Todo = todoWithId()
+        create_todo()
+
+        Todo.destroy(1)
+
+        record = db.all('todos').fetchone()
+        self.assertIs(record, None)
+
+    def test_models_table_truncate(self):
+        db.create_many('todos', ('a',), ((str(i),) for i in range(10)))
+        Todo.truncate()
 
         record = db.all('todos').fetchone()
         self.assertIs(record, None)
