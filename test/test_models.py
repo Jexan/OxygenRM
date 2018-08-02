@@ -137,6 +137,32 @@ class TestModels(unittest.TestCase):
         record = list(db.all('todos'))[-1]
         self.assertEqual(record['a'], 't2')
 
+    def test_model_craft_with_id_model(self):
+        db.drop_table('todos')
+        db.create_table('todos', 
+            (next(default_cols(a='text')), next(default_cols(id='integer'))._replace(primary=True, auto_increment=True))
+        )
+
+        class Todo(O.Model):
+            a = Text()
+            id = Id()
+
+        t = Todo.craft(a='t')
+        self.assertEqual(t.a, 't')
+        
+        record = db.all('todos').fetchone()
+        self.assertEqual(record['a'], 't')
+    
+    def test_model_craft_with_no_model_return_true(self):
+        t = Todo.craft(False, a='t')
+        self.assertTrue(t)
+        
+        record = db.all('todos').fetchone()
+        self.assertEqual(record['a'], 't')
+
+    def test_models_craft_with_model_with_no_primary_key_returns_no_model(self):
+        self.assertTrue(Todo.craft(a='t'))
+
     def test_models_destroy(self):
         create_todo()
 

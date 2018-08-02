@@ -44,6 +44,9 @@ class SQLite3DB():
     
         self.cursor     = self.connection.cursor()
 
+    def last_id(self):
+        return self.cursor.lastrowid
+
     def create_table(self, table_name, columns):
         """ Create a table in the database with the specified columns.
 

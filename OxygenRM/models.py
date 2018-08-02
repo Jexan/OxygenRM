@@ -126,6 +126,20 @@ class Model(metaclass=MetaModel):
     def relations(cls):
         pass
     
+    @classmethod
+    def craft(cls, return_model=True, **values):
+        """ Create a record in the database, save it and return it
+        """
+        if not cls._set_up:
+            cls._set_up_model()
+
+        O.db.create(cls.table_name, **values)
+
+        if return_model and cls.primary_key:
+            return cls.where(cls.primary_key, '=', O.db.last_id()).first()
+        else:
+            return True
+
     def get_primary(self):
         """ Get the primary key value of the model.
 
