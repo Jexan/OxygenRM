@@ -164,6 +164,10 @@ class SQLite3DB():
             if table != SEQUENCE_TABLE:
                 self.drop_table(table)
 
+    def truncate(self, table_name):
+        self.execute_without_saving('DELETE FROM {}'.format(table_name))
+        return self.execute('DELETE FROM SQLITE_SEQUENCE WHERE name="{}"'.format(table_name))
+
     def create(self, table_name, **values):
         """ Create a new record in the database. 
 

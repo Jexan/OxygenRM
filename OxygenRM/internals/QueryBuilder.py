@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, ChainMap
 from itertools import chain
 
 from OxygenRM.internals.SQL_builders import *
@@ -339,6 +339,9 @@ class QueryBuilder:
 
         return self
 
+    def truncate(self):
+        O.db.truncate(self._in_wait['table_name'])
+
     def get_sql(self):
         """  Craft a get sql command.
 
@@ -395,12 +398,14 @@ class QueryBuilder:
         """
         O.db.execute(self.delete_sql(), tuple(extract_values(self._in_wait['where_cond'])))
 
-    def update(self, values):
+    def update(self, values={}, **kwvalues):
         """ Update records in the database according with the given values.
 
             Args:
                 values: A dict with the keys as the fields and the values as the values to be set.
+                **kwvalues: The values to update
         """
+        values = ChainMap(values, kwvalues)
         values_to_prepare = chain(values.values(), extract_values(self._in_wait['where_cond']))
 
         O.db.execute(self.update_sql(values), tuple(values_to_prepare))
