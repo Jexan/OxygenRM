@@ -56,6 +56,8 @@ class Model(metaclass=MetaModel):
         if not cls.table_name:
             cls.table_name = cls.__name__.lower() + 's'
 
+        cls.relations()
+
         cls._fields = dict()
         cls._relations = dict()
         
@@ -119,6 +121,10 @@ class Model(metaclass=MetaModel):
             field_val = values.get(field, None)
 
             self._field_values[field] = field_val
+
+    @classmethod
+    def relations(cls):
+        pass
     
     def get_primary(self):
         """ Get the primary key value of the model.

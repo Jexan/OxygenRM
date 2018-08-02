@@ -178,21 +178,28 @@ class User(O.Model):
     id = Id()
     username = Text()
 
+    @classmethod
+    def relations(cls):
+        cls.posts = Has('many', Post, on_other_col="author_id")
+
 class Post(O.Model):
     id = Id()
     text = Text()
     author_id = Integer()
 
-    author = BelongsTo('one', User, on_self_col='author_id')
-
-User.posts = Has('many', Post, on_other_col="author_id")
+    @classmethod
+    def relations(cls):
+        cls.author = BelongsTo('one', User, on_self_col='author_id')
 
 class OnePostUser(O.Model):
     table_name = 'users'
 
     id = Id()
     username = Text()
-    post = Has('one', Post, on_other_col='author_id')
+
+    @classmethod
+    def relations(cls):
+        cls.post = Has('one', Post, on_other_col='author_id')
 
 user_cols = [
     next(default_cols(id='integer'))._replace(primary=True, auto_increment=True),
