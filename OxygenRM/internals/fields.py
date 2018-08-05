@@ -76,6 +76,11 @@ class Field(metaclass=abc.ABCMeta):
         """
         return value
 
+    def db_set(self, value):
+        """ The value formatter for the database if the field does not implement __conform__.
+        """
+        return self.value_processor(value)
+
 class Text(Field):
     """ A basic Text column.
     """
@@ -297,8 +302,7 @@ class BelongsTo(Relation):
         ext_model.assign = assign
         ext_model.deassign = deassign
         return ext_model
-
-    
+ 
 class Multiple(Relation):
     """ Define a 'many to many' relationship with another database table.
 
@@ -432,6 +436,9 @@ class JSON(Field):
         
         constructor = self._make_container_jsonable(value.__class__)
         return constructor(value)
+
+    def db_set(self, value):
+        return value
 
     @staticmethod
     def _make_container_jsonable(constructor):

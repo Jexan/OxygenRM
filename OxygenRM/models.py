@@ -180,10 +180,14 @@ class Model(metaclass=MetaModel):
             Return:
                 self
         """
+        values_for_db = {}
+        for field_name, field_instance in self._fields.items():
+            values_for_db[field_name] = field_instance.db_set(self._field_values[field_name])
+            
         if self._creating_new:
-            O.db.create(self.table_name, **self._field_values)
+            O.db.create(self.table_name, **values_for_db)
         else:
-            self.__class__.where_many(self._convert_orig_values_to_conditions()).update(self._field_values)
+            self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
 
         for rel_function in self._rel_queue:
             rel_function()
