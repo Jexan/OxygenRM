@@ -1,4 +1,5 @@
 import sqlite3
+import pickle
 import json
 import abc
 
@@ -80,6 +81,9 @@ class Field(metaclass=abc.ABCMeta):
         """ The value formatter for the database if the field does not implement __conform__.
         """
         return self.value_processor(value)
+
+    def db_get(self, value):
+        return self.value_formatter(value)
 
 class Text(Field):
     """ A basic Text column.
@@ -476,6 +480,37 @@ class JSON(Field):
                     return str(self)
 
         return JSONableContainer
+
+class Pickle(Field):
+    def __init__(self, default_cons=None, args=(), kwargs={}, strict=False):
+        self.default_cons = default_cons if callable(default_cons) else lambda: default_cons
+        
+        self.args = args
+        self.kwargs = {}
+        self.strict = strict 
+
+    def value_processor(self, value):
+        if self.strict and not isinstance(value, self.default_cons):
+            raise TypeError('Attempted to set strict Pickle column to type {}. {} expected'.format(type(value), self.default_cons))
+
+        return value
+
+    def db_set(self, value):
+        if isinstance(value, bytes):
+            return value
+        else:
+            return pickle.dumps(value)
+
+    def db_get(self, value):
+        if value is None:
+            value = self.default_cons(*self.args, **self.kwargs)
+        elif isinstance(value, bytes):
+            try:
+                value = pickle.loads(value)
+            except pickle.UnpicklingError as e:
+                pass
+
+        return value
 
 field_types = {
     'sqlite3': {

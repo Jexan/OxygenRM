@@ -6,7 +6,7 @@ class PickleModel(O.Model):
     a = Pickle()
     b = Pickle(list, strict=True)
     c = Pickle(int)
-    d = Pickle(dict, ('t', 1))
+    d = Pickle(dict, ({'t': 1},))
 
 class TestJSONFields(unittest.TestCase):
     def setUp(self):

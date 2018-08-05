@@ -122,10 +122,10 @@ class Model(metaclass=MetaModel):
 
         self._rel_queue = []
         self._field_values = {}
-        for field in self._fields:
+        for field, col in self._fields.items():
             field_val = values.get(field, None)
 
-            self._field_values[field] = field_val
+            self._field_values[field] = col.db_get(field_val)
 
     @classmethod
     def relations(cls):
@@ -212,6 +212,9 @@ class Model(metaclass=MetaModel):
                 A dict with the field names and values.
         """
         return self._field_values
+
+    def being_created(self):
+        return self._creating_new
 
     @classmethod
     def set_up(cls):
