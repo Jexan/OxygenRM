@@ -80,7 +80,7 @@ class Field(metaclass=abc.ABCMeta):
     def db_set(self, value):
         """ The value formatter for the database if the field does not implement __conform__.
         """
-        return self.value_processor(value)
+        return self.value_formatter(value)
 
     def db_get(self, value):
         return self.value_formatter(value)
@@ -413,23 +413,6 @@ class JSON(Field):
 
         self._default_constructor = JSON._make_container_jsonable(default_class)
 
-    def get(self, model):
-        original_val = super().get(model)
-        
-        if getattr(original_val, 'conformable', False):
-            return original_val
-
-        if original_val is None:
-            value = self._default_constructor()
-        else:
-            json_val = json.loads(original_val)
-            constructor = self._make_container_jsonable(json_val.__class__)
-            
-            value = constructor(json_val)
-            
-        model._field_values[self._attr] = value
-        return value
-
     def validate(self, value):
         if not isinstance(value, (dict, list, str)):
             raise TypeError('Invalid value {}. Expected a dict or string.'.format(value))
@@ -437,11 +420,21 @@ class JSON(Field):
     def value_processor(self, value):
         if isinstance(value, str):
             value = json.loads(value)
+        elif getattr(value, 'conformable', None):
+            return value
         
         constructor = self._make_container_jsonable(value.__class__)
         return constructor(value)
 
-    def db_set(self, value):
+    def db_get(self, value):
+        if value is None:
+            value = self._default_constructor()
+        else:
+            json_val = json.loads(value)
+            constructor = self._make_container_jsonable(json_val.__class__)
+            
+            value = constructor(json_val)
+
         return value
 
     @staticmethod
@@ -484,7 +477,8 @@ class JSON(Field):
 class Pickle(Field):
     def __init__(self, default_cons=None, args=(), kwargs={}, strict=False):
         self.default_cons = default_cons if callable(default_cons) else lambda: default_cons
-        
+
+        self.null = default_cons is None
         self.args = args
         self.kwargs = {}
         self.strict = strict 
@@ -502,7 +496,7 @@ class Pickle(Field):
             return pickle.dumps(value)
 
     def db_get(self, value):
-        if value is None:
+        if value is None and not self.null:
             value = self.default_cons(*self.args, **self.kwargs)
         elif isinstance(value, bytes):
             try:
