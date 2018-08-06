@@ -10,16 +10,17 @@ from OxygenRM.internals.ModelContainer import ModelContainer
 from OxygenRM.internals.RelationQueryBuilder import RelationQueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
-    """ The base class for defining a Model property that is in the database as a column.
-    """
 
     """ The name of the attribute of this field in the belonging model.
     """
     _attr = None
 
-    _valid_types = []
-
     def __init__(self, null=False):
+        """ The abstract base class for defining a Model property that is in the database as a column.
+
+            Args:
+                null: Whether the model can be null 
+        """
         self.null = null
 
     def get(self, model):
@@ -79,10 +80,24 @@ class Field(metaclass=abc.ABCMeta):
 
     def db_set(self, value):
         """ The value formatter for the database if the field does not implement __conform__.
+
+            Args:
+                value: The value to process.
+
+            Returns:
+                The processed value.
         """
         return self.value_formatter(value)
 
     def db_get(self, value):
+        """ The value formatter to process the value when the raw values are passed to the model.
+
+            Args:
+                value: The value to format.
+
+            Returns:
+                The formatted value.
+        """
         return self.value_formatter(value)
 
 class Text(Field):
@@ -475,8 +490,22 @@ class JSON(Field):
         return JSONableContainer
 
 class Pickle(Field):
+    """ A field for dealing with Pickle objects boilerplate.
+        
+        Args:
+            default_cons: A function or class that when called should return a value, which will be
+                the default value. If the value is not callable, then that one shall be used instead.
+                Example:
+                    list, dict, 1, {a: 2}
+            args: If the default_cons is callable, the args will be passed as *args to it.
+            kwargs: If the default_cons is callable, the args will be passed as **kwargs to it.
+            strict: Whether to mmake sure that the the column must have just the default_cons type.
+    """
     def __init__(self, default_cons=None, args=(), kwargs={}, strict=False):
         self.default_cons = default_cons if callable(default_cons) else lambda: default_cons
+
+        if strict:
+            self._default_class = default_cons if callable(default_cons) else type(default_cons)
 
         self.null = default_cons is None
         self.args = args
@@ -484,7 +513,7 @@ class Pickle(Field):
         self.strict = strict 
 
     def value_processor(self, value):
-        if self.strict and not isinstance(value, self.default_cons):
+        if self.strict and not isinstance(value, self._default_class):
             raise TypeError('Attempted to set strict Pickle column to type {}. {} expected'.format(type(value), self.default_cons))
 
         return value

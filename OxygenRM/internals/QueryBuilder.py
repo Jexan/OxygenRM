@@ -16,6 +16,8 @@ class QueryBuilder:
         self._model = model
 
     def reset(self):
+        """ Reset the QueryBuilder prepared conditions.
+        """
         table_name = self._in_wait['table_name']
 
         self._in_wait = defaultdict(list)
@@ -340,6 +342,8 @@ class QueryBuilder:
         return self
 
     def truncate(self):
+        """ Delete the entire table records.
+        """
         O.db.truncate(self._in_wait['table_name'])
 
     def get_sql(self):

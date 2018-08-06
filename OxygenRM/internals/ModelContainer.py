@@ -59,6 +59,11 @@ class ModelContainer():
         del self._calculated_models[index]
 
     def _craft_own_result(self):
+        """ Generate the results from the sql query passed.
+
+            Yields:
+                Database result rows.
+        """
         if self._iteration_done:
             return
 

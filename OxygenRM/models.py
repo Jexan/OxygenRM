@@ -7,6 +7,19 @@ from OxygenRM.internals.fields import *
 
 import OxygenRM as O
 
+class ModelHasNoPrimaryKeyError(Exception):
+    def __init__(self, model, method):
+        """ An error to be raised when an operation that requires a model with
+            primary key is attempted, but the target model has no know related primary key.
+
+            Args:
+                model: The model whose method access triggered the exception.
+                method: The infringing method where the exception was raised.
+        """
+        super.__init__('The model {} has no primary key column. Impossible to use method {}'.format(model.__name__, method))
+        self.model = model
+        self.method = method
+
 class MetaModel(type):
     def __getattr__(cls, name):
         if not cls._set_up:
@@ -18,10 +31,6 @@ class MetaModel(type):
             return None
 
 class Model(metaclass=MetaModel):
-    """ The model base class. It allows ORM operations, and
-        it's supossed to be subclassed.
-    """
-
     # PRIVATE
     """ The original field values of the model.
     """
@@ -95,6 +104,21 @@ class Model(metaclass=MetaModel):
         for field, value in self._original_values.items():
             yield (field, '=', value)
 
+    def _update_values(self, values):
+        """ Update the internal model values.
+
+            Args:
+                values: A dict with the values of the model.
+        """
+        self._original_values = deepcopy(values)
+
+        self._rel_queue = []
+        self._field_values = {}
+        for field, col in self._fields.items():
+            field_val = values.get(field, None)
+
+            self._field_values[field] = col.db_get(field_val)
+
     # PUBLIC
     
     """ A string of the associated table name. Can be specified by
@@ -109,6 +133,13 @@ class Model(metaclass=MetaModel):
     primary_key = ''
 
     def __init__(self, creating_new=True, **values):
+        """ The model base class. It allows ORM operations, and it's supossed 
+            to be subclassed.
+
+            Args:
+                creating_new: Wheter the model is not in the database already.
+                values: The values of the model to initialize.
+        """
         if not self._set_up:
             self.__class__._set_up_model()
 
@@ -116,23 +147,30 @@ class Model(metaclass=MetaModel):
 
         self._update_values(values)
 
-    def _update_values(self, values):
-        self._original_values = deepcopy(values)
-
-        self._rel_queue = []
-        self._field_values = {}
-        for field, col in self._fields.items():
-            field_val = values.get(field, None)
-
-            self._field_values[field] = col.db_get(field_val)
+    @classmethod
+    def set_up(cls):
+        """ Force the set up of the class
+        """
+        if not cls._set_up:
+            cls._set_up_model()
 
     @classmethod
     def relations(cls):
+        """ A method to be run when the class is set up. Intendeed to init relations.
+        """
         pass
     
     @classmethod
     def craft(cls, return_model=True, **values):
-        """ Create a record in the database, save it and return it
+        """ Create a record in the database and save it. If the model has a primary key, return the model.
+
+            Args:
+                return_model: Wheter to return or not the model, if it has a primary key, after being saved.
+                **values: The values of the model to be created.
+            
+            Return:
+                True if the model has no primary key or the return_model is false.
+                A self model of the stored class if not.
         """
         if not cls._set_up:
             cls._set_up_model()
@@ -146,20 +184,56 @@ class Model(metaclass=MetaModel):
 
     @classmethod
     def find(cls, *indeces):
+        """ Find the models with the specified primary key(s).
+
+            Args:
+                *indeces: An assortment of primary key values of the models to fetch.
+            
+            Returns:
+                A model if the index is only one. A model collection if there's more than one index.
+
+            Raises:
+                ArgumentError: If no index value is passed.
+                ModelHasNoPrimaryKeyError: If the model has no primary key.
+        """
         if not cls._set_up:
             cls._set_up_model()
 
+        indeces_amount = len(indeces)
+
+        if not indeces_amount:
+            raise ArgumentError('No indeces passed. Required at least one.') 
+        if cls._dumb:
+            raise ModelHasNoPrimaryKeyError(cls, 'find')
+
         result = cls.where_in(cls.primary_key, indeces)
         
-        if len(indeces) == 1:
+        if indeces_amount == 1:
             return result.first()
         else:
             return result.get()
 
     @classmethod
     def destroy(cls, *indeces):
+        """ Delete the models with the specified primary key(s).
+
+            Args:
+                *indeces: An assortment of primary key values of the models to delete.
+            
+            Returns:
+                True
+
+            Raises:
+                ArgumentError: If no index value is passed.
+                ModelHasNoPrimaryKeyError: If the model has no primary key.
+        """
         if not cls._set_up:
             cls._set_up_model()
+
+        if not len(indeces):
+            raise ArgumentError('No indeces passed. Required at least one.') 
+        if cls._dumb:
+            raise ModelHasNoPrimaryKeyError(cls, 'destroy')
 
         cls.where_in(cls.primary_key, indeces).delete() 
 
@@ -170,7 +244,13 @@ class Model(metaclass=MetaModel):
 
             Return:
                 The primary key value of the model
+
+            Raises:
+                ModelHasNoPrimaryKeyError: If the model has no primary key.
         """
+        if self._dumb:
+            raise ModelHasNoPrimaryKeyError(cls, 'get_primary')
+
         return getattr(self, self.primary_key)
                                 
     def save(self):
@@ -196,6 +276,7 @@ class Model(metaclass=MetaModel):
 
         if not self._dumb:
             id_of_row = O.db.last_id() if self._creating_new else self.get_primary()
+
             row = QueryBuilder.table(self.table_name).where(self.primary_key, '=', id_of_row).first()
             self._update_values(dict(zip(row.keys(), tuple(row))))
         
@@ -222,12 +303,12 @@ class Model(metaclass=MetaModel):
         return self._field_values
 
     def being_created(self):
-        return self._creating_new
+        """ Wheter the model is being created or not.
 
-    @classmethod
-    def set_up(cls):
-        if not cls._set_up:
-            cls._set_up_model()
+            Return:
+                bool.
+        """
+        return self._creating_new
 
     def __eq__(self, other_model):
         return isinstance(other_model, Model) and self._field_values == other_model._field_values
