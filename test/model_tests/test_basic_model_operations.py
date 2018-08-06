@@ -208,3 +208,12 @@ class TestModels(unittest.TestCase):
         record = all_records[0]
 
         self.assertEqual(record['a'], 's')
+
+    def test_model_new_updates_the_working_model(self):
+        Todo = todoWithId()
+
+        t = Todo()
+        self.assertEqual(t.id, None)
+
+        t.save()
+        self.assertEqual(t.id, 1)

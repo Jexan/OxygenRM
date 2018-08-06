@@ -80,11 +80,8 @@ class Model(metaclass=MetaModel):
             if isinstance(value, Id):
                 primary_key = attr
 
-        cls.primary_key = primary_key
-
-        # if not primary_key:
-        #     warnings.warn('The model {} has no id column. Deletion and updating may behave in an unexpected way.'.format(cls.__name__), UserWarning)
-
+        cls.primary_key = primary_key   
+        cls._dumb = primary_key is None
         cls._set_up = True
         cls._self_name = cls.__name__
 
@@ -117,8 +114,10 @@ class Model(metaclass=MetaModel):
 
         self._creating_new = creating_new
 
-        if not creating_new:
-            self._original_values = deepcopy(values)
+        self._update_values(values)
+
+    def _update_values(self, values):
+        self._original_values = deepcopy(values)
 
         self._rel_queue = []
         self._field_values = {}
@@ -140,7 +139,7 @@ class Model(metaclass=MetaModel):
 
         O.db.create(cls.table_name, **values)
 
-        if return_model and cls.primary_key:
+        if return_model and not cls._dumb:
             return cls.where(cls.primary_key, '=', O.db.last_id()).first()
         else:
             return True
@@ -187,12 +186,21 @@ class Model(metaclass=MetaModel):
         if self._creating_new:
             O.db.create(self.table_name, **values_for_db)
         else:
-            self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
+            if self._dumb:
+                self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
+            else:
+                self.__class__.where(self.primary_key, '=', self.get_primary())
 
         for rel_function in self._rel_queue:
             rel_function()
 
+        if not self._dumb:
+            id_of_row = O.db.last_id() if self._creating_new else self.get_primary()
+            row = QueryBuilder.table(self.table_name).where(self.primary_key, '=', id_of_row).first()
+            self._update_values(dict(zip(row.keys(), tuple(row))))
+        
         self._creating_new = False
+
         return self
 
     def delete(self):
