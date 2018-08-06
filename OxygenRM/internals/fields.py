@@ -1,3 +1,4 @@
+import datetime
 import sqlite3
 import pickle
 import json
@@ -78,7 +79,7 @@ class Field(metaclass=abc.ABCMeta):
         """
         return value
 
-    def db_set(self, value):
+    def db_set(self, model, value):
         """ The value formatter for the database if the field does not implement __conform__.
 
             Args:
@@ -98,7 +99,7 @@ class Field(metaclass=abc.ABCMeta):
             Returns:
                 The formatted value.
         """
-        return self.value_formatter(value)
+        return self.value_processor(value)
 
 class Text(Field):
     """ A basic Text column.
@@ -135,7 +136,10 @@ class Float(Field):
             raise TypeError('Invalid value {}. Expected a float or int.'.format(value))
 
     def value_processor(self, value):
-        return float(value)
+        if value is not None:
+            return float(value)
+        else:
+            return 0
 
 class Id(Integer):
     """ An auto-incrementing, unsigned integer. Used as a primary key.
@@ -518,7 +522,7 @@ class Pickle(Field):
 
         return value
 
-    def db_set(self, value):
+    def db_set(self, model, value):
         if isinstance(value, bytes):
             return value
         else:
@@ -534,6 +538,44 @@ class Pickle(Field):
                 pass
 
         return value
+
+class DateField(Field, metaclass=abc.ABCMeta):
+    def __init__(self, time_format='', create_date=False, update_date=False, tz=datetime.timezone.utc):
+        self.created_date = create_date
+        self.update_date = update_date
+        self.tz = tz
+        self.time_format = time_format
+
+class Datetime(DateField):
+    def db_set(self, model, value):
+        should_add_created_timestamp = self.created_date and model.being_created()
+        if self.update_date or should_add_created_timestamp:
+            return datetime.datetime.now(tz=self.tz).timestamp()
+
+        if value is None:
+            return None
+
+        return value.timestamp()
+
+    def value_processor(self, value):
+        value_type = type(value)
+
+        if value_type in (int, float):
+            return datetime.datetime.fromtimestamp(value, tz=self.tz)
+        elif value_type is str:
+            return datetime.datetime.strptime(value, self.time_format)
+        elif value_type is datetime.datetime:
+            return value
+        elif value is None:
+            return None
+        else:
+            raise ValueError("Invalid datetime assign type. Expected timestamp, formated string or a datetime object. Got {}".format(type(value)))
+
+class Date(DateField):
+    pass
+
+class Time(DateField):
+    pass
 
 field_types = {
     'sqlite3': {

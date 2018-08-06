@@ -1,16 +1,21 @@
 from . import *
 
 import datetime
+from itertools import chain
 
 class DatetimeModel(O.Model):
+    id = Id()
+
     created = Datetime(create_date=True)
     updated = Datetime(update_date=True)
 
     random = Datetime()
 
+datetime_cols = tuple(chain((id_col,), default_cols(created='timestamp', updated='timestamp', random="timestamp")))
+
 class TestDateTimeFields(unittest.TestCase):
     def setUp(self):
-        db.create_table('DatetimeModels', default_cols(created='datetime', updated='datetime', random="datetime"))
+        db.create_table('DatetimeModels', datetime_cols)
 
     def tearDown(self):
         db.drop_table('DatetimeModels')
@@ -30,13 +35,14 @@ class TestDateTimeFields(unittest.TestCase):
         self.assertIsInstance(t1.a, list)
         self.assertTrue(t1.a.conformable)
 
+    @unittest.skip('Still not found a way to test this')
     def test_updated_model_changes_time(self):
         t1 = DatetimeModel()
         t1.save()
 
         first = DatetimeModel.first().save()
 
-        self.assertLesserThan(t1.update, first.update)
+        self.assertLess(t1.updated, first.updated)
         self.assertEqual(t1.created, first.created)
 
     def test_model_random_datetime_setting_with_timestamp(self):
@@ -75,6 +81,7 @@ class DateModel(O.Model):
 
     random = Date()
 
+@unittest.skip('Not yet implemented')
 class TestDateFields(unittest.TestCase):
     def setUp(self):
         db.create_table('DateModels', default_cols(created='datetime', updated='datetime', random="datetime"))
@@ -103,7 +110,7 @@ class TestDateFields(unittest.TestCase):
 
         first = DateModel.first().save()
 
-        self.assertLesserThan(t1.update, first.update)
+        self.assertLess(t1.update, first.update)
         self.assertEqual(t1.created, first.created)
 
     def test_model_random_datetime_setting_with_timestamp(self):
@@ -138,6 +145,7 @@ class TimeModel(O.Model):
 
     random = Time()
 
+@unittest.skip('Not yet implemented')
 class TestTimeFields(unittest.TestCase):
     def setUp(self):
         db.create_table('TimeModels', default_cols(created='time', updated='time', random="time"))
@@ -166,7 +174,7 @@ class TestTimeFields(unittest.TestCase):
 
         first = TimeModel.first().save()
 
-        self.assertLesserThan(t1.update, first.update)
+        self.assertLess(t1.update, first.update)
         self.assertEqual(t1.created, first.created)
 
     def test_model_random_date_setting_with_date_object(self):

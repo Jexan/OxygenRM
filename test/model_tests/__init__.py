@@ -9,3 +9,5 @@ from ..internals_test import default_cols
 import OxygenRM.models as O
 
 from OxygenRM.internals.fields import *
+
+id_col = next(default_cols(id='integer'))._replace(primary=True, auto_increment=True)

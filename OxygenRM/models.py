@@ -261,7 +261,7 @@ class Model(metaclass=MetaModel):
         """
         values_for_db = {}
         for field_name, field_instance in self._fields.items():
-            values_for_db[field_name] = field_instance.db_set(self._field_values[field_name])
+            values_for_db[field_name] = field_instance.db_set(self, self._field_values[field_name])
             
         if self._creating_new:
             O.db.create(self.table_name, **values_for_db)

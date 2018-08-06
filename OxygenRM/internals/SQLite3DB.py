@@ -23,6 +23,8 @@ VALID_TABLE_TYPES = [
 
     'datetime',
     'date',
+    'time',
+    'timestamp',
 
     'json',
     'xml',
