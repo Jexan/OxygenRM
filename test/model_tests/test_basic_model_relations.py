@@ -247,3 +247,7 @@ class TestSimpleRelations(unittest.TestCase):
         db.create('users', username='t1')
         db.create_many('posts', ('text', 'author_id'), (('t', 1),))
 
+        first_post = Post.first()
+        first_post.author.deassign().save()
+
+        self.assertFalse(first_post.author)

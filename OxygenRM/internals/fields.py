@@ -125,7 +125,9 @@ class Integer(Field):
     """ A basic integer column.
     """
     def validate(self, value):
-        if not isinstance(value, int) or isinstance(value, bool):
+        value_is_pure_int = isinstance(value, int) and not isinstance(value, bool)
+
+        if not value_is_pure_int and value is not None:
             raise TypeError('Invalid value {}. Expected an int.'.format(value))
     
 class Float(Field):
@@ -188,6 +190,7 @@ class Relation(Field):
                 has lazy loading.
             """
             _lazy_load = True
+            _base_class = model
 
             def reset(self):
                 self.empty = False
@@ -306,14 +309,14 @@ class BelongsTo(Relation):
                 Args:
                     other_model: The new model to assign
             """
-            other_id = getattr(other_model, self._on_other_col)
-            self_id = wrapped_self.parting_model.get_primary()
-            self_primary = wrapped_self.parting_model.primary_key
+            if other_model is not None:
+                if not isinstance(other_model, wrapped_self._base_class):
+                    raise TypeError('Cannot assign relationship to type {}. Expected a {} or None.'.format(type(other_model), wrapped_self._base_class))
+                if other_model.being_created():
+                    raise ValueError('Tried to assign an unsaved model.')
 
-            def pending_function():
-                QueryBuilder.table(wrapped_self.parting_model.table_name).where(self_primary, '=', self_id).update({self._on_self_col: other_id})
-
-            wrapped_self.parting_model._rel_queue.append(pending_function)
+            other_id = getattr(other_model, self._on_other_col, None)
+            setattr(wrapped_self.parting_model, self._on_self_col, other_id)
 
             return wrapped_self.parting_model
 

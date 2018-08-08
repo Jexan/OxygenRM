@@ -269,7 +269,7 @@ class Model(metaclass=MetaModel):
             if self._dumb:
                 self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
             else:
-                self.__class__.where(self.primary_key, '=', self.get_primary())
+                self.__class__.where(self.primary_key, '=', self.get_primary()).update(values_for_db)
 
         for rel_function in self._rel_queue:
             rel_function()
