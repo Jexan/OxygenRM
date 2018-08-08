@@ -569,20 +569,20 @@ class Datetime(DateField):
         elif value is None:
             return None
         else:
-            raise ValueError("Invalid datetime assign type. Expected timestamp, formated string or a datetime object. Got {}".format(type(value)))
+            raise ValueError("Invalid Datetime field assign type. Expected timestamp, formated string or a datetime object. Got {}".format(type(value)))
 
 class Date(DateField):
     ISO_FORMAT = "%Y-%m-%d"
 
     def db_set(self, model, value):
-        should_add_created_timestamp = self.created_date and model.being_created()
-        if self.update_date or should_add_created_timestamp:
-            return datetime.date.today()
-
         if value is None:
             return None
 
-        return str(value)
+        should_add_created_timestamp = self.created_date and model.being_created()
+        if self.update_date or should_add_created_timestamp:
+            value = datetime.date.today()
+
+        return value.strftime(self.ISO_FORMAT)
 
     def value_processor(self, value):
         value_type = type(value)
@@ -598,10 +598,34 @@ class Date(DateField):
         elif value is None:
             return None
         else:
-            raise ValueError("Invalid datetime assign type. Expected timestamp, formated string or a date object. Got {}".format(type(value)))
+            raise ValueError("Invalid Date field assign type. Expected timestamp, formated string, date or datetime object. Got {}".format(type(value)))
 
 class Time(DateField):
-    pass
+    ISO_FORMAT = "%H:%M:%S.%f"
+
+    def db_set(self, model, value):
+        if value is None:
+            return None
+
+        should_add_created_timestamp = self.created_date and model.being_created()
+        if self.update_date or should_add_created_timestamp:
+            value = datetime.datetime.now(tz=self.tz).time()
+
+        return value.strftime(self.ISO_FORMAT)
+
+    def value_processor(self, value):
+        value_type = type(value)
+
+        if value_type is str:
+            return datetime.datetime.strptime(value, self.ISO_FORMAT).time()
+        elif value_type is datetime.datetime:
+            return value.time()
+        elif value_type is datetime.time:
+            return value
+        elif value is None:
+            return None
+        else:
+            raise ValueError("Invalid Time field assign type. Expected formated string, time or datetime object. Got {}".format(type(value)))
 
 field_types = {
     'sqlite3': {

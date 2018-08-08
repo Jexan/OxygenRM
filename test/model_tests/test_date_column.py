@@ -158,7 +158,6 @@ class TimeModel(O.Model):
 
     random = Time()
 
-@unittest.skip('Not yet implemented')
 class TestTimeFields(unittest.TestCase):
     def setUp(self):
         db.create_table('TimeModels', default_cols(created='time', updated='time', random="time"))
@@ -181,18 +180,22 @@ class TestTimeFields(unittest.TestCase):
         self.assertIsInstance(t1.a, list)
         self.assertTrue(t1.a.conformable)
 
-    def test_updated_model_changes_time(self):
+    def test_model_random_time_setting_with_datetime(self):
         t1 = TimeModel()
+        t1.random = datetime.datetime(2000, 1, 1, 12, 1, 1)
+
+        self.assertEqual(t1.random.hour, 12)
+        self.assertEqual(t1.random.second, 1)
+
         t1.save()
 
-        first = TimeModel.first().save()
+        saved = TimeModel.first()
+        self.assertEqual(saved.random.hour, 12)
+        self.assertEqual(saved.random.second, 1)
 
-        self.assertLess(t1.update, first.update)
-        self.assertEqual(t1.created, first.created)
-
-    def test_model_random_date_setting_with_date_object(self):
+    def test_model_random_time_setting_with_date_object(self):
         t1 = TimeModel()
-        t1.random = datetime.date(2000, 1, 1)
+        t1.random = datetime.time(12, 1, 1)
 
         self.assertEqual(t1.random.hour, 12)
         self.assertEqual(t1.random.second, 1)
