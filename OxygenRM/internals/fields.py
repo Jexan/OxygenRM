@@ -572,7 +572,33 @@ class Datetime(DateField):
             raise ValueError("Invalid datetime assign type. Expected timestamp, formated string or a datetime object. Got {}".format(type(value)))
 
 class Date(DateField):
-    pass
+    ISO_FORMAT = "%Y-%m-%d"
+
+    def db_set(self, model, value):
+        should_add_created_timestamp = self.created_date and model.being_created()
+        if self.update_date or should_add_created_timestamp:
+            return datetime.date.today()
+
+        if value is None:
+            return None
+
+        return str(value)
+
+    def value_processor(self, value):
+        value_type = type(value)
+
+        if value_type in (int, float):
+            return datetime.datetime.fromtimestamp(value, tz=self.tz).date()
+        elif value_type is str:
+            return datetime.datetime.strptime(value, self.ISO_FORMAT).date()
+        elif value_type is datetime.datetime:
+            return value.date()
+        elif value_type is datetime.date:
+            return value
+        elif value is None:
+            return None
+        else:
+            raise ValueError("Invalid datetime assign type. Expected timestamp, formated string or a date object. Got {}".format(type(value)))
 
 class Time(DateField):
     pass
