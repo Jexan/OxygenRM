@@ -29,8 +29,17 @@ class RelationQueryBuilder(QueryBuilder):
         """ Make the specified model the only model that the parent possesses.
 
             Args:
-                other_model: The new model to assign
+                other_model: The new model to assign.
+
+            Raises:
+                TypeError: If the passed model is not a correct model type.
+                ValueError: If the passed model has not yet been saved on the database.
         """
+        if not isinstance(other_model, self._model):
+            raise TypeError('Cannot assign relationship to type {}. Expected a {}.'.format(type(other_model), wrapped_self._base_class))
+        if other_model.being_created():
+            raise ValueError('Tried to assign an unsaved model.')
+
         other_id = other_model.get_primary()
         self_id = getattr(self._parting_model, self._on_self_col)
 
@@ -54,8 +63,17 @@ class RelationQueryBuilder(QueryBuilder):
         """ Associate the specified model to the parent, doing nothing with the ones already there.
 
             Args:
-                other_models: A model to assign. 
+                other_model: A model to add. 
+
+            Raises:
+                TypeError: If the passed model is not a correct model type.
+                ValueError: If the passed model has not yet been saved on the database.
         """
+        if not isinstance(other_model, self._model):
+            raise TypeError('Cannot add relationship to type {}. Expected a {}.'.format(type(other_model), wrapped_self._base_class))
+        if other_model.being_created():
+            raise ValueError('Tried to add an unsaved model.')
+
         other_id = other_model.get_primary()
         self_id = getattr(self._parting_model, self._on_self_col)
 
@@ -68,14 +86,27 @@ class RelationQueryBuilder(QueryBuilder):
         """ Associate the specified models to the parent, doing nothing with the ones already there.
 
             Args:
-                other_models: An iterator of models to assign. 
+                other_models: An iterator of models to assign.
+
+            Raises:
+                TypeError: If one of the passed model is not a correct model type.
+                ValueError: If one of the passed model has not yet been saved on the database. 
         """
+        other_models = tuple(other_models)
+        conditions = []
+
+        for model in other_models:
+            if not isinstance(model, self._model):
+                raise TypeError('Cannot add relationship to type {}. Expected a {}.'.format(type(model), wrapped_self._base_class))
+            if model.being_created():
+                raise ValueError('Tried to add an unsaved model.')
+
+            conditions.append( (model.primary_key, '=', model.get_primary()) )
+
         self_id = getattr(self._parting_model, self._on_self_col)
 
         def pending_function():
-            QueryBuilder.table(self._table_name).or_where_many(
-                (model.primary_key, '=', model.get_primary()) for model in other_models 
-            ).update({self._on_other_col: self_id})
+            QueryBuilder.table(self._table_name).or_where_many(conditions,).update({self._on_other_col: self_id})
         
         self._parting_model._rel_queue.append(pending_function)
 
@@ -89,6 +120,10 @@ class RelationQueryBuilder(QueryBuilder):
 
             Args:
                 other_modelds: An iterator of models to assign.
+
+            Raises:
+                TypeError: If one of the passed model is not a correct model type.
+                ValueError: If one of the passed model has not yet been saved on the database.
         """
         self.deassign()
         self.add_many(other_models)
