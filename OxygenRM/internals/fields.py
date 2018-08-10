@@ -356,10 +356,7 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up(parting_model)
 
-        builder = ManyToManyQueryBuilder.table(self._model.table_name + ' oxygent', self._model).select('oxygent.*')
-        builder.where(self._self_name,'=', parting_model.get_primary()).cross_join(self._middle_table).on(
-            'oxygent' + '.' + self._model.primary_key, '=', self._middle_table + '.' + self._other_name
-        )
+        builder = ManyToManyQueryBuilder(self._model, parting_model, self._self_name, self._other_name, self._middle_table)
 
         return builder
 
@@ -376,7 +373,7 @@ class Multiple(Relation):
             self._middle_table = '_'.join(sorted((parting_model_name, target_model_name)))
 
         if not self._self_name:
-            self._self_name = self._middle_table + '.' + parting_model_name + '_id'
+            self._self_name = parting_model_name + '_id'
 
         if not self._other_name:
             self._other_name = target_model_name + '_id'

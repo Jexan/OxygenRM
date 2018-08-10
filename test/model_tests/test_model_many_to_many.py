@@ -98,7 +98,7 @@ class TestManyToMany(unittest.TestCase):
         db.create('t1s', id=1)
         create_to_id('t2s', 5)
 
-        T1.first().t2s.assign(T2.all()).save()
+        T1.first().t2s.assign_many(T2.all()).save()
 
         self.assertEqual(len(T1.first().t2s.get()), 5)
         self.assertEqual(len(set(T1.first().t2s.get().pluck('id'))), 5)
@@ -112,7 +112,7 @@ class TestManyToMany(unittest.TestCase):
         T1.first().t2s.assign(t2).save()
 
         self.assertEqual(len(T1.first().t2s.get()), 1)        
-        self.assertEqual(len(T2.first().t1s.get()), 1)        
+        self.assertEqual(len(T2.find(5).t1s.get()), 1)        
 
     def test_many_to_many_deassign(self):
         db.create('t1s', id=1)
@@ -121,7 +121,7 @@ class TestManyToMany(unittest.TestCase):
 
         T1.first().t2s.deassign(T2.first()).save()
 
-        self.assertEqual(len(T1.first().t2s), 0)   
+        self.assertEqual(len(T1.first().t2s.get()), 0)   
 
     def test_many_to_many_deassignal(self):
         db.create('t1s', id=1)
@@ -151,7 +151,7 @@ class TestManyToMany(unittest.TestCase):
     def test_many_to_many_add_many(self):
         db.create('t1s', id=1)
         create_to_id('t2s',3)
-        db.create('t1_t2', t1_id=1, t2_id=2)
+        db.create('t1_t2', t1_id=2, t2_id=2)
 
         T1.first().t2s.add_many(T2.all()).save()
 
