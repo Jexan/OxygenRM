@@ -8,7 +8,7 @@ from collections import namedtuple
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.ModelContainer import ModelContainer
-from OxygenRM.internals.RelationQueryBuilder import RelationQueryBuilder
+from OxygenRM.internals.RelationQueryBuilder import RelationQueryBuilder, ManyToManyQueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
 
@@ -230,17 +230,16 @@ class Relation(Field):
     def get(self, starting_model):
         if not self._setted_up:
             self._set_up(starting_model)
-
-            self._qb = RelationQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
             
-            if self._how_much == 'one':
-                self._result_model = self._qb.get()
-                self._result_model.parting_model = starting_model
+        qb = RelationQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
 
         if self._how_much == 'many':
-            return self._qb.reset()
+            return qb
         else:
-            return self._result_model.reset()
+            result_model = qb.get()
+            result_model.parting_model = starting_model
+
+            return result_model
 
 class Has(Relation):
     def set(self, starting_model, value):
@@ -357,7 +356,7 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up(parting_model)
 
-        builder = QueryBuilder.table(self._model.table_name + ' oxygent', self._model).select('oxygent.*')
+        builder = ManyToManyQueryBuilder.table(self._model.table_name + ' oxygent', self._model).select('oxygent.*')
         builder.where(self._self_name,'=', parting_model.get_primary()).cross_join(self._middle_table).on(
             'oxygent' + '.' + self._model.primary_key, '=', self._middle_table + '.' + self._other_name
         )

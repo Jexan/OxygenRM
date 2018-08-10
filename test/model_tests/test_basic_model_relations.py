@@ -211,7 +211,7 @@ class TestSimpleRelations(unittest.TestCase):
         self.assertIsInstance(post_author, User)
 
         pure_user = User.first()
-        self.assertEqual(post_author, pure_user)
+        self.assertEqual(post_author.to_dict(), pure_user.to_dict())
 
     def test_belongsTo_queries_correctly_even_with_other_unrelated_models_present(self):
         db.create_many('users', ('username', ), (('t1',), ('t2',)) )
