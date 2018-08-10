@@ -35,21 +35,37 @@ class RelationQueryBuilder(QueryBuilder):
                 TypeError: If the passed model is not a correct model type.
                 ValueError: If the passed model has not yet been saved on the database.
         """
-        if not isinstance(other_model, self._model):
-            raise TypeError('Cannot assign relationship to type {}. Expected a {}.'.format(type(other_model), wrapped_self._base_class))
-        if other_model.being_created():
-            raise ValueError('Tried to assign an unsaved model.')
+        self.deassign_all()
+        self.add(other_model)
 
-        other_id = other_model.get_primary()
+    def assign_many(self, other_models):
+        """ Removes all the associated models and then associate the passed ones to the parent.
+
+            Args:
+                other_modelds: An iterator of models to assign.
+
+            Raises:
+                TypeError: If one of the passed model is not a correct model type.
+                ValueError: If one of the passed model has not yet been saved on the database.
+        """
+        self.deassign_all()
+        self.add_many(other_models)    
+
+    def deassign(self, model):
+        """ Remove the passed model from the parent, if it is associated.
+        """
         self_id = getattr(self._parting_model, self._on_self_col)
+        other_id = other_model.get_primary()
 
         def pending_function():
-            QueryBuilder.table(self._table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
-            QueryBuilder.table(self._table_name).where(other_model.primary_key, '=', other_id).update({self._on_other_col: self_id})
+            QueryBuilder.table(self._table_name).where_many([
+                (self._on_other_col, '=', self_id), 
+                (other_model.primary_key, '=', other_id)
+            ]).update({self._on_other_col: None})
 
         self._parting_model._rel_queue.append(pending_function)
 
-    def deassign(self):
+    def deassign_all(self):
         """ Remove the associated model(s) from the parent.
         """
         self_id = getattr(self._parting_model, self._on_self_col)
@@ -109,21 +125,3 @@ class RelationQueryBuilder(QueryBuilder):
             QueryBuilder.table(self._table_name).or_where_many(conditions,).update({self._on_other_col: self_id})
         
         self._parting_model._rel_queue.append(pending_function)
-
-    def remove_all(self):
-        """ Alias for self.deassign().
-        """
-        self.deassign()
-
-    def reassign(self, other_models):
-        """ Removes all the associated models and then associate the passed ones to the parent.
-
-            Args:
-                other_modelds: An iterator of models to assign.
-
-            Raises:
-                TypeError: If one of the passed model is not a correct model type.
-                ValueError: If one of the passed model has not yet been saved on the database.
-        """
-        self.deassign()
-        self.add_many(other_models)

@@ -127,14 +127,14 @@ class TestSimpleRelations(unittest.TestCase):
         self.assertEqual(user_posts[0].text, 't')
         self.assertEqual(user_posts[1].text, 's')
 
-    def test_has_reassigning_some(self):
+    def test_has_assigning_some(self):
         db.create_many('users', ('username', ), (('t1',), ('t2',)))
         db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 2), ('r', 2)))
         
         posts_not_belong_to_1 = Post.where('id', '!=', 1).get()
 
         user = User.get()[0]
-        user.posts.reassign(posts_not_belong_to_1)
+        user.posts.assign_many(posts_not_belong_to_1)
         user.save()
 
         user_posts = User.get()[0].posts.get()
@@ -148,7 +148,7 @@ class TestSimpleRelations(unittest.TestCase):
         db.create_many('posts', ('text', 'author_id'), (('t', 1), ('s', 2)))
         
         user = User.first()
-        user.posts.deassign()
+        user.posts.deassign_all()
         user.save()
 
         user_posts = User.get()[0].posts.get()
