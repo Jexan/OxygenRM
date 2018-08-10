@@ -357,10 +357,12 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up(parting_model)
 
-        return QueryBuilder.raw(self.query, (parting_model.get_primary(),), self._model, False)
+        builder = QueryBuilder.table(self._model.table_name + ' oxygent', self._model).select('oxygent.*')
+        builder.where(self._self_name,'=', parting_model.get_primary()).cross_join(self._middle_table).on(
+            'oxygent' + '.' + self._model.primary_key, '=', self._middle_table + '.' + self._other_name
+        )
 
-        # builder = QueryBuilder.table(self._model.table_name + ' oxygent', self._model)
-        # builder.where(self._self_name,'=', parting_model.get_primary()).join(self._middle_table).on('oxygent' + self._model.primary_key, '=', )
+        return builder
 
     def _set_up(self, parting_model):
         """ Set up the relation with the relevant variables
@@ -382,18 +384,6 @@ class Multiple(Relation):
 
         # if not self._middle_class:
         #     self._middle_class = _create_middle_model_class()
-            
-        query = '''SELECT oxygent.* FROM {target_table} oxygent CROSS JOIN {middle_table} 
-                    ON oxygent.{target_primary} = {middle_table}.{middle_target_name}
-                    WHERE {middle_self_name} = ?'''
-
-        self.query = query.format(
-            target_table=self._model.table_name,
-            middle_table=self._middle_table,
-            target_primary=self._model.primary_key,
-            middle_target_name=self._other_name,
-            middle_self_name=self._self_name
-        )
 
         self._setted_up = True
 
