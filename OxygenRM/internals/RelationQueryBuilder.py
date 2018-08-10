@@ -3,6 +3,37 @@ from OxygenRM.internals.ModelContainer import ModelContainer
 import OxygenRM as O
 
 class RelationQueryBuilder(QueryBuilder):
+    def assign(self, other_model):
+        """ Make the specified model the only model that the parent possesses.
+
+        Args:
+            other_model: The new model to assign.
+
+        Raises:
+            TypeError: If the passed model is not a correct model type.
+            ValueError: If the passed model has not yet been saved on the database.
+        """
+        self.deassign_all()
+        self.add(other_model)
+
+        return self._parting_model
+
+    def assign_many(self, other_models):
+        """ Removes all the associated models and then associate the passed ones to the parent.
+
+            Args:
+                other_modelds: An iterator of models to assign.
+
+            Raises:
+                TypeError: If one of the passed model is not a correct model type.
+                ValueError: If one of the passed model has not yet been saved on the database.
+        """
+        self.deassign_all()
+        self.add_many(other_models)
+
+        return self._parting_model
+
+class HasManyQueryBuilder(RelationQueryBuilder):
     """ A query builder specially designed for Has Many relationships.
 
         Args:
@@ -27,36 +58,6 @@ class RelationQueryBuilder(QueryBuilder):
         self._parting_model = parting_model
         
         return self.where(self._other_name, '=', getattr(self._parting_model, self._self_name))
-
-    def assign(self, other_model):
-        """ Make the specified model the only model that the parent possesses.
-
-            Args:
-                other_model: The new model to assign.
-
-            Raises:
-                TypeError: If the passed model is not a correct model type.
-                ValueError: If the passed model has not yet been saved on the database.
-        """
-        self.deassign_all()
-        self.add(other_model)
-
-        return self._parting_model
-
-    def assign_many(self, other_models):
-        """ Removes all the associated models and then associate the passed ones to the parent.
-
-            Args:
-                other_modelds: An iterator of models to assign.
-
-            Raises:
-                TypeError: If one of the passed model is not a correct model type.
-                ValueError: If one of the passed model has not yet been saved on the database.
-        """
-        self.deassign_all()
-        self.add_many(other_models)    
-
-        return self._parting_model
 
     def deassign(self, other_model):
         """ Remove the passed model from the parent, if it is associated.
@@ -141,7 +142,7 @@ class RelationQueryBuilder(QueryBuilder):
 
         return self._parting_model
 
-class ManyToManyQueryBuilder(QueryBuilder):
+class BelongsToManyQueryBuilder(RelationQueryBuilder):
     """ A query builder specially designed for Belongs To relationships.
 
         Args:
@@ -162,36 +163,6 @@ class ManyToManyQueryBuilder(QueryBuilder):
         self.select('oxygent.*').where(middle_table + '.' + self_name,'=', parting_model.get_primary()).cross_join(middle_table).on(
             'oxygent' + '.' + target_model.primary_key, '=', middle_table + '.' + other_name
         )
-
-    def assign(self, other_model):
-        """ Make the specified model the only model that the parent possesses.
-
-            Args:
-                other_model: The new model to assign.
-
-            Raises:
-                TypeError: If the passed model is not a correct model type.
-                ValueError: If the passed model has not yet been saved on the database.
-        """
-        self.deassign_all()
-        self.add(other_model)
-
-        return self._parting_model
-
-    def assign_many(self, other_models):
-        """ Removes all the associated models and then associate the passed ones to the parent.
-
-            Args:
-                other_modelds: An iterator of models to assign.
-
-            Raises:
-                TypeError: If one of the passed model is not a correct model type.
-                ValueError: If one of the passed model has not yet been saved on the database.
-        """
-        self.deassign_all()
-        self.add_many(other_models)
-
-        return self._parting_model
 
     def deassign(self, other_model):
         """ Remove the passed model from the parent, if it is associated.

@@ -8,7 +8,7 @@ from collections import namedtuple
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.ModelContainer import ModelContainer
-from OxygenRM.internals.RelationQueryBuilder import RelationQueryBuilder, ManyToManyQueryBuilder
+from OxygenRM.internals.RelationQueryBuilder import HasManyQueryBuilder, BelongsToManyQueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
 
@@ -231,7 +231,7 @@ class Relation(Field):
         if not self._setted_up:
             self._set_up(starting_model)
             
-        qb = RelationQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
+        qb = HasManyQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
 
         if self._how_much == 'many':
             return qb
@@ -356,7 +356,7 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up(parting_model)
 
-        builder = ManyToManyQueryBuilder(self._model, parting_model, self._self_name, self._other_name, self._middle_table)
+        builder = BelongsToManyQueryBuilder(self._model, parting_model, self._self_name, self._other_name, self._middle_table)
 
         return builder
 
