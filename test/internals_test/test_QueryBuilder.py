@@ -140,6 +140,13 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
 
+    def test_table_count(self):
+        db.create_table('t', default_cols(a='integer'))
+        db.create_many('t', ('a',), [(i,) for i in range(10)]) 
+        
+        count = qb.table('t').count()
+        self.assertEqual(count, 10)
+
     def test_table_first(self):
         db.create_table('t', default_cols(a='text', b='integer'))
         db.create_many('t', ('a', 'b'), (('t1', 1), ('t2', 2)))

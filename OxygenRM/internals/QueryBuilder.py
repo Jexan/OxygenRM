@@ -183,6 +183,16 @@ class QueryBuilder:
         self._in_wait['where_cond'].extend(map(condition_packer, conditions))
         return self    
 
+    def count(self):
+        """ Destructive query to get the number of records that fullfills the current conditions.
+
+            Returns:
+                An int with the number of rows.
+        """
+        self.select('count(*)')
+
+        return next(O.db.execute_without_saving(self.get_sql()))[0]
+
     def group_by(self, field, order='ASC'):
         """ Add a GROUP BY to the prepared query.
 
