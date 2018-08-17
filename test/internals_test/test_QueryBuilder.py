@@ -147,6 +147,17 @@ class RecordManipulationTest(unittest.TestCase):
         count = qb.table('t').count()
         self.assertEqual(count, 10)
 
+    def test_table_max_min_sum(self):
+        db.create_table('t', default_cols(a='integer'))
+        db.create_many('t', ('a',), [(i,) for i in range(10)]) 
+        
+        count = qb.table('t').count()
+        self.assertEqual(count, 10)
+
+        self.assertEqual(qb.table('t').max('a'), 9)
+        self.assertEqual(qb.table('t').min('a'), 0)
+        self.assertEqual(qb.table('t').sum('a'), sum(range(10)))
+
     def test_table_first(self):
         db.create_table('t', default_cols(a='text', b='integer'))
         db.create_many('t', ('a', 'b'), (('t1', 1), ('t2', 2)))

@@ -193,6 +193,21 @@ class QueryBuilder:
 
         return next(O.db.execute_without_saving(self.get_sql()))[0]
 
+    def max(self, col):
+        self.select('max({})'.format(col))
+
+        return next(O.db.execute_without_saving(self.get_sql()))[0]        
+
+    def min(self, col):
+        self.select('min({})'.format(col))
+
+        return next(O.db.execute_without_saving(self.get_sql()))[0]        
+
+    def sum(self, col):
+        self.select('sum({})'.format(col))
+
+        return next(O.db.execute_without_saving(self.get_sql()))[0]        
+
     def group_by(self, field, order='ASC'):
         """ Add a GROUP BY to the prepared query.
 
