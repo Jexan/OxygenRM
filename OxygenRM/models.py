@@ -71,6 +71,7 @@ class Model(metaclass=MetaModel):
 
         cls._fields = dict()
         cls._relations = dict()
+        cls._pivots = dict()
         
         primary_key = None
         for attr, value in cls.__dict__.items():
@@ -85,6 +86,8 @@ class Model(metaclass=MetaModel):
 
             if isinstance(value, Relation):
                 cls._relations[attr] = value
+                if isinstance(value, Multiple):
+                    cls._pivots[attr] = value.pivot
 
             if isinstance(value, Id):
                 primary_key = attr
@@ -114,6 +117,8 @@ class Model(metaclass=MetaModel):
 
         self._rel_queue = []
         self._field_values = {}
+        self._model_pivots = {field: None for field in self._pivots}
+
         for field, col in self._fields.items():
             field_val = values.get(field, None)
 
@@ -282,6 +287,9 @@ class Model(metaclass=MetaModel):
         
         self._creating_new = False
 
+        for pivot in self._pivots.values():
+            pivot.save(pivot, self)
+
         return self
 
     def delete(self):
@@ -312,3 +320,16 @@ class Model(metaclass=MetaModel):
 
     def __eq__(self, other_model):
         return isinstance(other_model, Model) and self._field_values == other_model._field_values
+
+    @classmethod
+    def pivots(cls, relation):
+        if not cls._set_up:
+            cls._set_up_model()
+
+        return cls._pivots[relation]
+
+    @property
+    def pivot(self):
+        # load the pivot with the Pivot class if not already loaded
+        # Make sure it knows that it is a part of a current model
+        ...    

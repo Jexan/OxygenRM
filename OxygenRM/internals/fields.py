@@ -340,15 +340,15 @@ class Multiple(Relation):
                 By default it will be the #{lower case model name}_id
             other_name: The name of the target model reference in the middle table.
                 By default it will be the #{lower case model name}_id
-            middle_class: The class to use for the pivot table model.
+            pivot: The class to use for the pivot table model.
                 By default one will be created with just the fields.
     """
-    def __init__(self, target_model, middle_table=None, self_name=None, other_name=None, middle_class=None):
+    def __init__(self, target_model, middle_table=None, self_name=None, other_name=None, pivot=None):
         self._model = target_model
         self._middle_table = middle_table
         self._self_name = self_name
         self._other_name = other_name
-        self._middle_class = middle_class
+        self.pivot = pivot 
 
         self._setted_up = False
 
@@ -356,7 +356,9 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up(parting_model)
 
-        builder = BelongsToManyQueryBuilder(self._model, parting_model, self._self_name, self._other_name, self._middle_table)
+        builder = BelongsToManyQueryBuilder(
+            self._model, parting_model, self._self_name, self._other_name, self._middle_table, self._attr, self.pivot
+        )
 
         return builder
 
@@ -378,30 +380,12 @@ class Multiple(Relation):
         if not self._other_name:
             self._other_name = target_model_name + '_id'
 
-        # if not self._middle_class:
-        #     self._middle_class = _create_middle_model_class()
-
+        if self.pivot:
+            self.pivot._ids = (self._self_name, self._other_name)
+            if not getattr(self.pivot, 'table_name', None):
+                self.pivot.table_name = self._middle_table 
+        
         self._setted_up = True
-
-    def _create_middle_model_class(self):
-        """ Craft the model class to be used for the middle classes
-
-            Returns:
-                The crafted class.
-        """
-        table_name = self._middle_table
-
-        class MiddleClass(self._model.__class__):
-            table_name = table_name
-
-        cols_types = OxygenRM.db.table_fields_types(table_name)
-
-        for col_name, col_type in cols_types.items():
-            setattr(MiddleClass, col_name, field_types[OxygenRM.db.driver][col_type])
-
-        MiddleClass.set_up()
-
-        return MiddleClass
 
 class JSON(Field):
     """ A field for dealing with JSON strings boilerplate.

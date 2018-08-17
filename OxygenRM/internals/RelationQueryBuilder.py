@@ -151,7 +151,7 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
             self_name: The name of target_model table column to use for the relation.
             other_name:The name of parting_model table column to use for the relation.
     """
-    def __init__(self, target_model, parting_model, self_name, other_name, middle_table):
+    def __init__(self, target_model, parting_model, self_name, other_name, middle_table, attr, pivot):
         super().__init__(target_model.table_name + ' oxygent', target_model)
 
         self._parting_model = parting_model
@@ -159,6 +159,8 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
         self._other_name = other_name
         self._table_name = target_model.table_name
         self._middle_table = middle_table
+        self._attr = attr
+        self._pivot = pivot
 
         self.select('oxygent.*').where(middle_table + '.' + self_name,'=', parting_model.get_primary()).cross_join(middle_table).on(
             'oxygent' + '.' + target_model.primary_key, '=', middle_table + '.' + other_name
@@ -246,3 +248,15 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
         self._parting_model._rel_queue.append(pending_function)
 
         return self._parting_model
+
+    @property
+    def pivot(self):
+        loaded_pivots = self._parting_model._model_pivots
+        
+        if loaded_pivots[self._attr]:
+            return loaded_pivot
+        
+        pivot = self._pivot(self._parting_model.get_primary())
+        loaded_pivots[self._attr] = pivot
+
+        return pivot
