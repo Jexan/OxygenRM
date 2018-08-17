@@ -4,7 +4,7 @@ from itertools import chain
 
 # A container for models
 class ModelContainer():
-    def __init__(self, result, model, calculated_models=None):
+    def __init__(self, result, model, calculated_models=None, pivot_query=None):
         self._calculated_models = calculated_models
 
         if calculated_models:
@@ -14,6 +14,7 @@ class ModelContainer():
             self._result = result
             self._model = model 
             self._iteration_done = False
+            self._pivot_query = pivot_query
 
     def __iter__(self):
         for row in chain(self._calculated_models, self._craft_own_result()):
@@ -71,7 +72,7 @@ class ModelContainer():
             self._result = self._result()
 
         for row in self._result:
-            model_from_row = self._model(False, **dict(zip(row.keys(), tuple(row)))) 
+            model_from_row = self._model(False, pivot_query=self._pivot_query, **dict(zip(row.keys(), tuple(row)))) 
             self._calculated_models.append(model_from_row)
             yield model_from_row 
 

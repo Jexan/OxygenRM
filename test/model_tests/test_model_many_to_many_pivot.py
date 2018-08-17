@@ -38,7 +38,12 @@ def assoc_ids_with_iter(ids_gen):
     db.create_many('t1_t2', ('t1_id', 't2_id'), tuple(ids_gen))
 
 def create_basic_pivot():
-    db.create('t1_t2', t1_id=1, t2_id=1, pivot3=True, pivot2=10)
+    pivot = T1.pivots('t2s').new()
+    pivot.t1_id = 1  
+    pivot.t2_id=1  
+    pivot.pivot3=True  
+    pivot.pivot2=10
+    pivot.save()
 
 class TestManyToManyPivot(unittest.TestCase):
     def setUp(self):
@@ -55,13 +60,12 @@ class TestManyToManyPivot(unittest.TestCase):
 
         self.assertIsInstance(half_pivot, Pivot)
 
-    @unittest.skip('Not yet implemented')
     def test_pivot_creating_saving_works(self):
         create_basic_pivot()
-        result = list(db.all('t1_t2'))[0]
+        result = T1.pivots('t2s').first()
 
-        self.assertEqual(result['t1_id'], 1)
-        self.assertEqual(result['pivot3'], True)
+        self.assertEqual(result.t1_id, 1)
+        self.assertEqual(result.pivot3, True)
 
     @unittest.skip('Not yet implemented')
     def test_pivot_updating_and_searching(self):
@@ -90,6 +94,7 @@ class TestManyToManyPivot(unittest.TestCase):
     def test_pivot_access(self):
         create_basic_pivot()
         db.create('t2s', id=1)
+        db.create('t1s', id=1)
 
         model = T1.first()
         pivot_model = model.t2s.first().pivot
@@ -102,8 +107,6 @@ class TestManyToManyPivot(unittest.TestCase):
     def test_where_pivot(self):
         create_basic_pivot()
         db.create('t2s', id=1)
-
-        print(T1.pivots('t2s'))
 
         modelq1 = T1.pivots('t2s').where_pivot('pivot2', '=', True).get()
         modelq2 = T1.pivots('t2s').where_pivot('pivot2', '=', False).get()

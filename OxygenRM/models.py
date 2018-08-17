@@ -71,7 +71,7 @@ class Model(metaclass=MetaModel):
 
         cls._fields = dict()
         cls._relations = dict()
-        cls._pivots = dict()
+        cls._pivot_classes = dict()
         
         primary_key = None
         for attr, value in cls.__dict__.items():
@@ -87,7 +87,7 @@ class Model(metaclass=MetaModel):
             if isinstance(value, Relation):
                 cls._relations[attr] = value
                 if isinstance(value, Multiple):
-                    cls._pivots[attr] = value.pivot
+                    cls._pivot_classes[attr] = value.pivot
 
             if isinstance(value, Id):
                 primary_key = attr
@@ -117,7 +117,6 @@ class Model(metaclass=MetaModel):
 
         self._rel_queue = []
         self._field_values = {}
-        self._model_pivots = {field: None for field in self._pivots}
 
         for field, col in self._fields.items():
             field_val = values.get(field, None)
@@ -137,7 +136,7 @@ class Model(metaclass=MetaModel):
     """
     primary_key = ''
 
-    def __init__(self, creating_new=True, **values):
+    def __init__(self, creating_new=True, pivot_query=None, **values):
         """ The model base class. It allows ORM operations, and it's supossed 
             to be subclassed.
 
@@ -149,6 +148,8 @@ class Model(metaclass=MetaModel):
             self.__class__._set_up_model()
 
         self._creating_new = creating_new
+        self._pivot_query = pivot_query
+        self._pivots = {attr: None for attr in self._pivot_classes}
 
         self._update_values(values)
 
@@ -267,28 +268,33 @@ class Model(metaclass=MetaModel):
         values_for_db = {}
         for field_name, field_instance in self._fields.items():
             values_for_db[field_name] = field_instance.db_set(self, self._field_values[field_name])
-            
-        if self._creating_new:
-            O.db.create(self.table_name, **values_for_db)
-        else:
-            if self._dumb:
-                self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
+
+        with O.db.transaction():            
+            if self._creating_new:
+                O.db.create(self.table_name, **values_for_db)
             else:
-                self.__class__.where(self.primary_key, '=', self.get_primary()).update(values_for_db)
+                if self._dumb:
+                    self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
+                else:
+                    self.__class__.where(self.primary_key, '=', self.get_primary()).update(values_for_db)
 
-        for rel_function in self._rel_queue:
-            rel_function()
+            for rel_function in self._rel_queue:
+                rel_function()
 
-        if not self._dumb:
-            id_of_row = O.db.last_id() if self._creating_new else self.get_primary()
+            if not self._dumb:
+                id_of_row = O.db.last_id() if self._creating_new else self.get_primary()
 
-            row = QueryBuilder.table(self.table_name).where(self.primary_key, '=', id_of_row).first()
-            self._update_values(dict(zip(row.keys(), tuple(row))))
-        
-        self._creating_new = False
+                for pivot in self._pivots.values():
+                    if pivot is None:
+                        continue
 
-        for pivot in self._pivots.values():
-            pivot.save(pivot, self)
+                    pivot.set_self_id(id_of_row)
+                    pivot.save()
+
+                row = QueryBuilder.table(self.table_name).where(self.primary_key, '=', id_of_row).first()
+                self._update_values(dict(zip(row.keys(), tuple(row))))
+
+            self._creating_new = False
 
         return self
 
@@ -318,18 +324,13 @@ class Model(metaclass=MetaModel):
         """
         return self._creating_new
 
-    def __eq__(self, other_model):
-        return isinstance(other_model, Model) and self._field_values == other_model._field_values
-
     @classmethod
-    def pivots(cls, relation):
-        if not cls._set_up:
-            cls._set_up_model()
-
-        return cls._pivots[relation]
+    def pivots(self, rel):
+        return self._pivot_classes[rel]
 
     @property
     def pivot(self):
-        # load the pivot with the Pivot class if not already loaded
-        # Make sure it knows that it is a part of a current model
-        ...    
+        return self._pivot_query.add_model_id(self._pivot_query, self.get_primary()).first()
+    
+    def __eq__(self, other_model):
+        return isinstance(other_model, Model) and self._field_values == other_model._field_values

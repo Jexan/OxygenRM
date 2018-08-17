@@ -4,6 +4,7 @@
 """
 import sqlite3
 import logging
+import contextlib
 
 logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 
@@ -45,6 +46,7 @@ class SQLite3DB():
         self.connection.row_factory = sqlite3.Row
     
         self.cursor     = self.connection.cursor()
+        self._save = True
 
     def last_id(self):
         return self.cursor.lastrowid
@@ -216,7 +218,8 @@ class SQLite3DB():
         """
         result = self.cursor.execute(query, args)
 
-        self.connection.commit()
+        if self._save:
+            self.connection.commit()
 
         return result
 
@@ -239,6 +242,25 @@ class SQLite3DB():
                    the args to substitute can be passed as an iterator that yields tuples.
         """
         return self.cursor.executemany(query, (tuple(field) for field in args))
+
+    def transaction_begin(self):
+        self._save = False
+
+    def transaction_end(self):
+        self._save = True
+        self.connection.commit()
+
+    @contextlib.contextmanager
+    def transaction(self):
+        self.transaction_begin()
+        
+        try:
+            yield
+        except Exception as E:
+            self.connection.rollback()
+            raise E
+        finally:
+            self.transaction_end()
 
     """ The name of the DB driver.
     """

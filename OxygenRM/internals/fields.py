@@ -381,7 +381,8 @@ class Multiple(Relation):
             self._other_name = target_model_name + '_id'
 
         if self.pivot:
-            self.pivot._ids = (self._self_name, self._other_name)
+            self.pivot._self_name = self._self_name
+            self.pivot._other_name = self._other_name
             if not getattr(self.pivot, 'table_name', None):
                 self.pivot.table_name = self._middle_table 
         

@@ -42,6 +42,7 @@ class HasManyQueryBuilder(RelationQueryBuilder):
             self_name: The name of target_model table column to use for the relation.
             other_name:The name of parting_model table column to use for the relation.
     """
+
     def __init__(self, target_model, parting_model, self_name, other_name):
         super().__init__(target_model.table_name, target_model)
 
@@ -151,6 +152,19 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
             self_name: The name of target_model table column to use for the relation.
             other_name:The name of parting_model table column to use for the relation.
     """
+    def _wrap_in_model(self, result):
+        pivot_query = None
+
+        if self._pivot:
+            pivot_query = self._pivot.where(self._self_name, '=', self._parting_model.get_primary())
+            
+            def add_model_id(builder, model_id):
+                return builder.where(self._other_name, '=', model_id)
+
+            pivot_query.add_model_id = add_model_id
+        
+        return ModelContainer(result, self._model, pivot_query=pivot_query)
+
     def __init__(self, target_model, parting_model, self_name, other_name, middle_table, attr, pivot):
         super().__init__(target_model.table_name + ' oxygent', target_model)
 
@@ -251,12 +265,12 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
 
     @property
     def pivot(self):
-        loaded_pivots = self._parting_model._model_pivots
+        loaded_pivots = self._parting_model._pivots
         
         if loaded_pivots[self._attr]:
-            return loaded_pivot
+            return loaded_pivots[self._attr]
         
-        pivot = self._pivot(self._parting_model.get_primary())
+        pivot = self._pivot(**{self._self_name: self._parting_model.get_primary()})
         loaded_pivots[self._attr] = pivot
 
         return pivot
