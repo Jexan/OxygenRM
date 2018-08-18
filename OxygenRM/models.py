@@ -86,6 +86,8 @@ class Model(metaclass=MetaModel):
 
             if isinstance(value, Relation):
                 cls._relations[attr] = value
+                value.parting_model = cls
+
                 if isinstance(value, Multiple):
                     cls._pivot_classes[attr] = value.pivot
 
@@ -334,3 +336,15 @@ class Model(metaclass=MetaModel):
     
     def __eq__(self, other_model):
         return isinstance(other_model, Model) and self._field_values == other_model._field_values
+
+    @classmethod
+    def get_existence_conditions(cls, rel):
+        if not cls._set_up:
+            cls._set_up_model()
+
+        relation_class = cls._relations.get(rel, None)
+
+        if relation_class is None:
+            raise ValueError('Model {} has no associated relation {}.'.format(cls.__name__, rel))
+
+        return relation_class.get_existence_conditions()

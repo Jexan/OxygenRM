@@ -474,7 +474,7 @@ class QueryBuilder:
         """
         result = self.limit(1).get()
         if self._model:
-            return result.first()
+            return result.first_or_none()
         else:
             return result.fetchone()
 
@@ -506,6 +506,16 @@ class QueryBuilder:
     """ A dict indicating which operation is pending.
     """
     _in_wait = defaultdict(list)
+
+    def has(self, rel):
+        self._in_wait['table_name'] = self._model.table_name + ' oxygent'
+        left_side, right_side, other_table = self._model.get_existence_conditions(rel)
+        return self.select('oxygent.*').join(other_table).on(left_side, '=', right_side)
+
+    def doesnt_have(self, rel):
+        self._in_wait['table_name'] = self._model.table_name + ' oxygent'
+        left_side, right_side, other_table = self._model.get_existence_conditions(rel)
+        return self.select('oxygent.*').join(other_table).on(left_side, '!=', right_side).or_on(left_side, 'IS', 'NULL')
 
 def extract_values(conditions):
     """ Get every value of the passed conditions.

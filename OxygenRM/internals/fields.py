@@ -170,8 +170,8 @@ class Relation(Field):
         if how_much == 'one':
             self._model = self._extend_model()
 
-        self._on_self_col = on_self_col
-        self._on_other_col = on_other_col  
+        self._self_name = on_self_col
+        self._other_name = on_other_col  
         self._setted_up = False
 
     def _extend_model(self):
@@ -229,9 +229,9 @@ class Relation(Field):
 
     def get(self, starting_model):
         if not self._setted_up:
-            self._set_up(starting_model)
+            self._set_up()
             
-        qb = HasManyQueryBuilder(self._model, starting_model, self._on_self_col, self._on_other_col)
+        qb = HasManyQueryBuilder(self._model, starting_model, self._self_name, self._other_name)
 
         if self._how_much == 'many':
             return qb
@@ -242,16 +242,12 @@ class Relation(Field):
             return result_model
 
 class Has(Relation):
-    def set(self, starting_model, value):
-        if not isinstance(starting_model, ModelContainer):
-            self.get(starting_model).assign(value)
+    def _set_up(self):
+        if not self._other_name:
+            self._other_name = self.parting_model.__class__.__name__.lower() + '_id'
 
-    def _set_up(self, starting_model):
-        if not self._on_other_col:
-            self._on_other_col = starting_model.__class__.__name__.lower() + '_id'
-
-        if not self._on_self_col:
-            self._on_self_col = starting_model.primary_key
+        if not self._self_name:
+            self._self_name = self.parting_model.primary_key
 
     def _extend_model(self):
         ext_model = super()._extend_model()
@@ -263,11 +259,11 @@ class Has(Relation):
                     other_model: The new model to assign
             """
             other_id = other_model.get_primary()
-            self_id = getattr(wrapped_self.parting_model, self._on_self_col)
+            self_id = getattr(wrapped_self.parting_model, self._self_name)
 
             def pending_function():
-                QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
-                QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self._on_other_col: self_id})
+                QueryBuilder.table(wrapped_self.table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
+                QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self._other_name: self_id})
 
             wrapped_self.parting_model._rel_queue.append(pending_function)
 
@@ -276,10 +272,10 @@ class Has(Relation):
         def deassign(wrapped_self):
             """ Queue the removal of the associated model(s) from the parent.
             """
-            self_id = getattr(wrapped_self.parting_model, self._on_self_col)
+            self_id = getattr(wrapped_self.parting_model, self._self_name)
 
             def pending_function():
-                QueryBuilder.table(wrapped_self.table_name).where(self._on_other_col, '=', self_id).update({self._on_other_col: None})
+                QueryBuilder.table(wrapped_self.table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
 
             wrapped_self.parting_model._rel_queue.append(pending_function)
             return wrapped_self.parting_model
@@ -288,16 +284,19 @@ class Has(Relation):
         ext_model.deassign = deassign
         return ext_model
 
+    def get_existence_conditions(self):
+        if not self._setted_up:
+            self._set_up()
+
+        return 'oxygent.' + self._self_name, self._model.table_name + '.' + self._other_name, self._model.table_name
+
 class BelongsTo(Relation):
-    def set(self):
-        raise NotImplementedError('Setting relationship models not yet allowed')
+    def _set_up(self):
+        if not self._other_name:
+            self._other_name = self.parting_model.primary_key
 
-    def _set_up(self, starting_model):
-        if not self._on_other_col:
-            self._on_other_col = starting_model.primary_key
-
-        if not self._on_self_col:
-            self._on_self_col = starting_model.__class__.__name__.lower() + '_id'
+        if not self._self_name:
+            self._self_name = self.parting_model.__class__.__name__.lower() + '_id'
 
     def _extend_model(self):
         ext_model = super()._extend_model()
@@ -314,8 +313,8 @@ class BelongsTo(Relation):
                 if other_model.being_created():
                     raise ValueError('Tried to assign an unsaved model.')
 
-            other_id = getattr(other_model, self._on_other_col, None)
-            setattr(wrapped_self.parting_model, self._on_self_col, other_id)
+            other_id = getattr(other_model, self._other_name, None)
+            setattr(wrapped_self.parting_model, self._self_name, other_id)
 
             return wrapped_self.parting_model
 
@@ -327,6 +326,13 @@ class BelongsTo(Relation):
         ext_model.assign = assign
         ext_model.deassign = deassign
         return ext_model
+
+    def get_existence_conditions(self):
+        if not self._setted_up:
+            self._set_up()
+
+        return 'oxygent.' + self._self_name, self._model.table_name + '.' + self._other_name, self._model.table_name
+
  
 class Multiple(Relation):
     """ Define a 'many to many' relationship with another database table.
@@ -354,7 +360,7 @@ class Multiple(Relation):
 
     def get(self, parting_model):
         if not self._setted_up:
-            self._set_up(parting_model)
+            self._set_up()
 
         builder = BelongsToManyQueryBuilder(
             self._model, parting_model, self._self_name, self._other_name, self._middle_table, self._attr, self.pivot
@@ -362,13 +368,13 @@ class Multiple(Relation):
 
         return builder
 
-    def _set_up(self, parting_model):
+    def _set_up(self):
         """ Set up the relation with the relevant variables
 
             Args:
                 parting_model: The model to part from.
         """
-        parting_model_name = parting_model.__class__.__name__.lower()
+        parting_model_name = self.parting_model.__name__.lower()
         target_model_name = self._model.__name__.lower()
 
         if not self._middle_table:
