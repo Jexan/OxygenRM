@@ -56,7 +56,7 @@ class SQLite3DB():
 
             Args:
                 table_name : The name of the table to be created.
-                **columns : A dict with the column names as keys and a ColumnData 
+                olumns : A list with the column names as keys and a ColumnData 
                     as values. 
 
             Raises:
@@ -256,11 +256,44 @@ class SQLite3DB():
         
         try:
             yield
+            self.connection.commit()
         except Exception as E:
             self.connection.rollback()
             raise E
         finally:
-            self.transaction_end()
+            self._save = True
+
+    def modify_columns(self, table_name, add_columns, drop_columns, edit_columns, old_columns):
+        temp_table_name = 'temp_oxygenrm_sqlite3_table_change'
+        self.execute_without_saving('PRAGMA foreing_keys=OFF')
+        # DEAL WITH INDEXES AND TRIGGERS
+        
+        columns = {}
+        for col in old_columns:
+            if col in drop_columns:
+                continue
+            elif col in edit_columns:
+                columns[col] = edit_columns[col]
+            else:
+                columns[col] = old_columns[col]
+
+        if not columns:
+            raise ValueError('All the columns of table {} cannot be dropped'.format(table_name))
+
+        columns_to_create = list(columns.values()) + list(add_columns)
+        with self.transaction():            
+            self.execute('PRAGMA foreing_keys=OFF')
+
+            self.create_table(temp_table_name, columns_to_create)
+            self.execute('INSERT INTO {} ({}) SELECT {} FROM {}'.format(
+                temp_table_name, ', '.join(col.name for col in columns.values()), 
+                ', '.join(old_name + ' as ' + col.name for old_name, col in columns.items()), table_name
+            ))
+            
+            self.drop_table(table_name)
+            self.rename_table(temp_table_name, table_name)
+
+            self.execute('PRAGMA foreing_keys=ON')
 
     """ The name of the DB driver.
     """
