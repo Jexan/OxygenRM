@@ -474,9 +474,16 @@ class QueryBuilder:
         """
         result = self.limit(1).get()
         if self._model:
-            return result.first_or_none()
+            return result.first()
         else:
             return result.fetchone()
+
+    def first_or_fail(self):
+        value = self.first() 
+        if value is None:
+            raise ValueError('No record exists')
+        else:
+            return value
 
     def __iter__(self):
         """ Alias fot get.

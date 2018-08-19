@@ -102,16 +102,3 @@ class TestManyToManyPivot(unittest.TestCase):
         self.assertEqual(pivot_model.t1_id, 1)
         self.assertEqual(pivot_model.t2_id, 1)
         self.assertTrue(pivot_model.pivot3)
-
-    @unittest.skip('Not yet implemented')
-    def test_where_pivot(self):
-        create_basic_pivot()
-        db.create('t2s', id=1)
-
-        modelq1 = T1.pivots('t2s').where_pivot('pivot2', '=', True).get()
-        modelq2 = T1.pivots('t2s').where_pivot('pivot2', '=', False).get()
-
-        self.assertEqual(len(modelq1), 1)
-        self.assertEqual(len(modelq2), 0)
-
-    

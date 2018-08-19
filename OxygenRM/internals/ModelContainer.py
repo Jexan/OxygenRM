@@ -104,7 +104,7 @@ class ModelContainer():
         else:
             return len(list(iter(self)))
     
-    def first(self):
+    def first_or_fail(self):
         """ Get the first value of the collection.
 
             Returns:
@@ -112,7 +112,7 @@ class ModelContainer():
         """
         return self.__getitem__(0)
 
-    def first_or_none(self):
+    def first(self):
         """ Get the first value of the collection or None if empty.
 
             Returns:
