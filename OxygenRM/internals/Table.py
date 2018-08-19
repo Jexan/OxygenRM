@@ -47,7 +47,6 @@ class Table():
             self.state = self.State.CREATING
 
         self._assign_tables()
-        self.table_columns = []
 
     def exists(self):
         """ Check if the table exist in the database.
@@ -125,6 +124,8 @@ class Table():
         else:
             self._create()
 
+        self._assign_tables()
+
     def _edit(self):
         driver = O.db.driver
 
@@ -139,12 +140,17 @@ class Table():
 
         if self._new_name:
             O.db.rename_table(self.table_name, self._new_name)
+            
+            self.table_name = self._new_name
+            self._new_name = None
  
     def _create(self):
         if not self._add_columns:
             raise ValueError('No column has been specified to be added to the table')
 
         O.db.create_table(self.table_name, self._add_columns.values())
+
+        self.state = self.State.EDITING
 
     def _assign_tables(self):
         """ Fetch the table currently created columns.
