@@ -1,6 +1,6 @@
 import unittest
-from .. import db
 
+from OxygenRM import db
 from OxygenRM.internals.QueryBuilder import *
 from . import default_cols
 
@@ -37,6 +37,26 @@ class TestQueryBuilderSQL(unittest.TestCase):
     def test_or_where(self):
         t = QueryBuilder.table('t').where('a', '=', 2).or_where('b', 'IS', None)
         self.assertEqual(t.get_sql(), saft + ' WHERE a = ? OR b IS ?')
+
+    def test_where_in(self):
+        t = QueryBuilder.table('t').where_in('a', (1,2,3))
+        self.assertEqual(t.get_sql(), saft + ' WHERE a IN (?, ?, ?)')
+
+    def test_where_not_in(self):
+        t = QueryBuilder.table('t').where_not_in('a', (1,2,3))
+        self.assertEqual(t.get_sql(), saft + ' WHERE a NOT IN (?, ?, ?)')
+
+    def test_where_null(self):
+        t = QueryBuilder.table('t').where_null('a')
+        self.assertEqual(t.get_sql(), saft + ' WHERE a IS ?')
+
+    def test_where_not_null(self):
+        t = QueryBuilder.table('t').where_not_null('a')
+        self.assertEqual(t.get_sql(), saft + ' WHERE a IS NOT ?')
+
+    def test_order_by(self):
+        t = QueryBuilder.table('t').order_by('id', 'ASC')
+        self.assertEqual(t.get_sql(), saft + ' ORDER BY id ASC')
 
     def test_group_by(self):
         t = QueryBuilder.table('t').group_by('a')
@@ -106,21 +126,46 @@ class TestQueryBuilderSQL(unittest.TestCase):
         t = QueryBuilder.table('t').where('id', '=', 2)
         self.assertEqual(t.update_sql({'a': None}), 'UPDATE t SET a = ? WHERE id = ?')
 
+
+
 class RecordManipulationTest(unittest.TestCase):
     def tearDown(self):
         db.drop_table('t')
 
     def test_table_querying_all(self):
         db.create_table('t', default_cols(name='text', number='integer'))
-
-        self.assertEqual(len(list(db.all('t'))), 0)
-        
         db.create('t', name='t1', number=1)
-        self.assertEqual(len(list(db.all('t'))), 1)
-
+        
         created = next(qb.table('t').all())
         self.assertEqual(created['name'], 't1')
         self.assertEqual(created['number'], 1)
+
+    def test_table_count(self):
+        db.create_table('t', default_cols(a='integer'))
+        db.create_many('t', ('a',), [(i,) for i in range(10)]) 
+        
+        count = qb.table('t').count()
+        self.assertEqual(count, 10)
+
+    def test_table_max_min_sum(self):
+        db.create_table('t', default_cols(a='integer'))
+        db.create_many('t', ('a',), [(i,) for i in range(10)]) 
+        
+        count = qb.table('t').count()
+        self.assertEqual(count, 10)
+
+        self.assertEqual(qb.table('t').max('a'), 9)
+        self.assertEqual(qb.table('t').min('a'), 0)
+        self.assertEqual(qb.table('t').sum('a'), sum(range(10)))
+
+    def test_table_first(self):
+        db.create_table('t', default_cols(a='text', b='integer'))
+        db.create_many('t', ('a', 'b'), (('t1', 1), ('t2', 2)))
+
+        first = qb.table('t').first()
+
+        self.assertEqual(first['a'], 't1')
+        self.assertEqual(first['b'], 1)
 
     # FIND WHERE GET
     def test_where_inequality_works_even_with_null_records(self):
@@ -171,6 +216,24 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(len(field_with_two_cond), 1)
         self.assertEqual(field_with_two_cond[0]['b'], 't1')
 
+    def test_where_in(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create_many('t', ('a', 'b'), [(1, '1'), (2, '2'), (3, '3'), (4, '4')])
+
+        even_fields = tuple(qb.table('t').where_in('a', (2, 3)))
+        
+        self.assertEqual(len(even_fields), 2)
+        self.assertEqual(even_fields[0]['b'], '2')
+
+    def test_where_not_in(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create_many('t', ('a', 'b'), [(1, '1'), (2, '2'), (3, '3'), (4, '4')])
+
+        odd_fields = tuple(qb.table('t').where_not_in('a', (2, 3)))
+        
+        self.assertEqual(len(odd_fields), 2)
+        self.assertEqual(odd_fields[0]['b'], '1')
+
     def test_where_equals_works(self):
         db.create_table('t', default_cols(id='integer', name='text'))
 
@@ -199,6 +262,22 @@ class RecordManipulationTest(unittest.TestCase):
         field_with_null_val = list(qb.table('t').where('a', '=', None))
         self.assertEqual(field_with_null_val[0]['a'], None)
         self.assertEqual(field_with_null_val[0]['b'], 't1')
+
+    def test_where_null_finding_null_values(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create('t', b='t1')
+
+        field_with_null_val = list(qb.table('t').where_null('a'))
+        self.assertEqual(field_with_null_val[0]['a'], None)
+        self.assertEqual(field_with_null_val[0]['b'], 't1')    
+
+    def test_where_not_null_finding_not_null_values(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create('t', b='t1')
+        db.create('t', a='t2')
+
+        field_with_null_val = list(qb.table('t').where_not_null('a'))
+        self.assertEqual(field_with_null_val[0]['a'], 't2')
 
     def test_db_deletion_equality(self):
         db.create_table('t', default_cols(id='integer', name='text'))

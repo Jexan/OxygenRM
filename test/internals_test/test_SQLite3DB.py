@@ -7,7 +7,7 @@ from . import default_cols
 logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 
 import sqlite3 as sql3
-from OxygenRM.internals.SQLite3DB import *
+from OxygenRM.internals.SQLite3DB import SQLite3DB
 from OxygenRM.internals.columns import ColumnData
 
 db_name = ':memory:'

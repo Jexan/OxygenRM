@@ -1,5 +1,5 @@
-''' Sets of functions that help creating SQL clauses programatically
-'''
+""" Sets of functions that help creating SQL clauses programatically
+"""
 import logging
 import re
 
@@ -8,9 +8,9 @@ from collections import namedtuple
 from OxygenRM.internals.columns import ColumnData
 
 VALID_CONNECTORS = ('AND', 'OR')
-VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<')
+VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<', 'IN', 'NOT IN')
 COLUMN_RE = re.compile(
-        r'''\ ?(?P<col_name>\w+)\ 
+        r"""\ ?(?P<col_name>\w+)\ 
             (?P<col_type>\w+)\ ?
             (?P<primary>PRIMARY\ KEY\ ?)?
             (?P<auto_increment>AUTOINCREMENT\ ?)?
@@ -18,13 +18,13 @@ COLUMN_RE = re.compile(
             (DEFAULT\ (?P<default>'?.+(?<!')'?)?\ ?)?
             (?P<unique>UNIQUE\ ?)?
             (CHECK[(](?P<check>.+)[)])?
-        ''', re.VERBOSE | re.DOTALL)
+        """, re.VERBOSE | re.DOTALL)
 
 ConditionClause = namedtuple('ConditionClause', 'connector field symbol value')
 OrderClause = namedtuple('OrderClause', 'field order')
 
 def insert_clause(table_name, keys):
-    ''' Create a insert clause string for SQL.
+    """ Create a insert clause string for SQL.
 
         Args:
             table_name: The table where the insertion will happen.
@@ -32,7 +32,7 @@ def insert_clause(table_name, keys):
         
         Returns:
             The query as a string
-    '''
+    """
     fields = list(keys)
 
     fields_str = ', '.join(fields)
@@ -42,14 +42,14 @@ def insert_clause(table_name, keys):
     return query 
 
 def update_clause(table_name, fields, where=None):
-    ''' Create an update (with no where condition) clause string for SQL.
+    """ Create an update (with no where condition) clause string for SQL.
 
         Args:
             fields: An iterator that yields the fields to change. 
 
         Returns:
             The crafted SQL.
-    '''
+    """
     set_query = 'SET ' + ', '.join(field +  ' = ?' for field in fields)
     update_str = 'UPDATE {} {}'.format(table_name, set_query)
     
@@ -59,7 +59,7 @@ def update_clause(table_name, fields, where=None):
     return update_str
 
 def where_clause(conditions):
-    ''' Create a where clause with the given conditions.
+    """ Create a where clause with the given conditions.
 
         Args:
             conditions: An iterator with tuples of the format (field, symbol, value, connector). The connector
@@ -71,11 +71,11 @@ def where_clause(conditions):
         Raises:
             ValueError: If a connector or symbol is invalid.
                 | The conditions are empty.
-    '''        
+    """        
     return 'WHERE {}'.format(conditions_gen(conditions))
 
 def select_clause(table_name, *fields, distinct=False):
-    ''' Create a select from clause string for SQL.
+    """ Create a select from clause string for SQL.
 
         Args:
             table_name: The table to select from as string.
@@ -83,7 +83,7 @@ def select_clause(table_name, *fields, distinct=False):
         
         Returns:
             A string with the crafted clause.
-    '''
+    """
     select = 'SELECT'
     
     if distinct:
@@ -94,7 +94,7 @@ def select_clause(table_name, *fields, distinct=False):
     return '{} {} FROM {}'.format(select, fields_str, table_name)
 
 def delete_clause(table_name, conditions=None):
-    ''' Create a DELETE WHERE clause
+    """ Create a DELETE WHERE clause
 
         Args:
             table_name: The name of the table to delete from.
@@ -102,7 +102,7 @@ def delete_clause(table_name, conditions=None):
 
         Returns:
             The constructed query.
-    '''
+    """
     delete_str = 'DELETE FROM {}'.format(table_name)
 
     if conditions:
@@ -111,7 +111,7 @@ def delete_clause(table_name, conditions=None):
     return delete_str
 
 def create_table_clause(table_name, cols): 
-    ''' Create a create table clause string for SQL.
+    """ Create a create table clause string for SQL.
 
         Args:
             table_name: The table to be created.
@@ -119,33 +119,33 @@ def create_table_clause(table_name, cols):
         
         Returns:
             A string with the crafted clause.
-    '''
+    """
     return 'CREATE TABLE {} ({})'.format(table_name, column_gen(cols)) 
 
 def drop_table_clause(table_name):
-    ''' Create a drop table if exists clause string for SQL.
+    """ Create a drop table if exists clause string for SQL.
 
         Args:
             table_name: The table to be dropped.
         
         Returns:
             A string with the crafted clause.
-    '''
+    """
     return 'DROP TABLE IF EXISTS {}'.format(table_name) 
 
 def order_by_clause(conditions):
-    ''' Generate an ORDER BY clause.
+    """ Generate an ORDER BY clause.
 
         Args: 
             conditions: An iterator that yields OrderClauses
 
         Returns:
             The sql clause.
-    '''
-    return 'ORDER BY {}'.format(order_gen(condtions))
+    """
+    return 'ORDER BY {}'.format(order_gen(conditions))
 
 def limit_clause(n, offset=None):
-    ''' Generate an LIMIT clause, with OFFSET if provided.
+    """ Generate an LIMIT clause, with OFFSET if provided.
 
         Args:
             n: The number of rows to get.
@@ -153,7 +153,7 @@ def limit_clause(n, offset=None):
 
         Return:
             The completed clause
-    '''
+    """
     limit_str = 'LIMIT {}'.format(n)
 
     if offset:
@@ -162,7 +162,7 @@ def limit_clause(n, offset=None):
     return limit_str
 
 def group_by_clause(fields, having=None):
-    ''' Generate an GROUP BY clause
+    """ Generate an GROUP BY clause
 
         Args:
             fields: An iterator with the groupped by fields.
@@ -171,7 +171,7 @@ def group_by_clause(fields, having=None):
 
         Return:
             The completed clause
-    '''
+    """
     group_by_str = 'GROUP BY {}'.format(order_gen(fields))
 
     if having:
@@ -180,7 +180,7 @@ def group_by_clause(fields, having=None):
     return group_by_str
 
 def join_clause(join_type, table1, table2, on=None, using=None):
-    ''' Generate a NATURAL JOIN clause.
+    """ Generate a NATURAL JOIN clause.
 
         Args: 
             join_type: Either outer or inner.
@@ -190,7 +190,7 @@ def join_clause(join_type, table1, table2, on=None, using=None):
 
         Returns:
             The sql clause.
-    '''
+    """
     join_table = '{} JOIN {}'.format(join_type, table2)
 
     if not on and not using:
@@ -205,7 +205,7 @@ def join_clause(join_type, table1, table2, on=None, using=None):
         return '{} {} USING ({})'.format(table1, join_table, ', '.join(using))
 
 def rename_table_clause(old_table, new_table):
-    ''' Create a RENAME table clause string for SQL.
+    """ Create a RENAME table clause string for SQL.
 
         Args:
             old_table: The table to be renamed.
@@ -213,11 +213,11 @@ def rename_table_clause(old_table, new_table):
         
         Returns:
             A string with the crafted clause.
-    '''
+    """
     return 'ALTER TABLE {} RENAME TO {}'.format(old_table, new_table)
 
 def add_column_clause(table_name, column):
-    ''' Create a ADD COLUMN clause string for SQL.
+    """ Create a ADD COLUMN clause string for SQL.
 
         Args:
             table_name: The table target of the query.
@@ -225,15 +225,15 @@ def add_column_clause(table_name, column):
         
         Returns:
             A string with the crafted clause.
-    '''
+    """
     return 'ALTER TABLE {} ADD COLUMN {}'.format(table_name, column_gen((column,)))
 
 def column_gen(columns):
-    ''' Create a column fields data, comma separated, for use in column adding builders.
+    """ Create a column fields data, comma separated, for use in column adding builders.
 
         Args:
             columns: An iterator of ColumnData
-    '''
+    """
     column_sql = []
     
     for col in columns:
@@ -267,14 +267,14 @@ def column_gen(columns):
     return ', '.join(column_sql)
 
 def conditions_gen(conditions, safe=True):
-    ''' Generate comma separated conditions.
+    """ Generate comma separated conditions.
 
         Args: 
             conditions: An iterator that yields ConditionClause tuples. 
 
         Returns:
             The string of the query.
-    '''
+    """
     conditions_str = ''
     connector  = None
     
@@ -288,6 +288,12 @@ def conditions_gen(conditions, safe=True):
             value = '?'
         else:
             value = condition.value
+
+        if 'IN' in condition.symbol:
+            if value == '?':
+                value *= len(condition.value)
+
+            value = '({})'.format(', '.join(value))
 
         condition_str = '' if index == 0 else condition.connector + ' '
 
@@ -309,25 +315,25 @@ def conditions_gen(conditions, safe=True):
     return conditions_str[:-1]
 
 def order_gen(conditions):
-    ''' Create comma separated Order conditions
+    """ Create comma separated Order conditions
 
         Args:
             conditions: An iterator of OrderClauses.
 
         Returns:
             The values as a string
-    '''
+    """
     return ', '.join(condition.field + ' ' + condition.order for condition in conditions)
 
 def build_columns_from_sql(sql):
-    ''' Parse a CREATE TABLE sql statement and yield the columns.
+    """ Parse a CREATE TABLE sql statement and yield the columns.
 
         Args:
             sql: The sql statement string.
 
         Yields:
             A ColumnData tuple for every column.
-    '''
+    """
     # Get everything inside the parentheses
     columns_str = sql[sql.find('(')+1:-1]
 
@@ -370,12 +376,12 @@ def build_columns_from_sql(sql):
         yield ColumnData(col_name, col_type, null, default, primary, auto_increment, unique, check)
 
 def escape_single_quotes_sql(expr):
-    ''' Escape the single quotes of the given string.
+    """ Escape the single quotes of the given string.
 
         Args: 
             expr: the string to escape.
 
         Returns:
             expr with quotes escaped.
-    '''
+    """
     return expr.replace("'", "''")

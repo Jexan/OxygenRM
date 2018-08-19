@@ -1,6 +1,7 @@
 import unittest
 import re
 from collections import OrderedDict
+from itertools import starmap
 
 from OxygenRM.internals.SQL_builders import *
 from . import default_cols
@@ -44,6 +45,12 @@ class TestSQLite3DBHelpers(unittest.TestCase):
         result = where_clause([ConditionClause('AND', 'id', '!=', 1), ConditionClause('OR', 'name', '>=', 1)])
         
         self.assertEqual(result, expected1)
+
+    def test_order_by_clause(self):
+        expected = "ORDER BY a ASC, b DESC"
+        result = order_by_clause(starmap(OrderClause, [('a', 'ASC'), ('b', 'DESC')]))
+
+        self.assertEqual(result, expected)
 
     def test_update_clause_with_one(self):
         expected = "UPDATE test SET a = ?"

@@ -2,41 +2,18 @@
 
 A simple ORM library, made in Python. Supports the creation of Models and Migrations. Uses SQLite, with other databases' support comming in the way.
 
-First we create a database migration:
-
-```
-from OxygenRM.migrations import *
-
-class CreateDatabaseAndPosts(Om.Migration):
-    def create(self):
-        Database('test').create()
-
-        posts = Table('posts')
-
-        posts.create_cols(
-            id        = Col.Id(),
-            title     = Col.String(),
-            body      = Col.Text(null=True),
-
-            timestamps = True
-        )
-
-        posts.save()
-
-    def destroy(self):
-        Database('test').drop()
-```
-
-We run it and then we define a model.
+We define a model:
 
 ```
 import OxygenRM.models as O
 
 class Post(O.Model):
-    pass
+    id = O.Id()
+    title = O.Text()
+    body = O.Text()
 ```
 
-Then, somewhere in your application, just add
+Then, somewhere in your application, just add,
 
 ```
 from OxygenRM import db_config
@@ -60,7 +37,7 @@ post.save()
 # Reading
 posts = Post.all()
 first_post = posts.first()
-first_ten_posts = posts.take(10)
+first_ten_posts = posts[:10]
 
 # Updating
 
@@ -72,38 +49,24 @@ post.save()
 
 # Deleting
 
-Post.find(id=4).destroy(now=True)
+Post.destroy(4)
 
 post = Post.all().first()
-post.destroy()
+post.delete()
 ```
 
 ## Relations
 
-To define relations for your model, first, we'll edit the posts table to add a foreign key to an already existing user table.
-
-```
-class EditPosts(Om.Migration):
-    def __init__(self):
-        self.posts_table = Table.get('posts')
-
-    def create(self):      
-        self.posts_table.create_cols(author_id = Col.Rel('users'))
-        self.posts_table.edit()
-
-    def destroy(self):
-        self.posts_table.drop_cols('author_id')
-        self.posts_table.edit()
-```
-
-And then, in the Post model:
+To define relations for your model, we'll assume that the Post table has an author_id field:  
 
 ```
 import OxygenRM.models as O
 import User                       
 
 class Post(O.Model):
-    author = O.Belongs('one', User)
+    @classmethod
+    def relations(cls):
+        cls.author = BelongsTo('one', User)
 ```
 
 Meanwhile, in the User model: 
@@ -113,7 +76,9 @@ import OxygenRM.models as O
 import Post                       
 
 class User(O.Model):
-    posts = O.Has('many', Post, rel='author_id')
+    @classmethod
+    def relations(cls):
+        cls.posts = O.Has('many', Post, rel='author_id')
 ```
 
 You can now access them as you would expect them:

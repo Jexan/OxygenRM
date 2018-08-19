@@ -76,9 +76,6 @@ class TestFields(unittest.TestCase):
         with self.assertRaises(TypeError):
             t.i = 3.4
 
-        with self.assertRaises(TypeError):
-            t.i = None        
-
     def test_int_validation(self):
         t = T()
 

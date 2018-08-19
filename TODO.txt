@@ -1,0 +1,20 @@
+# Relations
+
+- Change Multiple to BelongsTo('many')
+- Make select works with relation querying
+- Allow eager loading and quick load (Eloquent ::with() and ->load())
+- Fix the primary key inconsistency
+
+# Migrations
+
+- Implement migrations
+
+# DB
+
+- Implement other drivers (MySQL, Posgres)
+
+# Query Builder
+
+- Implement date fetching queries.
+- Implement more aggregates.
+- Implement true transactions
