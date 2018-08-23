@@ -67,13 +67,12 @@ class TestManyToManyPivot(unittest.TestCase):
         self.assertEqual(result.t1_id, 1)
         self.assertEqual(result.pivot3, True)
 
-    @unittest.skip('Not yet implemented')
     def test_pivot_updating_and_searching(self):
         create_basic_pivot()
         pivot = T1.pivots('t2s').first()
 
-        self.assertEqual(result['t1_id'], 1)
-        self.assertEqual(result['pivot3'], True)
+        self.assertEqual(pivot.t1_id, 1)
+        self.assertEqual(pivot.pivot3, True)
 
     def test_new_model_with_pivot_saving(self):
         model = T1()
