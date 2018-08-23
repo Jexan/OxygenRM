@@ -104,7 +104,7 @@ class TestSimpleRelations(unittest.TestCase):
 
         rel_container = T2.doesnt_have('t1s').get()
         self.assertEqual(len(rel_container), 2)
-        self.assertEqual(set(rel_container).pluck('id'), set(1, 3))
+        self.assertEqual(set(rel_container.pluck('id')), set((1, 3)))
 
     def test_doesnt_have_relation_multiple_complex_query(self):
         T1.craft(False, id=1)
@@ -113,7 +113,7 @@ class TestSimpleRelations(unittest.TestCase):
 
         rel_container = T2.doesnt_have('t1s').where('id', '=', 1).limit(1).get()
         self.assertEqual(len(rel_container), 1)
-        self.assertEqual(rel_container[0], 1)
+        self.assertEqual(rel_container[0].id, 1)
 
     def test_doesnt_have_relation_belongsTo_one(self):
         db.create('posts', text='t', author_id=3)

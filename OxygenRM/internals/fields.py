@@ -241,6 +241,17 @@ class Relation(Field):
 
             return result_model
 
+    def get_existence_conditions(self):
+        """ Get the conditions for doing relation related QueryBuilding.
+    
+            Returns:
+                (self table field, related model field, relation key table name)
+        """
+        if not self._setted_up:
+            self._set_up()
+
+        return 'oxygent.' + self._self_name, self._model.table_name + '.' + self._other_name, self._model.table_name
+    
 class Has(Relation):
     def _set_up(self):
         if not self._other_name:
@@ -284,12 +295,6 @@ class Has(Relation):
         ext_model.deassign = deassign
         return ext_model
 
-    def get_existence_conditions(self):
-        if not self._setted_up:
-            self._set_up()
-
-        return 'oxygent.' + self._self_name, self._model.table_name + '.' + self._other_name, self._model.table_name
-
 class BelongsTo(Relation):
     def _set_up(self):
         if not self._other_name:
@@ -326,13 +331,6 @@ class BelongsTo(Relation):
         ext_model.assign = assign
         ext_model.deassign = deassign
         return ext_model
-
-    def get_existence_conditions(self):
-        if not self._setted_up:
-            self._set_up()
-
-        return 'oxygent.' + self._self_name, self._model.table_name + '.' + self._other_name, self._model.table_name
-
  
 class Multiple(Relation):
     """ Define a 'many to many' relationship with another database table.
@@ -393,6 +391,12 @@ class Multiple(Relation):
                 self.pivot.table_name = self._middle_table 
         
         self._setted_up = True
+
+    def get_existence_conditions(self):
+        if not self._setted_up:
+            self._set_up()
+
+        return 'oxygent.' + self.parting_model.primary_key , self._middle_table + '.' + self._self_name, self._middle_table
 
 class JSON(Field):
     """ A field for dealing with JSON strings boilerplate.
