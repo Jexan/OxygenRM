@@ -1,6 +1,13 @@
 import argparse
 import os
 import os.path
+import shutil
+
+TEMPLATE_FILE_NAME = 'template_config_file.py'
+CONFIG_FILE_NAME = 'migrations_config.py'
+
+SCRIPT_FILE_DIR = os.path.dirname(os.path.realpath(__file__))
+CONFIG_TEMPLATE_PATH = os.path.join(SCRIPT_FILE_DIR, TEMPLATE_FILE_NAME)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -70,7 +77,11 @@ def init_migrations(rel_directory=None):
     directory_path = migration_dir(rel_directory)
     
     # create a config file. It should include "db_config data" and log status
-    ...
+    config_path = os.path.join(directory_path, CONFIG_FILE_NAME)
+    if os.path.isfile(config_path):
+        raise ValueError('There\'s already a file called db_config.py in the directory. Cannot set up migration')
+    
+    shutil.copyfile(CONFIG_TEMPLATE_PATH, config_path)
 
 def create_migration(name):
     # set up the name, using date and all
