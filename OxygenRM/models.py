@@ -21,6 +21,9 @@ class ModelHasNoPrimaryKeyError(Exception):
         self.method = method
 
 class MetaModel(type):
+    """ The metaclass that allows the model subclasses to construct queries, when
+        accessing static methods. 
+    """
     def __getattr__(cls, name):
         if not cls._set_up:
             cls._set_up_model()
@@ -101,7 +104,7 @@ class Model(metaclass=MetaModel):
 
     def _convert_orig_values_to_conditions(self):
         """ Convert the internal _original_values
-            to conditions, for a where condition.
+            to conditions, for a where_many method.
 
             Yields:
                 Tuples of the form (field, '=', value)
@@ -144,6 +147,8 @@ class Model(metaclass=MetaModel):
 
             Args:
                 creating_new: Wheter the model is not in the database already.
+                pivot_query: If the model is gotten from a Multiple query, 
+                    this argument will be a QueryBuilder to get the pivot middle table.
                 values: The values of the model to initialize.
         """
         if not self._set_up:
@@ -173,12 +178,12 @@ class Model(metaclass=MetaModel):
         """ Create a record in the database and save it. If the model has a primary key, return the model.
 
             Args:
-                return_model: Wheter to return or not the model, if it has a primary key, after being saved.
+                return_model: Wheter to return or not the model if it has a primary key, after being saved.
                 **values: The values of the model to be created.
             
             Return:
                 True if the model has no primary key or the return_model is false.
-                A self model of the stored class if not.
+                A self model of the stored row if not.
         """
         if not cls._set_up:
             cls._set_up_model()
@@ -328,17 +333,46 @@ class Model(metaclass=MetaModel):
 
     @classmethod
     def pivots(self, rel):
+        """ A way to access the pivot classes of the model, allowing the
+            construction and querying of pivots.
+
+            Args:
+                rel: The Multiple relation as string.
+
+            Returns:
+                A Pivot class.
+        """
         return self._pivot_classes[rel]
 
     @property
     def pivot(self):
+        """ If the model was obtained from a Multiple query, this property will
+            return the respective pivot model, if it was specified.
+
+            Returns:
+                A Pivot instance.
+        """
         return self._pivot_query.add_model_id(self._pivot_query, self.get_primary()).first()
     
     def __eq__(self, other_model):
+        """ Equality operator with other models.
+
+            Two models are equal only if their field values are the same.
+        """
         return isinstance(other_model, Model) and self._field_values == other_model._field_values
 
     @classmethod
     def get_existence_conditions(cls, rel):
+        """ Get the conditions for doing relation related QueryBuilding.
+
+            Not intended to be used for model building.
+            
+            Args:
+                rel: The relation name.
+
+            Returns:
+                (self table field, related model field, relation key table name)
+        """
         if not cls._set_up:
             cls._set_up_model()
 
