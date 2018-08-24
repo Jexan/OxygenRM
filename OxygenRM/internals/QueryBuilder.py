@@ -508,7 +508,7 @@ class QueryBuilder:
         if self._model._lazy_load:
             return self._model(result)
         else:
-            return ModelContainer(result, self._model)
+            return ModelContainer(result, self._model, relations=self._in_wait['relations'])
 
     """ A dict indicating which operation is pending.
     """
@@ -523,6 +523,20 @@ class QueryBuilder:
         self._in_wait['table_name'] = self._model.table_name + ' oxygent'
         left_side, right_side, other_table = self._model.get_existence_conditions(rel)
         return self.select('oxygent.*').join(other_table).on(left_side, '!=', right_side).or_on(left_side, 'IS', 'NULL')
+
+    def with_relations(self, *relations):
+        model = self._model
+        relations_builders = {}
+
+        if not model:
+            raise ValueError('Cannot fetch relations of no model')
+
+        for relation in relations:
+            rel_instance = model.get_relation(relation)
+            relations_builders[relation] = rel_instance.eager_load_builder()
+
+        self._in_wait['relations'] = relations_builders
+        return self
 
 def extract_values(conditions):
     """ Get every value of the passed conditions.

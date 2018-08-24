@@ -4,7 +4,7 @@ from itertools import chain
 
 # A container for models
 class ModelContainer():
-    def __init__(self, result, model, calculated_models=None, pivot_query=None):
+    def __init__(self, result=None, model=None, calculated_models=None, pivot_query=None, relations=None):
         self._calculated_models = calculated_models
 
         if calculated_models:
@@ -15,6 +15,8 @@ class ModelContainer():
             self._model = model 
             self._iteration_done = False
             self._pivot_query = pivot_query
+            if relations:
+                self._add_relations(relations)
 
     def __iter__(self):
         for row in chain(self._calculated_models, self._craft_own_result()):
@@ -22,6 +24,14 @@ class ModelContainer():
         
         self._iteration_done = True
             
+    def _add_relations(self, relations):
+        self_ids = self.pluck(self._model.primary_key)
+        relations = {rel: builder(self_ids).get() for rel, builder in relations.items()}
+
+        for model in self:
+            for relation, container in relations.items():
+                model.relations_loaded[relation] = container
+
     def __getitem__(self, index):
         """ Obtain the item nº index of the collection.
 
@@ -123,6 +133,14 @@ class ModelContainer():
         except IndexError:
             return None
 
+    def find(self, predicate):
+        for row in self:
+            if predicate(row):
+                return row 
+
+    def filter(self, predicate):
+        return ModelContainer(calculated_models=filter(predicate, self))
+
     def to_json(self):
         """ Give the models representation as a JSON structure.
 
@@ -167,6 +185,28 @@ class ModelContainer():
                 pretty_str += '\t\t' + key + ': ' + str(value) + '\n'
 
         return pretty_str
+
+    def load(self, *rels):
+        """ Eager load the specified relations for all the models in the container.
+
+            Args:
+                *rels: The relations to load.
+            
+            Returns:
+                Self.
+        """
+        model = self._model
+        relations_builders = {}
+
+        if not model:
+            raise ValueError('Cannot fetch relations of no model')
+
+        for relation in rels:
+            rel_instance = model.get_relation(relation)
+            relations_builders[relation] = rel_instance.eager_load_builder()
+
+        self._add_relations(relations_builders)
+        return self    
 
     def __repr__(self):
         return self.pretty()

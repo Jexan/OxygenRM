@@ -157,6 +157,7 @@ class Model(metaclass=MetaModel):
         self._creating_new = creating_new
         self._pivot_query = pivot_query
         self._pivots = {attr: None for attr in self._pivot_classes}
+        self.relations_loaded = {}
 
         self._update_values(values)
 
@@ -343,6 +344,10 @@ class Model(metaclass=MetaModel):
                 A Pivot class.
         """
         return self._pivot_classes[rel]
+
+    @classmethod
+    def get_relation(self, rel):
+        return self._relations[rel]
 
     @property
     def pivot(self):

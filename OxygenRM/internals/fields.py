@@ -4,6 +4,8 @@ import pickle
 import json
 import abc
 
+from functools import partial
+
 from collections import namedtuple
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
@@ -230,6 +232,19 @@ class Relation(Field):
     def get(self, starting_model):
         if not self._setted_up:
             self._set_up()
+
+        # Move elsewhere
+        model_container = starting_model.relations_loaded.get(self._attr)
+        
+        if model_container:
+            model_primary = starting_model.get_primary()
+
+            predicate = lambda model: getattr(model, self._other_name) == model_primary
+            
+            if self._how_much == 'many':
+                return model_container.filter(predicate)
+            else:
+                return model_container.find(predicate)
             
         qb = HasManyQueryBuilder(self._model, starting_model, self._self_name, self._other_name)
 
@@ -240,6 +255,13 @@ class Relation(Field):
             result_model.parting_model = starting_model
 
             return result_model
+
+    def eager_load_builder(self):
+        if not self._setted_up:
+            self._set_up()
+
+        builder = QueryBuilder(self._model.table_name, self._model).where(self._other_name, 'IS NOT', None)
+        return partial(builder.where_in, self._other_name)
 
     def get_existence_conditions(self):
         """ Get the conditions for doing relation related QueryBuilding.
@@ -397,6 +419,12 @@ class Multiple(Relation):
             self._set_up()
 
         return 'oxygent.' + self.parting_model.primary_key , self._middle_table + '.' + self._self_name, self._middle_table
+
+    def eager_load_builder(self):
+        if not self._setted_up:
+            self._set_up()
+
+        return partial(builder.where_in, self._other_name)
 
 class JSON(Field):
     """ A field for dealing with JSON strings boilerplate.

@@ -61,9 +61,15 @@ class TestSimpleRelations(unittest.TestCase):
         user_post = User.first().posts
         self.assertIsInstance(user_post, QueryBuilder)
 
-        bullshit_i_have_to_do_because_the_test_are_fucking_broken = user_post.first()
-        pure_post = Post.first()
-        self.assertEqual(bullshit_i_have_to_do_because_the_test_are_fucking_broken, pure_post)
+        self.assertEqual(user_post.first(), Post.first())
+
+    def test_has_queries_correctly_with_one_related_model_eagerly_loaded(self):
+        db.create('users', username='t1')
+        db.create_many('posts', ('text', 'author_id'), (('t', 1),))
+
+        user_post = User.with_relations('posts').first()
+        self.assertIsInstance(user_post, User)
+        self.assertIsInstance(user_post.relations_loaded['posts'], ModelContainer)
 
     def test_that_models_has_key_access_is_not_broken_on_simple_methods(self):
         db.create('users', username='t1')
