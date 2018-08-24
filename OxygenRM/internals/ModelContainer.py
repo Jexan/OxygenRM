@@ -4,15 +4,16 @@ from itertools import chain
 
 # A container for models
 class ModelContainer():
-    def __init__(self, result=None, model=None, calculated_models=None, pivot_query=None, relations=None):
+    def __init__(self, result, model, calculated_models=None, pivot_query=None, relations=None):
         self._calculated_models = calculated_models
 
-        if calculated_models:
+        self._model = model
+
+        if calculated_models is not None:
             self._iteration_done = True
         else:
             self._calculated_models = list()
             self._result = result
-            self._model = model 
             self._iteration_done = False
             self._pivot_query = pivot_query
             if relations:
@@ -56,7 +57,7 @@ class ModelContainer():
         self._make_calculated_models_until(wanted_index)
 
         if is_slice:
-            return ModelContainer(None, None, self._calculated_models[index])
+            return ModelContainer(None, self._model, calculated_models=self._calculated_models[index])
         else:
             return self._calculated_models[index]
 
@@ -139,7 +140,7 @@ class ModelContainer():
                 return row 
 
     def filter(self, predicate):
-        return ModelContainer(calculated_models=filter(predicate, self))
+        return ModelContainer(None, self._model, calculated_models=tuple(filter(predicate, self)))
 
     def to_json(self):
         """ Give the models representation as a JSON structure.

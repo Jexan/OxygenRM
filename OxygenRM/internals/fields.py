@@ -180,14 +180,16 @@ class Relation(Field):
         model_container = starting_model.relations_loaded.get(self._attr)
         
         if model_container:
-            model_primary = starting_model.get_primary()
+            model_primary = getattr(starting_model, self._self_name)
 
             predicate = lambda model: getattr(model, self._other_name) == model_primary
             
             if self._how_much == 'many':
-                return model_container.filter(predicate)
+                result = model_container.filter(predicate)
             else:
-                return model_container.find(predicate)
+                result = model_container.find(predicate)
+
+            setattr(starting_model, self._attr, result)
         
         qb = self.query_builder(starting_model)
 
@@ -274,6 +276,18 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up()
 
+        # Move elsewhere
+        model_container = parting_model.relations_loaded.get(self._attr)
+        
+        if model_container:
+            model_primary = parting_model.get_primary()
+
+            predicate = lambda model: getattr(model, self._self_name) == model_primary
+            result = model_container.filter(predicate)
+
+            setattr(parting_model, self._attr, result)
+            return result
+
         builder = BelongsToManyQueryBuilder(
             self._model, parting_model, self._self_name, self._other_name, self._middle_table, self._attr, self.pivot
         )
@@ -316,7 +330,14 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up()
 
-        return partial(builder.where_in, self._other_name)
+        middle_table = self._middle_table
+        target_model = self._model
+
+        builder = QueryBuilder.table(self._model.table_name + ' oxygent', self._model).select('oxygent.*', middle_table + '.' + self._self_name).cross_join(middle_table).on(
+            'oxygent.' + target_model.primary_key, '=', middle_table + '.' + self._other_name
+        )
+
+        return partial(builder.where_in, middle_table + '.' + self._self_name)
 
 class JSON(Field):
     """ A field for dealing with JSON strings boilerplate.

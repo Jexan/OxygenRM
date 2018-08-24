@@ -161,15 +161,13 @@ class TestManyToMany(unittest.TestCase):
         self.assertEqual(tuple(assoc_t2s.pluck('id')), (1, 2, 3))
 
     def test_many_to_many_eager_load(self):
-        create_to_id('t1s', 2)
-        create_to_id('t2s',3)
+        create_to_id('t1s', 3)
+        create_to_id('t2s', 3)
         db.create('t1_t2', t1_id=1, t2_id=3)
         db.create('t1_t2', t1_id=2, t2_id=1)
         db.create('t1_t2', t1_id=2, t2_id=2)
 
         t1s = T1.with_relations('t2s').get()
-        for i in t1s:
-            self.assertIsInstance(i.__dict__['t2s'], t1s.__class__)
 
         self.assertEqual(len(t1s[0].t2s), 1)
         self.assertEqual(len(t1s[1].t2s), 2)
@@ -177,7 +175,7 @@ class TestManyToMany(unittest.TestCase):
 
     def test_many_to_many_lazy_loading(self):
         create_to_id('t1s', 2)
-        create_to_id('t2s',3)
+        create_to_id('t2s', 3)
         db.create('t1_t2', t1_id=1, t2_id=3)
         db.create('t1_t2', t1_id=2, t2_id=1)
         db.create('t1_t2', t1_id=2, t2_id=2)
@@ -186,9 +184,5 @@ class TestManyToMany(unittest.TestCase):
 
         t1s.load('t2s')
 
-        for i in t1s:
-            self.assertIsInstance(i.__dict__['t2s'], t1s.__class__)
-
         self.assertEqual(len(t1s[0].t2s), 1)
         self.assertEqual(len(t1s[1].t2s), 2)
-        self.assertEqual(len(t1s[2].t2s), 0)

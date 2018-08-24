@@ -505,8 +505,6 @@ class QueryBuilder:
         """
         if not self._model:
             return result()
-        if self._model._lazy_load:
-            return self._model(result)
         else:
             return ModelContainer(result, self._model, relations=self._in_wait['relations'])
 

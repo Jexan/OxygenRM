@@ -101,6 +101,7 @@ class Model(metaclass=MetaModel):
         cls._dumb = primary_key is None
         cls._set_up = True
         cls._self_name = cls.__name__
+        cls._fields_names = frozenset(cls._fields)
 
     def _convert_orig_values_to_conditions(self):
         """ Convert the internal _original_values
@@ -127,6 +128,9 @@ class Model(metaclass=MetaModel):
             field_val = values.get(field, None)
 
             self._field_values[field] = col.db_get(field_val)
+
+        for field, value in ((field, values[field]) for field in frozenset(values) - self._fields_names):
+            setattr(self, field, value)
 
     # PUBLIC
     
