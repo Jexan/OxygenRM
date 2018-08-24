@@ -349,6 +349,9 @@ class Model(metaclass=MetaModel):
     def get_relation(self, rel):
         return self._relations[rel]
 
+    def rel(self, relation):
+        return self._relations[relation].query_builder(self)
+
     @property
     def pivot(self):
         """ If the model was obtained from a Multiple query, this property will

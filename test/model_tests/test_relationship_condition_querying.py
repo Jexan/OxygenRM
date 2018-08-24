@@ -1,13 +1,14 @@
 from . import *
-from .test_basic_model_relations import User, Post, OnePostUser, user_cols, post_cols
+from .test_basic_model_relations import User, Post, OnePostUser, BaseClass
 from .test_model_many_to_many import T1, T2, ts_cols, middle_cols
 
-class TestSimpleRelations(unittest.TestCase):
+class TestSimpleRelations(BaseClass):
     def setUp(self):
-        db.drop_all_tables()
+        super().setUp()
 
-        db.create_table('users', user_cols)
-        db.create_table('posts', post_cols)
+        db.drop_table('t1s')
+        db.drop_table('t2s')
+        db.drop_table('t1_t2')
 
         db.create_table('t1s', ts_cols)
         db.create_table('t2s', ts_cols)

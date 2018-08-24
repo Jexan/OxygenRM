@@ -10,7 +10,7 @@ from collections import namedtuple
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.ModelContainer import ModelContainer
-from OxygenRM.internals.RelationQueryBuilder import HasManyQueryBuilder, BelongsToManyQueryBuilder
+from OxygenRM.internals.RelationQueryBuilder import HasManyQueryBuilder, BelongsToManyQueryBuilder, HasOneQueryBuilder, BelongsToOneQueryBuilder
 
 class Field(metaclass=abc.ABCMeta):
 
@@ -168,66 +168,9 @@ class Relation(Field):
 
         self._model = model
         self._how_much = how_much
-
-        if how_much == 'one':
-            self._model = self._extend_model()
-
         self._self_name = on_self_col
         self._other_name = on_other_col  
         self._setted_up = False
-
-    def _extend_model(self):
-        """ Extend the base model class, adding Relational Operations and lazy loading.
-        """
-        model = self._model
-
-        class ModelWrapper(model):
-            """ A model with the possibility to add simple relations.
-
-                Args:
-                    result: A SQL result function.
-            """
-
-            """ A flag to let ModelContainer know that the model to wrap 
-                has lazy loading.
-            """
-            _lazy_load = True
-            _base_class = model
-
-            def reset(self):
-                self.empty = False
-                self._loaded = False
-
-                return self
-
-            def __init__(self, result):
-                self._result = result
-                self._loaded = False
-                self.empty = False
-
-            def __bool__(self):
-                return self.empty
-
-            def __getattribute__(self, attr):
-                prop = getattr(model, attr, None)
-
-                if not super().__getattribute__('_loaded') and (isinstance(prop, property) or callable(prop)):
-                    super().__getattribute__('_load')()
-
-                return super().__getattribute__(attr)
-
-            def _load(self):
-                """ Load the model from the database.
-                """
-                self._loaded = True
-
-                row = tuple(self._result())
-                if row:
-                    super().__init__(False, **dict(zip(row[0].keys(), tuple(row[0]))))
-                else:
-                    self.empty = True 
-
-        return ModelWrapper
 
     def get(self, starting_model):
         if not self._setted_up:
@@ -245,16 +188,16 @@ class Relation(Field):
                 return model_container.filter(predicate)
             else:
                 return model_container.find(predicate)
-            
-        qb = HasManyQueryBuilder(self._model, starting_model, self._self_name, self._other_name)
+        
+        qb = self.query_builder(starting_model)
 
         if self._how_much == 'many':
-            return qb
+            result = qb.get()
         else:
-            result_model = qb.get()
-            result_model.parting_model = starting_model
+            result = qb.first()
 
-            return result_model
+        starting_model.relations_loaded[self._attr] = result
+        return result
 
     def eager_load_builder(self):
         if not self._setted_up:
@@ -274,6 +217,13 @@ class Relation(Field):
 
         return 'oxygent.' + self._self_name, self._model.table_name + '.' + self._other_name, self._model.table_name
     
+    def query_builder(self, parting_model):
+        if not self._setted_up:
+            self._set_up()
+
+        class_to_use = HasManyQueryBuilder if self._how_much == 'many' else HasOneQueryBuilder
+        return class_to_use(self._model, parting_model, self._self_name, self._other_name)
+
 class Has(Relation):
     def _set_up(self):
         if not self._other_name:
@@ -281,41 +231,6 @@ class Has(Relation):
 
         if not self._self_name:
             self._self_name = self.parting_model.primary_key
-
-    def _extend_model(self):
-        ext_model = super()._extend_model()
-
-        def assign(wrapped_self, other_model):
-            """ Queue the action of making the specified model the only model that the parent possesses.
-
-                Args:
-                    other_model: The new model to assign
-            """
-            other_id = other_model.get_primary()
-            self_id = getattr(wrapped_self.parting_model, self._self_name)
-
-            def pending_function():
-                QueryBuilder.table(wrapped_self.table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
-                QueryBuilder.table(wrapped_self.table_name).where(other_model.primary_key, '=', other_id).update({self._other_name: self_id})
-
-            wrapped_self.parting_model._rel_queue.append(pending_function)
-
-            return wrapped_self.parting_model
-
-        def deassign(wrapped_self):
-            """ Queue the removal of the associated model(s) from the parent.
-            """
-            self_id = getattr(wrapped_self.parting_model, self._self_name)
-
-            def pending_function():
-                QueryBuilder.table(wrapped_self.table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
-
-            wrapped_self.parting_model._rel_queue.append(pending_function)
-            return wrapped_self.parting_model
-
-        ext_model.assign = assign
-        ext_model.deassign = deassign
-        return ext_model
 
 class BelongsTo(Relation):
     def _set_up(self):
@@ -325,35 +240,12 @@ class BelongsTo(Relation):
         if not self._self_name:
             self._self_name = self.parting_model.__class__.__name__.lower() + '_id'
 
-    def _extend_model(self):
-        ext_model = super()._extend_model()
+    def query_builder(self, parting_model):
+        if not self._setted_up:
+            self._set_up()
 
-        def assign(wrapped_self, other_model):
-            """ Queue the action of making the specified model the only model that the parent possesses.
+        return BelongsToOneQueryBuilder(self._model, parting_model, self._self_name, self._other_name)
 
-                Args:
-                    other_model: The new model to assign
-            """
-            if other_model is not None:
-                if not isinstance(other_model, wrapped_self._base_class):
-                    raise TypeError('Cannot assign relationship to type {}. Expected a {} or None.'.format(type(other_model), wrapped_self._base_class))
-                if other_model.being_created():
-                    raise ValueError('Tried to assign an unsaved model.')
-
-            other_id = getattr(other_model, self._other_name, None)
-            setattr(wrapped_self.parting_model, self._self_name, other_id)
-
-            return wrapped_self.parting_model
-
-        def deassign(wrapped_self):
-            """ Queue the removal of the associated model(s) from the parent.
-            """
-            return wrapped_self.assign(None)
-
-        ext_model.assign = assign
-        ext_model.deassign = deassign
-        return ext_model
- 
 class Multiple(Relation):
     """ Define a 'many to many' relationship with another database table.
 

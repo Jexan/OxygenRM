@@ -143,6 +143,74 @@ class HasManyQueryBuilder(RelationQueryBuilder):
 
         return self._parting_model
 
+class HasOneQueryBuilder(RelationQueryBuilder):
+    def __init__(self, target_model, parting_model, self_name, other_name):
+        super().__init__(target_model.table_name, target_model)
+
+        self._parting_model = parting_model
+        self._self_name = self_name
+        self._other_name = other_name
+        self._table_name = target_model.table_name
+        
+        self.where(other_name, '=', getattr(parting_model, self_name))
+
+    def assign(self, other_model):
+        other_id = other_model.get_primary()
+        self_id = getattr(self._parting_model, self._self_name)
+
+        def pending_function():
+            QueryBuilder.table(self._table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
+            QueryBuilder.table(self._table_name).where(other_model.primary_key, '=', other_id).update({self._other_name: self_id})
+
+        self._parting_model._rel_queue.append(pending_function)
+
+        return self._parting_model
+
+    def deassign(self):
+        """ Queue the removal of the associated model(s) from the parent.
+        """
+        self_id = getattr(self._parting_model, self._self_name)
+
+        def pending_function():
+            QueryBuilder.table(self._table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
+
+        self._parting_model._rel_queue.append(pending_function)
+        return self._parting_model
+
+class BelongsToOneQueryBuilder(RelationQueryBuilder):
+    def __init__(self, target_model, parting_model, self_name, other_name):
+        super().__init__(target_model.table_name, target_model)
+
+        self._parting_model = parting_model
+        self._self_name = self_name
+        self._other_name = other_name
+        self._table_name = target_model.table_name
+        
+        self.where(other_name, '=', getattr(parting_model, self_name))
+
+    def assign(self, other_model):
+        """ Queue the action of making the specified model the only model that the parent possesses.
+
+            Args:
+                other_model: The new model to assign
+        """
+        if other_model is not None:
+            if not isinstance(other_model, self._model):
+                raise TypeError('Cannot assign relationship to type {}. Expected a {} or None.'.format(type(other_model), self._model))
+            if other_model.being_created():
+                raise ValueError('Tried to assign an unsaved model.')
+
+        other_id = getattr(other_model, self._other_name, None)
+        setattr(self._parting_model, self._self_name, other_id)
+
+        return self._parting_model
+
+    def deassign(self):
+        """ Queue the removal of the associated model(s) from the parent.
+        """
+        return self.assign(None)
+
+
 class BelongsToManyQueryBuilder(RelationQueryBuilder):
     """ A query builder specially designed for Belongs To relationships.
 

@@ -74,6 +74,9 @@ class Table():
 
             Args:
                 **columns: The column name = Column dict of columns to be created.
+            
+            Returns:
+                self
                 
             Raises:
                 TypeError: If the given columns are not subclasses of Column.
@@ -85,12 +88,17 @@ class Table():
             column_type.name = col_name
             self._add_columns[col_name] = column_type.get_data(O.db.driver)
 
+        return self
+
     def drop_columns(self, *columns):
         """ Queue the droppage of the given columns.
 
             Args:
                 *columns: The columns name to be dropped.
-                
+            
+            Returns:
+                self
+
             Raises:
                 TableDoesNotExistError: If the table does not exist.
                 columnDoesNotExistsError: If the column to drop does not exist in the table.
@@ -102,6 +110,8 @@ class Table():
                 raise ColumnDoesNotExistError('Cannot drop column {} that does not exist.'.format(col))
 
             self._current_columns[col].drop()
+
+        return self
 
     def drop(self):
         """ Destroy the table and deletes self.
@@ -125,6 +135,8 @@ class Table():
             self._create()
 
         self._assign_tables()
+
+        return self
 
     def _edit(self):
         driver = O.db.driver
