@@ -364,7 +364,12 @@ class Model(metaclass=MetaModel):
             Returns:
                 A Pivot instance.
         """
-        return self._pivot_query.add_model_id(self._pivot_query, self.get_primary()).first()
+        if getattr(self, '_loaded_pivot', None):
+            return self._loaded_pivot
+        
+        self._loaded_pivot = self._pivot_query.add_model_id(self._pivot_query, self.get_primary()).first() 
+        
+        return self._loaded_pivot
     
     def __eq__(self, other_model):
         """ Equality operator with other models.

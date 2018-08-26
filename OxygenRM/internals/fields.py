@@ -284,15 +284,19 @@ class Multiple(Relation):
 
             predicate = lambda model: getattr(model, self._self_name) == model_primary
             result = model_container.filter(predicate)
+        else:
+            result = self.query_builder(parting_model).get()
 
-            setattr(parting_model, self._attr, result)
-            return result
+        setattr(parting_model, self._attr, result)
+        return result
 
-        builder = BelongsToManyQueryBuilder(
+    def query_builder(self, parting_model):
+        if not self._setted_up:
+            self._set_up()
+
+        return BelongsToManyQueryBuilder(
             self._model, parting_model, self._self_name, self._other_name, self._middle_table, self._attr, self.pivot
         )
-
-        return builder
 
     def _set_up(self):
         """ Set up the relation with the relevant variables

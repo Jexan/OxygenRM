@@ -2,7 +2,17 @@ from OxygenRM.internals.QueryBuilder import QueryBuilder
 from OxygenRM.internals.ModelContainer import ModelContainer
 import OxygenRM as O
 
-class RelationQueryBuilder(QueryBuilder):
+class RelationQueryBuilder(QueryBuilder):    
+    def __init__(self, target_model, parting_model, self_name, other_name):
+        super().__init__(target_model.table_name, target_model)
+
+        self._parting_model = parting_model
+        self._self_name = self_name
+        self._other_name = other_name
+        self._table_name = target_model.table_name
+        
+        self.where(other_name, '=', getattr(parting_model, self_name))
+
     def assign(self, other_model):
         """ Make the specified model the only model that the parent possesses.
 
@@ -42,16 +52,6 @@ class HasManyQueryBuilder(RelationQueryBuilder):
             self_name: The name of target_model table column to use for the relation.
             other_name:The name of parting_model table column to use for the relation.
     """
-
-    def __init__(self, target_model, parting_model, self_name, other_name):
-        super().__init__(target_model.table_name, target_model)
-
-        self._parting_model = parting_model
-        self._self_name = self_name
-        self._other_name = other_name
-        self._table_name = target_model.table_name
-        
-        self.where(other_name, '=', getattr(parting_model, self_name))
 
     def reset(self, parting_model):
         super().reset()
@@ -144,16 +144,6 @@ class HasManyQueryBuilder(RelationQueryBuilder):
         return self._parting_model
 
 class HasOneQueryBuilder(RelationQueryBuilder):
-    def __init__(self, target_model, parting_model, self_name, other_name):
-        super().__init__(target_model.table_name, target_model)
-
-        self._parting_model = parting_model
-        self._self_name = self_name
-        self._other_name = other_name
-        self._table_name = target_model.table_name
-        
-        self.where(other_name, '=', getattr(parting_model, self_name))
-
     def assign(self, other_model):
         other_id = other_model.get_primary()
         self_id = getattr(self._parting_model, self._self_name)
@@ -178,16 +168,6 @@ class HasOneQueryBuilder(RelationQueryBuilder):
         return self._parting_model
 
 class BelongsToOneQueryBuilder(RelationQueryBuilder):
-    def __init__(self, target_model, parting_model, self_name, other_name):
-        super().__init__(target_model.table_name, target_model)
-
-        self._parting_model = parting_model
-        self._self_name = self_name
-        self._other_name = other_name
-        self._table_name = target_model.table_name
-        
-        self.where(other_name, '=', getattr(parting_model, self_name))
-
     def assign(self, other_model):
         """ Queue the action of making the specified model the only model that the parent possesses.
 
@@ -231,10 +211,13 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
 
             pivot_query.add_model_id = add_model_id
         
-        return ModelContainer(result, self._model, pivot_query=pivot_query)
+        result = ModelContainer(result, self._model, pivot_query=pivot_query)
+        result.get_pivot = self._get_pivot
+
+        return result
 
     def __init__(self, target_model, parting_model, self_name, other_name, middle_table, attr, pivot):
-        super().__init__(target_model.table_name + ' oxygent', target_model)
+        super(RelationQueryBuilder, self).__init__(target_model.table_name + ' oxygent', target_model)
 
         self._parting_model = parting_model
         self._self_name = self_name
@@ -331,8 +314,7 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
 
         return self._parting_model
 
-    @property
-    def pivot(self):
+    def _get_pivot(self):
         loaded_pivots = self._parting_model._pivots
         
         if loaded_pivots[self._attr]:

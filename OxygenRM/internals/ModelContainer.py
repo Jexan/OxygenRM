@@ -214,3 +214,10 @@ class ModelContainer():
 
     def __str__(self):
         return self.pretty()
+
+    @property
+    def pivot(self):
+        if not self.get_pivot:
+            raise TypeError('Cannot access pivot of container not obtained by a Multiple query.')
+
+        return self.get_pivot()
