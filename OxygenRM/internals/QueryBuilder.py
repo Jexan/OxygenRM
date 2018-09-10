@@ -1,5 +1,6 @@
 from collections import defaultdict, ChainMap
 from itertools import chain
+from copy import deepcopy
 
 from OxygenRM.internals.SQL_builders import *
 from OxygenRM.internals.ModelContainer import ModelContainer
@@ -9,6 +10,8 @@ import OxygenRM as O
 class QueryBuilder:
     """ A class for building and chaining queries.
     """
+    _debug = False
+
     def __init__(self, table_name, model=None):
         self._in_wait = defaultdict(list)
         self._in_wait['table_name'] = table_name
@@ -371,13 +374,29 @@ class QueryBuilder:
         """
         O.db.truncate(self._in_wait['table_name'])
 
+    def _get_options(self):
+        options = self._in_wait
+        if not ' ' in options['table_name']:
+            return options
+        else:
+            alias = options['table_name'].split(' ')[1]
+        
+        new_options = deepcopy(options)
+        new_options['select_fields'] = (alias + '.' + select_field if '.' not in select_field else select_field for select_field in options['select_fields'] )
+
+        for field in ('where_cond', 'group_by', 'having', 'group_by'):
+            if options[field]:
+                new_options[field] = tuple(option._replace(field=alias + '.' + option.field) if '.' not in option.field else option for option in options[field])
+
+        return new_options
+
     def get_sql(self):
         """  Craft a get sql command.
 
             Returns:
                 A query string
         """
-        options = self._in_wait
+        options = self._get_options()
 
         if options['join_type']:
             table_to_select = join_clause(
@@ -404,6 +423,9 @@ class QueryBuilder:
         if options['limit']:
             query += ' ' + limit_clause(options['limit'], options['offset'])
 
+        if self._debug:
+            print(query)
+
         return query
 
     def delete_sql(self):
@@ -412,7 +434,7 @@ class QueryBuilder:
             Returns:
                 A query string
         """
-        return delete_clause(self._in_wait['table_name'], self._in_wait['where_cond'])
+        return delete_clause(self._in_wait['table_name'].split(' ')[0], self._in_wait['where_cond'])
 
     def update_sql(self, values):
         """ Craft a update sql command.

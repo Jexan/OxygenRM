@@ -30,7 +30,9 @@ class TestSimpleRelations(BaseClass):
         db.create('users', username='t1')
         db.create('users', username='t2')
 
-        rel = User.has('posts').where_not_null('username').where_in('username', set('t2')).delete()
+        rel = User.has('posts').where_not_null('username').where_in('username', ('t2',))
+        rel.delete()
+
         self.assertEqual(User.find(2), None)
         self.assertEqual(User.count(), 1)
 
