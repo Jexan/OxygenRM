@@ -199,3 +199,9 @@ class Table():
 
     def __getattr__(self, attr):
         return self._current_columns.get(attr, None)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.save()

@@ -69,6 +69,13 @@ class TestTable(unittest.TestCase):
 
         self.assertTrue(db.table_exists('t'))
         self.assertEqual(db.table_fields_types('t'), {'name': 'text', 'number': 'integer'})
+    
+    def test_new_Table_adding_cols_with_expression(self):
+        with Table('t') as t:
+            t.create_columns(name=Text(), number=Integer())
+
+        self.assertTrue(db.table_exists('t'))
+        self.assertEqual(db.table_fields_types('t'), {'name': 'text', 'number': 'integer'})
 
     def test_Table_adding_cols_with_object_syntax(self):
         t = Table('t')
@@ -83,9 +90,8 @@ class TestTableColumnsEdition(unittest.TestCase):
     def setUp(self):
         db.drop_table('t')
 
-        t = Table('t')
-        t.text = Text()
-        t.save()
+        with Table('t') as t:
+            t.text = Text()
 
     def test_columns_of_created_table_are_accesible(self):
         t = Table('t')
