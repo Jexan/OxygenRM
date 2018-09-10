@@ -399,3 +399,23 @@ class Model(metaclass=MetaModel):
             raise ValueError('Model {} has no associated relation {}.'.format(cls.__name__, rel))
 
         return relation_class.get_existence_conditions()
+
+def generate_model_class(table_name, *, id_name='id', model_name=None):
+    columns = O.db.get_all_columns(table_name)
+    type_dict = field_types[O.db.driver]
+
+    class GeneratedModel(Model):
+        pass
+
+    GeneratedModel.table_name = table_name
+
+    for column in columns:
+        col_name = column.name
+        if id_name == col_name:
+            setattr(GeneratedModel, id_name, Id())
+        else:
+            setattr(GeneratedModel, col_name, type_dict[column.type]())
+
+    GeneratedModel.set_up()
+
+    return GeneratedModel
