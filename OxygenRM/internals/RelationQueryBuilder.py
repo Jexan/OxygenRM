@@ -63,13 +63,13 @@ class HasManyQueryBuilder(RelationQueryBuilder):
     def deassign(self, other_model):
         """ Remove the passed model from the parent, if it is associated.
         """
-        self_id = self._parting_model.get_primary()
-        other_id = other_model.get_primary()
+        self_id = self._parting_model.get_id()
+        other_id = other_model.get_id()
 
         def pending_function():
             QueryBuilder.table(self._middle_table).where_many([
-                (self._parting_model.primary_key, '=', self_id), 
-                (other_model.primary_key, '=', other_id)
+                (self._parting_model.id_key, '=', self_id), 
+                (other_model.id_key, '=', other_id)
             ]).delete()
 
         self._parting_model._rel_queue.append(pending_function)
@@ -79,7 +79,7 @@ class HasManyQueryBuilder(RelationQueryBuilder):
     def deassign_all(self):
         """ Remove the associated model(s) from the parent.
         """
-        self_id = self._parting_model.get_primary()
+        self_id = self._parting_model.get_id()
 
         def pending_function():
             QueryBuilder.table(self._table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
@@ -103,11 +103,11 @@ class HasManyQueryBuilder(RelationQueryBuilder):
         if other_model.being_created():
             raise ValueError('Tried to add an unsaved model.')
 
-        other_id = other_model.get_primary()
+        other_id = other_model.get_id()
         self_id = getattr(self._parting_model, self._self_name)
 
         def pending_function():
-            QueryBuilder.table(self._table_name).where(other_model.primary_key, '=', other_id).update({self._other_name: other_id})    
+            QueryBuilder.table(self._table_name).where(other_model.id_key, '=', other_id).update({self._other_name: other_id})    
         
         self._parting_model._rel_queue.append(pending_function)
 
@@ -132,7 +132,7 @@ class HasManyQueryBuilder(RelationQueryBuilder):
             if model.being_created():
                 raise ValueError('Tried to add an unsaved model.')
 
-            conditions.append( (model.primary_key, '=', model.get_primary()) )
+            conditions.append( (model.id_key, '=', model.get_id()) )
 
         self_id = getattr(self._parting_model, self._self_name)
 
@@ -145,12 +145,12 @@ class HasManyQueryBuilder(RelationQueryBuilder):
 
 class HasOneQueryBuilder(RelationQueryBuilder):
     def assign(self, other_model):
-        other_id = other_model.get_primary()
+        other_id = other_model.get_id()
         self_id = getattr(self._parting_model, self._self_name)
 
         def pending_function():
             QueryBuilder.table(self._table_name).where(self._other_name, '=', self_id).update({self._other_name: None})
-            QueryBuilder.table(self._table_name).where(other_model.primary_key, '=', other_id).update({self._other_name: self_id})
+            QueryBuilder.table(self._table_name).where(other_model.id_key, '=', other_id).update({self._other_name: self_id})
 
         self._parting_model._rel_queue.append(pending_function)
 
@@ -204,7 +204,7 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
         pivot_query = None
 
         if self._pivot:
-            pivot_query = self._pivot.where(self._self_name, '=', self._parting_model.get_primary())
+            pivot_query = self._pivot.where(self._self_name, '=', self._parting_model.get_id())
             
             def add_model_id(builder, model_id):
                 return builder.where(self._other_name, '=', model_id)
@@ -227,15 +227,15 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
         self._attr = attr
         self._pivot = pivot
 
-        self.select('oxygent.*').where(middle_table + '.' + self_name,'=', parting_model.get_primary()).cross_join(middle_table).on(
-            'oxygent' + '.' + target_model.primary_key, '=', middle_table + '.' + other_name
+        self.select('oxygent.*').where(middle_table + '.' + self_name,'=', parting_model.get_id()).cross_join(middle_table).on(
+            'oxygent' + '.' + target_model.id_key, '=', middle_table + '.' + other_name
         )
 
     def deassign(self, other_model):
         """ Remove the passed model from the parent, if it is associated.
         """
-        self_id = self._parting_model.get_primary()
-        other_id = other_model.get_primary()
+        self_id = self._parting_model.get_id()
+        other_id = other_model.get_id()
 
         def pending_function():
             QueryBuilder.table(self._middle_table).where_many([
@@ -250,7 +250,7 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
     def deassign_all(self):
         """ Remove the associated model(s) from the parent.
         """
-        self_id = self._parting_model.get_primary()
+        self_id = self._parting_model.get_id()
 
         def pending_function():
             QueryBuilder.table(self._middle_table).where(self._self_name, '=', self_id).delete()
@@ -275,8 +275,8 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
         if other_model.being_created():
             raise ValueError('Tried to add an unsaved model.')
 
-        other_id = other_model.get_primary()
-        self_id = self._parting_model.get_primary()
+        other_id = other_model.get_id()
+        self_id = self._parting_model.get_id()
 
         def pending_function():
             O.db.create(self._middle_table, **{self._other_name: other_id, self._self_name: self_id})
@@ -295,7 +295,7 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
                 TypeError: If one of the passed model is not a correct model type.
                 ValueError: If one of the passed model has not yet been saved on the database. 
         """
-        self_id = self._parting_model.get_primary()
+        self_id = self._parting_model.get_id()
         other_models = tuple(other_models)
         values = []
 
@@ -305,7 +305,7 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
             if model.being_created():
                 raise ValueError('Tried to add an unsaved model.')
 
-            values.append( (self_id, model.get_primary()) )
+            values.append( (self_id, model.get_id()) )
 
         def pending_function():
             O.db.create_many(self._middle_table, (self._self_name, self._other_name), values)
@@ -320,7 +320,7 @@ class BelongsToManyQueryBuilder(RelationQueryBuilder):
         if loaded_pivots[self._attr]:
             return loaded_pivots[self._attr]
         
-        pivot = self._pivot(**{self._self_name: self._parting_model.get_primary()})
+        pivot = self._pivot(**{self._self_name: self._parting_model.get_id()})
         loaded_pivots[self._attr] = pivot
 
         return pivot

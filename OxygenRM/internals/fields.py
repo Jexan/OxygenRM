@@ -145,8 +145,8 @@ class Float(Field):
         else:
             return 0
 
-class Id(Integer):
-    """ An auto-incrementing, unsigned integer. Used as a primary key.
+class Id(Field):
+    """ The index value. It can be any kind of value.
     """
     def __init__(self):
         self.null = False
@@ -158,9 +158,9 @@ class Relation(Field):
             how_much: Either 'one' or 'many'
             model: The related model class
             on_other_col: The name of the related model column to use for the join.
-                By default it will be the #{lower case model name}_id (HAS) or primary key (BELONGS) 
+                By default it will be the #{lower case model name}_id (HAS) or id key (BELONGS) 
             on_self_col: The name of the own column, for use in the join.
-                By the default it will be the primary key (HAS) or #{lower case model name}_id (BELONGS) column.
+                By the default it will be the id key (HAS) or #{lower case model name}_id (BELONGS) column.
     """
     def __init__(self, how_much, model, on_other_col=None, on_self_col=None):
         if how_much not in ('many', 'one'):
@@ -180,9 +180,9 @@ class Relation(Field):
         model_container = starting_model.relations_loaded.get(self._attr)
         
         if model_container:
-            model_primary = getattr(starting_model, self._self_name)
+            model_id = getattr(starting_model, self._self_name)
 
-            predicate = lambda model: getattr(model, self._other_name) == model_primary
+            predicate = lambda model: getattr(model, self._other_name) == model_id
             
             if self._how_much == 'many':
                 result = model_container.filter(predicate)
@@ -236,13 +236,23 @@ class Relation(Field):
         """
         ...
     
+    @property
+    def parting_model_prop(self):
+        """ Used to get the parting model column name for eager load.
+        """
+        if not self._setted_up:
+            self._set_up()
+
+        return self._self_name
+    
 class Has(Relation):
     def _set_up(self):
         if not self._other_name:
             self._other_name = self.parting_model.__class__.__name__.lower() + '_id'
 
         if not self._self_name:
-            self._self_name = self.parting_model.primary_key
+            self._self_name = self.parting_model.id_key
+
     
     def query_builder(self, parting_model):
         if not self._setted_up:
@@ -254,7 +264,7 @@ class Has(Relation):
 class BelongsTo(Relation):
     def _set_up(self):
         if not self._other_name:
-            self._other_name = self.parting_model.primary_key
+            self._other_name = self.parting_model.id_key
 
         if not self._self_name:
             self._self_name = self.parting_model.__class__.__name__.lower() + '_id'
@@ -289,6 +299,8 @@ class Multiple(Relation):
 
         self._setted_up = False
 
+    parting_model_prop = 'id'
+
     def get(self, parting_model):
         if not self._setted_up:
             self._set_up()
@@ -297,9 +309,9 @@ class Multiple(Relation):
         model_container = parting_model.relations_loaded.get(self._attr)
         
         if model_container:
-            model_primary = parting_model.get_primary()
+            model_id = parting_model.get_id()
 
-            predicate = lambda model: getattr(model, self._self_name) == model_primary
+            predicate = lambda model: getattr(model, self._self_name) == model_id
             result = model_container.filter(predicate)
         else:
             result = self.query_builder(parting_model).get()
@@ -345,7 +357,7 @@ class Multiple(Relation):
         if not self._setted_up:
             self._set_up()
 
-        return 'oxygent.' + self.parting_model.primary_key , self._middle_table + '.' + self._self_name, self._middle_table
+        return 'oxygent.' + self.parting_model.id_key , self._middle_table + '.' + self._self_name, self._middle_table
 
     def eager_load_builder(self):
         if not self._setted_up:
@@ -355,7 +367,7 @@ class Multiple(Relation):
         target_model = self._model
 
         builder = QueryBuilder.table(self._model.table_name + ' oxygent', self._model).select('oxygent.*', middle_table + '.' + self._self_name).cross_join(middle_table).on(
-            'oxygent.' + target_model.primary_key, '=', middle_table + '.' + self._other_name
+            'oxygent.' + target_model.id_key, '=', middle_table + '.' + self._other_name
         )
 
         return partial(builder.where_in, middle_table + '.' + self._self_name)

@@ -210,7 +210,7 @@ class QueryBuilder:
         return next(O.db.execute_without_saving(self.get_sql()))[0]        
 
     def min(self, col):
-         """ Return the minimun value of the specified table's column.
+        """ Return the minimun value of the specified table's column.
 
             Args:
                 col: The column name.
@@ -219,8 +219,7 @@ class QueryBuilder:
                 The min value.
         """
         self.select('min({})'.format(col))
-
-        return next(O.db.execute_without_saving(self.get_sql()))[0]        
+        return next(O.db.execute_without_saving(self.get_sql()))[0]
 
     def sum(self, col):
         """ Return the sum value of the specified table's column.

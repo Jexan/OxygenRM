@@ -5,16 +5,16 @@ from OxygenRM.internals.fields import *
 
 import OxygenRM as O
 
-class ModelHasNoPrimaryKeyError(Exception):
+class ModelHasNoIdError(Exception):
     def __init__(self, model, method):
         """ An error to be raised when an operation that requires a model with
-            primary key is attempted, but the target model has no know related primary key.
+            an Id is attempted, but the target model has no configured Id.
 
             Args:
                 model: The model whose method access triggered the exception.
                 method: The infringing method where the exception was raised.
         """
-        super.__init__('The model {} has no primary key column. Impossible to use method {}'.format(model.__name__, method))
+        super.__init__('The model {} has no index column. Impossible to use method {}'.format(model.__name__, method))
         self.model = model
         self.method = method
 
@@ -74,7 +74,7 @@ class Model(metaclass=MetaModel):
         cls._relations = dict()
         cls._pivot_classes = dict()
         
-        primary_key = None
+        id_key = None
         for attr, value in cls.__dict__.items():
             if isinstance(value, Field):
                 if not isinstance(value, Relation):
@@ -93,10 +93,10 @@ class Model(metaclass=MetaModel):
                     cls._pivot_classes[attr] = value.pivot
 
             if isinstance(value, Id):
-                primary_key = attr
+                id_key = attr
 
-        cls.primary_key = primary_key   
-        cls._dumb = primary_key is None
+        cls.id_key = id_key   
+        cls._dumb = id_key is None
         cls._set_up = True
         cls._self_name = cls.__name__
         cls._fields_names = frozenset(cls._fields)
@@ -138,10 +138,10 @@ class Model(metaclass=MetaModel):
     """
     table_name = ''
 
-    """ The table primary key name.
+    """ The table id key name.
         @static
     """
-    primary_key = ''
+    id_key = ''
 
     def __init__(self, creating_new=True, pivot_query=None, **values):
         """ The model base class. It allows ORM operations, and it's supossed 
@@ -178,14 +178,14 @@ class Model(metaclass=MetaModel):
     
     @classmethod
     def craft(cls, return_model=True, **values):
-        """ Create a record in the database and save it. If the model has a primary key, return the model.
+        """ Create a record in the database and save it. If the model has an id key, return the model.
 
             Args:
-                return_model: Wheter to return or not the model if it has a primary key, after being saved.
+                return_model: Wheter to return or not the model if it has an id key, after being saved.
                 **values: The values of the model to be created.
             
             Return:
-                True if the model has no primary key or the return_model is false.
+                True if the model has no id key or the return_model is false.
                 A self model of the stored row if not.
         """
         if not cls._set_up:
@@ -194,80 +194,80 @@ class Model(metaclass=MetaModel):
         O.db.create(cls.table_name, **values)
 
         if return_model and not cls._dumb:
-            return cls.where(cls.primary_key, '=', O.db.last_id()).first()
+            return cls.where(cls.id_key, '=', O.db.last_id()).first()
         else:
             return True
 
     @classmethod
-    def find(cls, *indeces):
-        """ Find the models with the specified primary key(s).
+    def find(cls, *indexes):
+        """ Find the models with the specified id value(s).
 
             Args:
-                *indeces: An assortment of primary key values of the models to fetch.
+                *indexes: An assortment of id values of the models to fetch.
             
             Returns:
-                A model if the index is only one. A model collection if there's more than one index.
+                A model if the id value is only one. A ModelContainer if there's more than one id value.
 
             Raises:
-                ArgumentError: If no index value is passed.
-                ModelHasNoPrimaryKeyError: If the model has no primary key.
+                ArgumentError: If no id value value is passed.
+                ModelHasNoIdError: If the model has no Id column.
         """
         if not cls._set_up:
             cls._set_up_model()
 
-        indeces_amount = len(indeces)
+        indexes_amount = len(indexes)
 
-        if not indeces_amount:
-            raise ArgumentError('No indeces passed. Required at least one.') 
+        if not indexes_amount:
+            raise ArgumentError('No indexes passed. Required at least one.') 
         if cls._dumb:
-            raise ModelHasNoPrimaryKeyError(cls, 'find')
+            raise ModelHasNoIdError(cls, 'find')
 
-        result = cls.where_in(cls.primary_key, indeces)
+        result = cls.where_in(cls.id_key, indexes)
         
-        if indeces_amount == 1:
+        if indexes_amount == 1:
             return result.first()
         else:
             return result.get()
 
     @classmethod
-    def destroy(cls, *indeces):
-        """ Delete the models with the specified primary key(s).
+    def destroy(cls, *indexes):
+        """ Delete the models with the specified id value(s).
 
             Args:
-                *indeces: An assortment of primary key values of the models to delete.
+                *indexes: Id value(s) of the model(s) to delete.
             
             Returns:
                 True
 
             Raises:
-                ArgumentError: If no index value is passed.
-                ModelHasNoPrimaryKeyError: If the model has no primary key.
+                ArgumentError: If no id value is passed.
+                ModelHasNoIdError: If the model has no Id column.
         """
         if not cls._set_up:
             cls._set_up_model()
 
-        if not len(indeces):
-            raise ArgumentError('No indeces passed. Required at least one.') 
+        if not len(indexes):
+            raise ArgumentError('No indexes passed. Required at least one.') 
         if cls._dumb:
-            raise ModelHasNoPrimaryKeyError(cls, 'destroy')
+            raise ModelHasNoIdError(cls, 'destroy')
 
-        cls.where_in(cls.primary_key, indeces).delete() 
+        cls.where_in(cls.id_key, indexes).delete() 
 
         return True
 
-    def get_primary(self):
-        """ Get the primary key value of the model.
+    def get_id(self):
+        """ Get the id value of the model.
 
             Return:
-                The primary key value of the model
+                The id value of the model
 
             Raises:
-                ModelHasNoPrimaryKeyError: If the model has no primary key.
+                ModelHasNoIdError: If the model has no Id column.
         """
         if self._dumb:
-            raise ModelHasNoPrimaryKeyError(cls, 'get_primary')
+            raise ModelHasNoIdError(cls, 'get_id')
 
-        return getattr(self, self.primary_key)
+        return getattr(self, self.id_key)
                                 
     def save(self):
         """ Commit the current changes to the database.
@@ -286,13 +286,13 @@ class Model(metaclass=MetaModel):
                 if self._dumb:
                     self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
                 else:
-                    self.__class__.where(self.primary_key, '=', self.get_primary()).update(values_for_db)
+                    self.__class__.where(self.id_key, '=', self.get_id()).update(values_for_db)
 
             for rel_function in self._rel_queue:
                 rel_function()
 
             if not self._dumb:
-                id_of_row = O.db.last_id() if self._creating_new else self.get_primary()
+                id_of_row = O.db.last_id() if self._creating_new else self.get_id()
 
                 for pivot in self._pivots.values():
                     if pivot is None:
@@ -301,7 +301,7 @@ class Model(metaclass=MetaModel):
                     pivot.set_self_id(id_of_row)
                     pivot.save()
 
-                row = QueryBuilder.table(self.table_name).where(self.primary_key, '=', id_of_row).first()
+                row = QueryBuilder.table(self.table_name).where(self.id_key, '=', id_of_row).first()
                 self._update_values(dict(zip(row.keys(), tuple(row))))
 
             self._creating_new = False
@@ -381,7 +381,7 @@ class Model(metaclass=MetaModel):
         if getattr(self, '_loaded_pivot', None):
             return self._loaded_pivot
         
-        self._loaded_pivot = self._pivot_query.add_model_id(self._pivot_query, self.get_primary()).first() 
+        self._loaded_pivot = self._pivot_query.add_model_id(self._pivot_query, self.get_id()).first() 
         
         return self._loaded_pivot
     

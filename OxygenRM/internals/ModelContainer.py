@@ -1,6 +1,7 @@
 import json
 
 from itertools import chain
+from collections import defaultdict
 
 # A container for models
 class ModelContainer():
@@ -27,9 +28,21 @@ class ModelContainer():
             
     def _add_relations(self, relations):
         """ Fetches and store the relation so they can be obtained later on.
+
+            Args:
+                relations: A dict with relation_name: query_builder_partial
         """
-        self_ids = self.pluck(self._model.primary_key)
-        relations = {rel: builder(self_ids).get() for rel, builder in relations.items()}
+        names = frozenset(self._model.get_relation(rel).parting_model_prop for rel in relations)
+        parting_rel_values = defaultdict(list)
+
+        for model in self: 
+            for name in names:
+                parting_rel_values[name].append(getattr(model, name))
+
+        relations = {
+            rel: builder(parting_rel_values[self._model.get_relation(rel).parting_model_prop]).get() 
+            for rel, builder in relations.items()
+        }
 
         for model in self:
             for relation, container in relations.items():
