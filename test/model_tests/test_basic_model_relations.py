@@ -249,3 +249,18 @@ class TestRelationEditing(BaseClass):
         first_post.rel('author').deassign().save()
 
         self.assertFalse(first_post.author)
+
+    def test_complex_transaction_work(self):
+        try:
+            with O.transaction():
+                post = Post(text='t').save()
+                user = User(username='t')
+                user.rel('posts').assign(post)
+
+                user.save()
+                raise Exception('Test')
+        except Exception as e:
+            pass
+
+        self.assertEqual(len(Post.get()), 0) 
+        self.assertEqual(len(User.get()), 0) 

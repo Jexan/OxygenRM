@@ -15,3 +15,9 @@ def db_config(driver, db_name):
 # Sets the database to a set database driver
 def db_set():
     pass
+
+def transaction():
+    if not db:
+        raise RuntimeError('Cannot start a transaction with an unspecified database.')
+    else: 
+        return db.transaction()
