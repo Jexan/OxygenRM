@@ -55,4 +55,9 @@ class Pivot(Model):
         return cls()
 
     def set_self_id(self, id):
+        """ Set the id of the initial model id for this row. (Useful for new model creation)
+
+            Args:
+                id: The value of the inital model id.
+        """
         setattr(self, self._self_name, id)

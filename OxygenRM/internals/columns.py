@@ -45,6 +45,19 @@ class Column():
 
     @staticmethod
     def from_data(col_data, driver):
+        """ Craft a relevant column from the passed ColumnData tuple and db driver.
+
+            Args:
+                col_data: A ColumnData tuple with the relevant column info.
+                driver: The database driver used (obtained from OxygenRM.db.driver)
+
+            Returns:
+                A Column subclass that reflects the passed col_data.
+
+            Notes:
+                If the column type has no implemented column class, then the instance will
+                be a simple Column.
+        """
         return equivalency_dict[driver].get(col_data.type, Column)(**col_data._asdict())
 
     def __setattr__(self, attr, value):
@@ -54,6 +67,8 @@ class Column():
         object.__setattr__(self, attr, value)
 
     def drop(self):
+        """ Queue the column to be dropped when the table to which it belongs is saved.
+        """
         self.to_be_dropped = True
 
     """ A dict with the types this column represents

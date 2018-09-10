@@ -118,17 +118,31 @@ class Table():
 
             Raises:
                 TableDoesNotExistError: If the table is just being created.
+
+            Notes:
+                It's done immediatly, so be careful.
+
+            Also see:
+                Table.drop_if_exists()
         """
         self._exists_guard()
 
         O.db.drop_table(self.table_name)
 
     def drop_if_exists(self):
-        """ Destroy the table if exists.
+        """ Destroy the table if exists. 
+
+            Notes:
+                It's done immediatly, so be careful.
+
+            Also see:
+                Table.drop()
         """
         O.db.drop_table(self.table_name)
 
     def save(self):
+        """ Save the current changes to the database. 
+        """
         if self.exists():
             self._edit()
         else:
@@ -139,6 +153,8 @@ class Table():
         return self
 
     def _edit(self):
+        """ Helper method used to edit the table properties and columns.
+        """
         driver = O.db.driver
 
         old_cols = self._columns_data
@@ -157,6 +173,8 @@ class Table():
             self._new_name = None
  
     def _create(self):
+        """ Helper method to create a table with its tables.
+        """
         if not self._add_columns:
             raise ValueError('No column has been specified to be added to the table')
 

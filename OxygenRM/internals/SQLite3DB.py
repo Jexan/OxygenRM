@@ -49,6 +49,8 @@ class SQLite3DB():
         self._save = True
 
     def last_id(self):
+        """ Get the last edited row id.
+        """
         return self.cursor.lastrowid
 
     def create_table(self, table_name, columns):
@@ -244,14 +246,20 @@ class SQLite3DB():
         return self.cursor.executemany(query, (tuple(field) for field in args))
 
     def transaction_begin(self):
+        """ Init a transaction (prevents edition operations to not be saved).
+        """
         self._save = False
 
     def transaction_end(self):
+        """ Ends a started transaction and commits the changes made to the database.
+        """
         self._save = True
         self.connection.commit()
 
     @contextlib.contextmanager
     def transaction(self):
+        """ Starts a new transaction context.
+        """
         self.transaction_begin()
         
         try:
@@ -264,6 +272,15 @@ class SQLite3DB():
             self._save = True
 
     def modify_columns(self, table_name, add_columns, drop_columns, edit_columns, old_columns):
+        """ Modify the table columns in the database.
+
+            Args:
+                table_name: The name of the table to edit.
+                add_columns: A ColumnData iterator with the columns to be added.
+                drop_columns: A ColumnData iterator with the columns to be dropped.
+                edit_columns: A ColumnData iterator with the columns to be editted.
+                old_columns: A ColumnData iterator with the current columns of the table.
+        """
         temp_table_name = 'temp_oxygenrm_sqlite3_table_change'
         self.execute_without_saving('PRAGMA foreing_keys=OFF')
         # DEAL WITH INDEXES AND TRIGGERS

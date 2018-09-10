@@ -202,6 +202,12 @@ class Relation(Field):
         return result
 
     def eager_load_builder(self):
+        """ Used when a class is to be eager loaded. Allows to get every one of the
+            related model.
+
+            Returns:
+                A partial method that allows to get all the related models.
+        """
         if not self._setted_up:
             self._set_up()
 
@@ -218,14 +224,18 @@ class Relation(Field):
             self._set_up()
 
         return 'oxygent.' + self._self_name, self._model.table_name + '.' + self._other_name, self._model.table_name
-    
+
     def query_builder(self, parting_model):
-        if not self._setted_up:
-            self._set_up()
+        """ Get the query builder for related models.
 
-        class_to_use = HasManyQueryBuilder if self._how_much == 'many' else HasOneQueryBuilder
-        return class_to_use(self._model, parting_model, self._self_name, self._other_name)
+            Args:
+                parting_model: The Model instance that is the parting point of the relation.
 
+            Returns:
+                A RelationQueryBuilder subclass instance.
+        """
+        ...
+    
 class Has(Relation):
     def _set_up(self):
         if not self._other_name:
@@ -233,6 +243,13 @@ class Has(Relation):
 
         if not self._self_name:
             self._self_name = self.parting_model.primary_key
+    
+    def query_builder(self, parting_model):
+        if not self._setted_up:
+            self._set_up()
+
+        class_to_use = HasManyQueryBuilder if self._how_much == 'many' else HasOneQueryBuilder
+        return class_to_use(self._model, parting_model, self._self_name, self._other_name)
 
 class BelongsTo(Relation):
     def _set_up(self):

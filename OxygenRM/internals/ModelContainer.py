@@ -26,6 +26,8 @@ class ModelContainer():
         self._iteration_done = True
             
     def _add_relations(self, relations):
+        """ Fetches and store the relation so they can be obtained later on.
+        """
         self_ids = self.pluck(self._model.primary_key)
         relations = {rel: builder(self_ids).get() for rel, builder in relations.items()}
 

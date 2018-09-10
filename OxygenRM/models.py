@@ -1,5 +1,3 @@
-import warnings
-
 from copy import deepcopy
 
 from OxygenRM.internals.QueryBuilder import QueryBuilder
@@ -350,10 +348,26 @@ class Model(metaclass=MetaModel):
         return self._pivot_classes[rel]
 
     @classmethod
-    def get_relation(self, rel):
-        return self._relations[rel]
+    def get_relation(self, relation):
+        """ Get a relation field class.
+
+            Args:
+                relation: A string with the relation name.
+
+            Returns:
+                A Relation subclass.
+        """
+        return self._relations[relation]
 
     def rel(self, relation):
+        """ Get a QueryBuilder that targets the specified relation rows.
+
+            Args:
+                relation: A string with the relation name.
+
+            Returns:
+                A QueryBuilder subclass object, depending of the type of relation.
+        """
         return self._relations[relation].query_builder(self)
 
     @property
@@ -400,7 +414,12 @@ class Model(metaclass=MetaModel):
 
         return relation_class.get_existence_conditions()
 
-def generate_model_class(table_name, *, id_name='id', model_name=None):
+def generate_model_class(table_name, *, id_name='id', model_name=''):
+    """ Generate a model class automatically from a table in the database.
+
+        Args:
+            table_name: Table
+    """
     columns = O.db.get_all_columns(table_name)
     type_dict = field_types[O.db.driver]
 
@@ -417,5 +436,9 @@ def generate_model_class(table_name, *, id_name='id', model_name=None):
             setattr(GeneratedModel, col_name, type_dict[column.type]())
 
     GeneratedModel.set_up()
+
+    if model_name:
+        GeneratedModel.__name__ = model_name
+        GeneratedModel.__qualname__ = model_name
 
     return GeneratedModel

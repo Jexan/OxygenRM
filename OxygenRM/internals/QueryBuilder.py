@@ -197,16 +197,40 @@ class QueryBuilder:
         return next(O.db.execute_without_saving(self.get_sql()))[0]
 
     def max(self, col):
+        """ Return the max value of the specified table's column.
+
+            Args:
+                col: The column name.
+
+            Returns:
+                The max value.
+        """
         self.select('max({})'.format(col))
 
         return next(O.db.execute_without_saving(self.get_sql()))[0]        
 
     def min(self, col):
+         """ Return the minimun value of the specified table's column.
+
+            Args:
+                col: The column name.
+
+            Returns:
+                The min value.
+        """
         self.select('min({})'.format(col))
 
         return next(O.db.execute_without_saving(self.get_sql()))[0]        
 
     def sum(self, col):
+        """ Return the sum value of the specified table's column.
+
+            Args:
+                col: The column name.
+
+            Returns:
+                The result of the sum.
+        """
         self.select('sum({})'.format(col))
 
         return next(O.db.execute_without_saving(self.get_sql()))[0]        
@@ -375,6 +399,11 @@ class QueryBuilder:
         O.db.truncate(self._in_wait['table_name'])
 
     def _get_options(self):
+        """ Deals with the options if the table has an alias.
+
+            Returns:
+                A defaultdict(list) with the fixed conditions.
+        """
         options = self._in_wait
         if not ' ' in options['table_name']:
             return options
@@ -501,6 +530,8 @@ class QueryBuilder:
             return result.fetchone()
 
     def first_or_fail(self):
+        """ Get the first record of the specified record or fail if None returned.
+        """
         value = self.first() 
         if value is None:
             raise ValueError('No record exists')
@@ -535,16 +566,41 @@ class QueryBuilder:
     _in_wait = defaultdict(list)
 
     def has(self, rel):
+        """ Add the condition that the record has at least one related record of the specified relation.
+
+            Args:
+                rel: A string with the relation to check.
+
+            Return:
+                self
+        """
         self._in_wait['table_name'] = self._model.table_name + ' oxygent'
         left_side, right_side, other_table = self._model.get_existence_conditions(rel)
         return self.select('oxygent.*').join(other_table).on(left_side, '=', right_side)
 
     def doesnt_have(self, rel):
+        """ Add the condition that the record has no related record of the specified relation.
+
+            Args:
+                rel: A string with the relation to check.
+
+            Return:
+                self
+        """
         self._in_wait['table_name'] = self._model.table_name + ' oxygent'
         left_side, right_side, other_table = self._model.get_existence_conditions(rel)
         return self.select('oxygent.*').join(other_table).on(left_side, '!=', right_side).or_on(left_side, 'IS', 'NULL')
 
     def with_relations(self, *relations):
+        """ Make sure that the specified relations are loaded early, to avoid the
+            N + 1 queries problem.
+
+            Args:
+                *relations: String names of relations to be loaded.
+            
+            Returns:
+                self.
+        """
         model = self._model
         relations_builders = {}
 
