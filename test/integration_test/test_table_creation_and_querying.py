@@ -5,15 +5,11 @@ from OxygenRM.models import Model
 import OxygenRM.internals.columns as c
 import OxygenRM.internals.fields as f
 
-db_config('sqlite3', ':memory:')
+# db_config('sqlite3', ':memory:')
 
 class Test(Model):
     id = f.Id()
     name = f.Text()
-
-t = Table('tests')
-t.create_columns(id=c.Id(), name=c.Text())  
-t.save()
 
 def create_10_records():
     for i in range(10):
@@ -28,7 +24,13 @@ import OxygenRM
 class TestTableCreationAndQuerying(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
-        Table('tests').drop()        
+        Table('tests').drop()
+
+    @classmethod
+    def setUpClass(cls):
+        t = Table('tests')
+        t.create_columns(id=c.Id(), name=c.Text())  
+        t.create()
 
     def tearDown(self):
         Test.truncate()

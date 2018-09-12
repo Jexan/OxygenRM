@@ -6,29 +6,32 @@ from OxygenRM.internals.columns import *
 
 from . import default_cols
 
-created_table = Table('c')
-
-db.create_table('e', default_cols(a='integer', b='text'))
-edited_table = Table('e')
 
 class TestTable(unittest.TestCase):
     def tearDown(self):
-        db.drop_table('t')
+        Table.drop_all()
+
+    @classmethod
+    def setUpClass(cls):
+        db.create_table('e', default_cols(a='integer', b='text'))
+
+        cls.created_table = Table('c')
+        cls.edited_table = Table('e')
 
     def test_Table_initialization(self):
-        self.assertIsInstance(edited_table, Table)
-        self.assertIsInstance(created_table, Table)
+        self.assertIsInstance(self.edited_table, Table)
+        self.assertIsInstance(self.created_table, Table)
 
     def test_Table_state_is_set_correctly_at_creation_if_not_exists(self):
-        self.assertIs(created_table.state, Table.State.CREATING)
-        self.assertFalse(created_table.exists())
+        self.assertIs(self.created_table.state, Table.State.CREATING)
+        self.assertFalse(self.created_table.exists())
 
     def test_Table_state_is_set_correctly_at_creation_if_exists(self):
-        self.assertIs(edited_table.state, Table.State.EDITING)
-        self.assertTrue(edited_table.exists())
+        self.assertIs(self.edited_table.state, Table.State.EDITING)
+        self.assertTrue(self.edited_table.exists())
 
     def test_drop_raises_exception_if_table_doesnt_exist(self):
-        self.assertRaises(TableDoesNotExistError, created_table.drop)
+        self.assertRaises(TableDoesNotExistError, self.created_table.drop)
 
     def test_Table_droping(self):
         db.create_table('t', default_cols(a='text'))
@@ -39,7 +42,7 @@ class TestTable(unittest.TestCase):
         self.assertFalse(db.table_exists('t'))
     
     def test_Table_droping_if_table_not_exists(self):
-        self.assertRaises(TableDoesNotExistError, created_table.drop)
+        self.assertRaises(TableDoesNotExistError, self.created_table.drop)
 
     def test_Table_drop_if_exist_drops_correctly(self):
         db.create_table('t', default_cols(a='text'))

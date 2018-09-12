@@ -9,6 +9,7 @@ import contextlib
 logging.basicConfig(filename='test/test.log',level=logging.DEBUG)
 
 from OxygenRM.internals.SQL_builders import *
+from OxygenRM.events import fire, fires_after, fires_before
 
 VALID_TABLE_TYPES = [
     'integer', 
@@ -53,12 +54,13 @@ class SQLite3DB():
         """
         return self.cursor.lastrowid
 
+    @fires_after('db.created_table')
     def create_table(self, table_name, columns):
         """ Create a table in the database with the specified columns.
 
             Args:
                 table_name : The name of the table to be created.
-                olumns : A list with the column names as keys and a ColumnData 
+                columns : A list with the column names as keys and a ColumnData 
                     as values. 
 
             Raises:
@@ -125,6 +127,7 @@ class SQLite3DB():
 
         return build_columns_from_sql(table.fetchone()['sql'])
 
+    @fires_after('db.dropped_table')
     def drop_table(self, table_name):
         """ Drop a table from the database.
 
@@ -142,6 +145,7 @@ class SQLite3DB():
         """
         self.execute(add_column_clause(table_name, column))
 
+    @fires_after('db.renamed_table')
     def rename_table(self, old_table_name, new_table_name):
         """ Rename a table of the database.
 
@@ -162,26 +166,36 @@ class SQLite3DB():
         """
         return any(table == table_name for table in self.get_all_tables())
 
+    @fires_after('db.all_tables_dropped')
     def drop_all_tables(self):
         """ Drop all the tables in the database.
         """
-        # We better transform the iterator to list if we don't want messy behaviour.
-        for table in list(self.get_all_tables()):
+        # We better transform the iterator to tuple if we don't want messy behaviour.
+        for table in tuple(self.get_all_tables()):
             if table != SEQUENCE_TABLE:
                 self.drop_table(table)
 
+    @fires_after('db.truncated_table')
     def truncate(self, table_name):
-        self.execute_without_saving('DELETE FROM {}'.format(table_name))
-        return self.execute('DELETE FROM SQLITE_SEQUENCE WHERE name="{}"'.format(table_name))
+        """ Truncate a table, deleting all its records.
 
+            Args:
+                table_name: The table to truncate.
+        """
+        self.execute_without_saving('DELETE FROM {}'.format(table_name))
+        try:
+            return self.execute('DELETE FROM SQLITE_SEQUENCE WHERE name="{}"'.format(table_name))
+        except Exception as e: pass
+
+    @fires_after('db.created_record')
     def create(self, table_name, **values):
         """ Create a new record in the database. 
 
             Args:
                 table_name: The table to query.
                 **values: The field=value dictionary
-        """
-        return self.execute(insert_clause(table_name, values) ,tuple(values.values()))   
+        """        
+        self.execute(insert_clause(table_name, values), tuple(values.values()))   
 
     def create_many(self, table_name, keys, values):
         """ Create multiple new records in the database. 
@@ -207,6 +221,8 @@ class SQLite3DB():
         """
         return self.execute_without_saving(select_clause(table_name, *fields))
     
+    @fires_before('db.operation_called')
+    @fires_after('db.operation_perfomed')
     def execute(self, query, args=()):
         """ Run a query and commit (for Create, Update, Delete operations). 
 
@@ -218,6 +234,7 @@ class SQLite3DB():
             Returns:
                 The query result.
         """
+        fire('db.operation_called', query, args)
         result = self.cursor.execute(query, args)
 
         if self._save:
@@ -225,6 +242,8 @@ class SQLite3DB():
 
         return result
 
+    @fires_before('db.operation_called')
+    @fires_after('db.operation_perfomed')
     def execute_without_saving(self, query, args=()):
         """ Run a query without commit (for Read operations). 
 
@@ -233,6 +252,7 @@ class SQLite3DB():
                 args: If the query has to be protected from sql injection,
                    the args to substitute can be passed as a tuple.
         """
+        fire('db.operation_perfomed', query, args)
         return self.cursor.execute(query, args)
 
     def execute_many(self, query, args=()):
@@ -245,16 +265,17 @@ class SQLite3DB():
         """
         return self.cursor.executemany(query, (tuple(field) for field in args))
 
+    @fires_before('db.transaction_started')
     def transaction_begin(self):
         """ Init a transaction (prevents edition operations to not be saved).
         """
         self._save = False
 
+    @fires_after('db.transaction_ended')
     def transaction_end(self):
         """ Ends a started transaction and commits the changes made to the database.
         """
         self._save = True
-        self.connection.commit()
 
     @contextlib.contextmanager
     def transaction(self):
@@ -267,9 +288,10 @@ class SQLite3DB():
             self.connection.commit()
         except Exception as E:
             self.connection.rollback()
+            fire('db.transaction_failed', E)
             raise E
         finally:
-            self._save = True
+            self.transaction_end()
 
     def modify_columns(self, table_name, add_columns, drop_columns, edit_columns, old_columns):
         """ Modify the table columns in the database.

@@ -2,6 +2,7 @@ from OxygenRM.internals.SQLite3DB import *
 
 internal_db = None
 db = None
+handle_events = False
 
 # Defines the database driver
 def db_config(driver, db_name):
@@ -21,3 +22,13 @@ def transaction():
         raise RuntimeError('Cannot start a transaction with an unspecified database.')
     else: 
         return db.transaction()
+
+def use_events():
+    global handle_events
+    
+    handle_events = True
+
+def cancel_events():
+    global handle_events
+
+    handle_events = False

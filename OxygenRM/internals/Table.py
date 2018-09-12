@@ -48,6 +48,10 @@ class Table():
 
         self._assign_tables()
 
+    @staticmethod
+    def drop_all():
+        O.db.drop_all_tables()
+
     def exists(self):
         """ Check if the table exist in the database.
 
@@ -139,6 +143,13 @@ class Table():
                 Table.drop()
         """
         O.db.drop_table(self.table_name)
+
+    def create(self):
+        if self.exists():
+            raise RuntimeError('The table {} already exists. Cannot create it.'.format(self.table_name))
+        
+        self._create()
+        return self
 
     def save(self):
         """ Save the current changes to the database. 
