@@ -75,6 +75,18 @@ class TestDateTimeFields(unittest.TestCase):
         self.assertEqual(saved.random.year, 2000)
         self.assertEqual(saved.random.microsecond, 1)
 
+    def test_model_datetime_setting_with_str(self):
+        test_datetime = '2004-10-09 23:10:20.000001'
+        t1 = DatetimeModel(random=test_datetime)
+
+        self.assertEqual(t1.random.day, 9)
+        self.assertEqual(t1.random.month, 10)
+        self.assertEqual(t1.random.year, 2004)
+        self.assertEqual(t1.random.hour, 23)
+        self.assertEqual(t1.random.minute, 10)
+        self.assertEqual(t1.random.second, 20)
+        self.assertEqual(t1.random.microsecond, 1)
+
 class DateModel(O.Model):
     created = Date(create_date=True)
     updated = Date(update_date=True)
@@ -139,6 +151,14 @@ class TestDateFields(unittest.TestCase):
         self.assertEqual(saved.random.day, 1)
         self.assertEqual(saved.random.year, 2000)
 
+    def test_model_date_setting_with_str(self):
+        test_date = '2000-12-05'
+        t1 = DateModel(random=test_date)
+
+        self.assertEqual(t1.random.year, 2000)
+        self.assertEqual(t1.random.day, 5)
+        self.assertEqual(t1.random.month, 12)
+
     def test_model_random_date_setting_with_date_object(self):
         t1 = DateModel()
         t1.random = datetime.date(2000, 1, 1)
@@ -193,7 +213,7 @@ class TestTimeFields(unittest.TestCase):
         self.assertEqual(saved.random.hour, 12)
         self.assertEqual(saved.random.second, 1)
 
-    def test_model_random_time_setting_with_date_object(self):
+    def test_model_random_time_setting_with_time_object(self):
         t1 = TimeModel()
         t1.random = datetime.time(12, 1, 1)
 
@@ -205,3 +225,12 @@ class TestTimeFields(unittest.TestCase):
         saved = TimeModel.first()
         self.assertEqual(saved.random.hour, 12)
         self.assertEqual(saved.random.second, 1)
+
+    def test_model_time_setting_with_str(self):
+        test_time = '23:10:20.000001'
+        t1 = TimeModel(random=test_time)
+
+        self.assertEqual(t1.random.hour, 23)
+        self.assertEqual(t1.random.minute, 10)
+        self.assertEqual(t1.random.second, 20)
+        self.assertEqual(t1.random.microsecond, 1)

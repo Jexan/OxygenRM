@@ -498,22 +498,25 @@ class Pickle(Field):
         return value
 
 class DateField(Field, metaclass=abc.ABCMeta):
+    ISO_FORMAT = ''
+
     def __init__(self, time_format='', create_date=False, update_date=False, tz=datetime.timezone.utc):
         self.created_date = create_date
         self.update_date = update_date
         self.tz = tz
-        self.time_format = time_format
+        self.time_format = time_format if time_format else self.ISO_FORMAT
 
 class Datetime(DateField):
+    ISO_FORMAT = '%Y-%m-%d %H:%M:%S.%f'
     def db_set(self, model, value):
         should_add_created_timestamp = self.created_date and model.being_created()
         if self.update_date or should_add_created_timestamp:
-            return datetime.datetime.now(tz=self.tz).timestamp()
+            return datetime.datetime.now(tz=self.tz).strftime(self.time_format)
 
         if value is None:
             return None
 
-        return value.timestamp()
+        return value.strftime(self.time_format)
 
     def value_processor(self, value):
         value_type = type(value)
@@ -521,7 +524,7 @@ class Datetime(DateField):
         if value_type in (int, float):
             return datetime.datetime.fromtimestamp(value, tz=self.tz)
         elif value_type is str:
-            return datetime.datetime.strptime(value, self.time_format)
+            return datetime.datetime.strptime(value, self.ISO_FORMAT)
         elif value_type is datetime.datetime:
             return value
         elif value is None:
@@ -540,7 +543,7 @@ class Date(DateField):
         if self.update_date or should_add_created_timestamp:
             value = datetime.date.today()
 
-        return value.strftime(self.ISO_FORMAT)
+        return value.strftime(self.time_format)
 
     def value_processor(self, value):
         value_type = type(value)
@@ -548,7 +551,7 @@ class Date(DateField):
         if value_type in (int, float):
             return datetime.datetime.fromtimestamp(value, tz=self.tz).date()
         elif value_type is str:
-            return datetime.datetime.strptime(value, self.ISO_FORMAT).date()
+            return datetime.datetime.strptime(value, self.time_format).date()
         elif value_type is datetime.datetime:
             return value.date()
         elif value_type is datetime.date:
@@ -569,13 +572,13 @@ class Time(DateField):
         if self.update_date or should_add_created_timestamp:
             value = datetime.datetime.now(tz=self.tz).time()
 
-        return value.strftime(self.ISO_FORMAT)
+        return value.strftime(self.time_format)
 
     def value_processor(self, value):
         value_type = type(value)
 
         if value_type is str:
-            return datetime.datetime.strptime(value, self.ISO_FORMAT).time()
+            return datetime.datetime.strptime(value, self.time_format).time()
         elif value_type is datetime.datetime:
             return value.time()
         elif value_type is datetime.time:
