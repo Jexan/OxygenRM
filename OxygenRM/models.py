@@ -414,6 +414,9 @@ class Model(metaclass=MetaModel):
 
         return relation_class.get_existence_conditions()
 
+    def __hash__(self):
+        return hash(self.get_id())
+
 def generate_model_class(table_name, *, id_name='id', model_name=''):
     """ Generate a model class automatically from a table in the database.
 

@@ -90,7 +90,7 @@ class Table():
                 raise ColumnAlreadyExistsError('The table {} aready has a column {}'.format(self.table_name, col_name))
 
             column_type.name = col_name
-            self._add_columns[col_name] = column_type.get_data(O.db.driver)
+            self._add_columns.append(column_type)
 
         return self
 
@@ -169,7 +169,7 @@ class Table():
         driver = O.db.driver
 
         old_cols = self._columns_data
-        cols_to_add  = self._add_columns.values()
+        cols_to_add  = tuple(i.get_data(O.db.driver) for i in self._add_columns)
 
         cols_to_drop = {col_name: col.get_data(driver) for col_name, col in self._current_columns.items() if col.to_be_dropped}
         cols_to_edit = {col_name: col.get_data(driver) for col_name, col in self._current_columns.items() if col.to_be_editted}
@@ -189,7 +189,7 @@ class Table():
         if not self._add_columns:
             raise ValueError('No column has been specified to be added to the table')
 
-        O.db.create_table(self.table_name, self._add_columns.values())
+        O.db.create_table(self.table_name, tuple(i.get_data(O.db.driver) for i in self._add_columns))
 
         self.state = self.State.EDITING
 
@@ -205,7 +205,7 @@ class Table():
             self._current_columns = {}
 
         self._edit_columns = {}
-        self._add_columns = {}
+        self._add_columns = []
         self._delete_columns = []
 
     def _exists_guard(self):
@@ -219,10 +219,11 @@ class Table():
 
     def __setattr__(self, attr, value):
         if isinstance(value, Column):
-            if attr not in self._add_columns:
+            if value not in self._add_columns:
                 self.create_columns(**{attr: value}) 
             else:
                 self.edit_columns(**{attr: value})
+            self._current_columns[attr] = value
         else:
             super().__setattr__(attr, value)
 
