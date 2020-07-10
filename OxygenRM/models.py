@@ -76,6 +76,7 @@ class Model(metaclass=MetaModel):
         
         id_key = None
         for attr, value in cls.__dict__.items():
+            # Checks every class attribute to find the model DB fields
             if isinstance(value, Field):
                 if not isinstance(value, Relation):
                     cls._fields[attr] = value
@@ -85,6 +86,7 @@ class Model(metaclass=MetaModel):
                 row_prop = property(fget=value.get, fset=value.set) 
                 setattr(cls, attr, row_prop)
 
+            # Relations are set up differently than most fields
             if isinstance(value, Relation):
                 cls._relations[attr] = value
                 value.parting_model = cls
@@ -92,6 +94,7 @@ class Model(metaclass=MetaModel):
                 if isinstance(value, Multiple):
                     cls._pivot_classes[attr] = value.pivot
 
+            # Set Up the Id
             if isinstance(value, Id):
                 id_key = attr
 
@@ -122,12 +125,15 @@ class Model(metaclass=MetaModel):
         self._rel_queue = []
         self._field_values = {}
 
+        # Set's up the internal values using the special setters
         for field, col in self._fields.items():
             field_val = values.get(field, None)
 
             self._field_values[field] = col.db_get(field_val)
 
-        for field, value in ((field, values[field]) for field in frozenset(values) - self._fields_names):
+        # Sets up the values that are not "assigned" to the model. Useful for relations
+        field_values_not_in_model = ((field, values[field]) for field in frozenset(values) - self._fields_names)  
+        for field, value in field_values_not_in_model:
             setattr(self, field, value)
 
     # PUBLIC
@@ -169,13 +175,13 @@ class Model(metaclass=MetaModel):
         """
         if not cls._set_up:
             cls._set_up_model()
-
+    
     @classmethod
     def relations(cls):
         """ A method to be run when the class is set up. Intendeed to init relations.
         """
         pass
-    
+
     @classmethod
     def craft(cls, return_model=True, **values):
         """ Create a record in the database and save it. If the model has an id key, return the model.
@@ -279,21 +285,26 @@ class Model(metaclass=MetaModel):
         for field_name, field_instance in self._fields.items():
             values_for_db[field_name] = field_instance.db_set(self, self._field_values[field_name])
 
+        # Make sure that the model + the relationships are saved in a transaction
         with O.db.transaction():            
             if self._creating_new:
                 O.db.create(self.table_name, **values_for_db)
             else:
                 if self._dumb:
+                    # If the model has no primary key, then do a "where_many" with all fields and hope for the best 
+                    print(f"Warning: Updating model {self.table_name} without primary key is error prone.")
                     self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
                 else:
                     self.__class__.where(self.id_key, '=', self.get_id()).update(values_for_db)
 
+            # Deal with all simple relations
             for rel_function in self._rel_queue:
                 rel_function()
 
             if not self._dumb:
                 id_of_row = O.db.last_id() if self._creating_new else self.get_id()
 
+                # Deal with ManyToMany middle table saving
                 for pivot in self._pivots.values():
                     if pivot is None:
                         continue
@@ -301,6 +312,7 @@ class Model(metaclass=MetaModel):
                     pivot.set_self_id(id_of_row)
                     pivot.save()
 
+                # When updating, update the values with the one gotten from the database
                 row = QueryBuilder.table(self.table_name).where(self.id_key, '=', id_of_row).first()
                 self._update_values(dict(zip(row.keys(), tuple(row))))
 
@@ -314,7 +326,11 @@ class Model(metaclass=MetaModel):
         if self._creating_new:
             raise Exception('Can not destroy model that doesn\'t exist in the database')
 
-        self.__class__.where_many(self._convert_orig_values_to_conditions()).delete()
+        if self._dumb:
+            print(f"Warning: Deleting {self.table_name} without primary key is error prone")
+            self.__class__.where_many(self._convert_orig_values_to_conditions()).delete()
+        else:
+            self.destroy(self.get_id())
 
         return True
 

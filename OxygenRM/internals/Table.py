@@ -22,7 +22,6 @@ class ColumnDoesNotExistError(Exception):
     """
     pass    
 
-# Allows the creation, edition and droppage of tables
 class Table():
     """ Abstracts common database table operations.
         To be used mostly during migrations.
@@ -37,10 +36,10 @@ class Table():
         CREATING = 1
         EDITING  = 2
 
-    # If the table already exists, grabs it. If not, it creates one.
     def __init__(self, table_name):
         self.table_name = table_name
 
+        # If the table already exists, grabs it. If not, it creates one.
         if O.db.table_exists(table_name):
             self.state = self.State.EDITING 
         else:
@@ -50,6 +49,8 @@ class Table():
 
     @staticmethod
     def drop_all():
+        """ Drops all the tables of the database.
+        """
         O.db.drop_all_tables()
 
     def exists(self):

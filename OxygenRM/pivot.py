@@ -5,6 +5,8 @@ from OxygenRM.models import Model
 import OxygenRM as O
 
 class Pivot(Model):
+    """ The model class for ManyToMany middle table classes
+    """
     @classmethod
     def _set_up_model(cls):
         """ Set up the internals and relations of the Model
@@ -26,7 +28,8 @@ class Pivot(Model):
 
     def save(self, base_model=None):
         values_for_db = {}
-        
+
+        # The ids of the related models        
         self_id = getattr(self, self._self_name, None) 
         other_id = getattr(self, self._other_name, None)
 

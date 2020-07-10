@@ -4,6 +4,9 @@ import OxygenRM.events as event
 from functools import wraps, partial
 
 def temporal_events(f):
+    """ Decorates a function so it is assured to fire the events (and deactivate the events
+        after if they were not active)
+    """ 
     @wraps(f)
     def _uses_events(*args, **kwargs):
         deactivate_events = not O.handle_events
@@ -19,6 +22,9 @@ def temporal_events(f):
     return _uses_events
 
 def print_queries(f):
+    """ Decorates a function so that all the SQL queries called in it by OxygenRM are
+        printed.
+    """
     @wraps(f)
     @temporal_events
     def _prints_queries(*args, **kwargs):

@@ -3,8 +3,9 @@ import json
 from itertools import chain
 from collections import defaultdict
 
-# A container for models
 class ModelContainer():
+    """ Base class for model's rows container.
+    """
     def __init__(self, result, model, calculated_models=None, pivot_query=None, relations=None):
         self._calculated_models = calculated_models
 
