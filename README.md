@@ -66,7 +66,7 @@ import User
 class Post(O.Model):
     @classmethod
     def relations(cls):
-        cls.author = BelongsTo('one', User)
+        cls.author = O.BelongsTo('one', User)
 ```
 
 Meanwhile, in the User model: 
