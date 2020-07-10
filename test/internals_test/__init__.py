@@ -14,5 +14,5 @@ def default_cols(**cols):
             col_name, col_type, 
             null=True, default=None, 
             primary=False, auto_increment=False, 
-            unique=False, check=None
+            unique=False, check=None, references=None
         )

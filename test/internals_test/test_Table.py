@@ -3,6 +3,7 @@ import unittest
 from OxygenRM import db
 from OxygenRM.internals.Table import *
 from OxygenRM.internals.columns import *
+from OxygenRM.testing import print_queries
 
 from . import default_cols
 
@@ -88,6 +89,19 @@ class TestTable(unittest.TestCase):
 
         self.assertTrue(db.table_exists('t'))
         self.assertEqual(db.table_fields_types('t'), {'text': 'text', 'number': 'integer'})
+
+    def test_Table_adding_foreing_constaints(self):
+        with Table('s') as s:
+            s.t = Integer()
+
+        t = Table('t')
+        t.text = Text()
+        t.text.references = 's (t)'
+        t.save()
+
+        db.create('t', text='ay')
+
+        self.assertTrue(db.table_exists('t'))
 
 class TestTableColumnsEdition(unittest.TestCase):
     def setUp(self):

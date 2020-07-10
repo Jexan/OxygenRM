@@ -3,10 +3,6 @@
 - Add triggers and other things to SQLite3 column edition
 - Add the posibility to change Multiple parting and target table ids.
 
-# Relations
-
-- Change Multiple to BelongsTo('many')
-
 # Migrations
 
 - Implement migrations
@@ -15,16 +11,14 @@
 
 - Implement other drivers (MySQL, Posgres)
 
-# Query Builder
-
-- Implement date fetching queries.
-
 # Models
 
 - Add Exception for models pivots if no pivots are specified
 
 # Event
 
-- Add event handling for any query done.
-- Add event for transaction started.
 - Add event for CRUD in models.
+
+# Tables
+
+- Foreign Keys stuff

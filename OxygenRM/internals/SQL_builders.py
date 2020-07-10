@@ -17,7 +17,8 @@ COLUMN_RE = re.compile(
             (?P<not_null>NOT\ NULL\ ?)?
             (DEFAULT\ (?P<default>'?.+(?<!')'?)?\ ?)?
             (?P<unique>UNIQUE\ ?)?
-            (CHECK[(](?P<check>.+)[)])?
+            (CHECK[(](?P<check>.+)[)]\ ?)?
+            (REFERENCES\ (?P<references>.+))?
         """, re.VERBOSE | re.DOTALL)
 
 ConditionClause = namedtuple('ConditionClause', 'connector field symbol value')
@@ -262,6 +263,9 @@ def column_gen(columns):
         if col.check:
             col_str += ' CHECK({})'.format(col.check)
 
+        if col.references:
+            col_str += ' REFERENCES {}'.format(col.references)
+
         column_sql.append(col_str)
 
     return ', '.join(column_sql)
@@ -369,11 +373,12 @@ def build_columns_from_sql(sql):
                 default = default[1:-1]
 
         check = result.group('check')
+        references = result.group('references')
 
         col_type = result.group('col_type')
         col_name = result.group('col_name')
 
-        yield ColumnData(col_name, col_type, null, default, primary, auto_increment, unique, check)
+        yield ColumnData(col_name, col_type, null, default, primary, auto_increment, unique, check, references)
 
 def escape_single_quotes_sql(expr):
     """ Escape the single quotes of the given string.

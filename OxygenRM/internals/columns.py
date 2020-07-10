@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-ColumnData = namedtuple('ColumnData', 'name type null default primary auto_increment unique check')
+ColumnData = namedtuple('ColumnData', 'name type null default primary auto_increment unique check references')
 
 class Column():
     """ The base class for defining a Model (or Migration)
@@ -15,6 +15,7 @@ class Column():
         self.auto_increment = options.get('auto_increment', False)
         self.default = options.get('default', None)
         self.name    = options.get('name', None)
+        self.references = options.get('references', None)
 
         if not self.driver_type:
             self.type = options.get('type', None)
@@ -40,7 +41,7 @@ class Column():
             self.name, type_name, 
             self.null, self.default, 
             self.primary, self.auto_increment,
-            self.unique, self.check
+            self.unique, self.check, self.references
         )
 
     @staticmethod
