@@ -15,15 +15,27 @@ saft = 'SELECT * FROM t'
 qb = QueryBuilder
 
 class TestQueryBuilderSQL(unittest.TestCase):
+    """ Test concerning the correct creation of the SQL clauses
+        in the QueryBuilder
+    """
+
     def test_initialization(self):
+        """ Check that the QueryBuilders, t1 and t2, 
+            built with two different methods, are instances of QueryBuilder.
+        """
         self.assertIsInstance(t1, QueryBuilder)
         self.assertIsInstance(t2, QueryBuilder)
 
     def test_table_name_set_ok(self):
+        """ Check that the tables name is set correctly in the QueryBuilder.
+        """
         self.assertEqual(t1._in_wait['table_name'], 't')
         self.assertEqual(t2._in_wait['table_name'], 't')
 
     def test_query_creation(self):
+        """ Check that, at its most basic and with no other data,
+            the GET sql is a Select all from the table.
+        """
         self.assertEqual(t1.get_sql(), saft)
 
     def test_select(self):
@@ -129,6 +141,8 @@ class TestQueryBuilderSQL(unittest.TestCase):
 
 
 class RecordManipulationTest(unittest.TestCase):
+    """ Tests concerning getting data from the database.
+    """
     def tearDown(self):
         db.drop_table('t')
 
@@ -167,22 +181,25 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(first['a'], 't1')
         self.assertEqual(first['b'], 1)
 
-    # FIND WHERE GET
     def test_where_inequality_works_even_with_null_records(self):
         db.create_table('t', default_cols(a='integer', b='text'))
         db.create_many('t', ('a', 'b'), ((1,'t1'), (2, 't2'), (3, None), (None, 't4')))
     
         fields_with_a_not_3 = list(qb.table('t').where('a', '!=', 3))
 
-        # Without the 'NOT NULL' added in the method, this would not count the record with the name t6
         self.assertEqual(len(fields_with_a_not_3), 3)
 
         for field in fields_with_a_not_3:
             self.assertFalse(field['a'] == 3) 
 
-    def test_find_where_lte_works(self):
+    def test_find_where_lesser_than_or_equal_works(self):
+        """ Watch out for a bug that made columns with 'None' lesser or equal to
+            the value given, returning rows that made no sense.
+        """
         db.create_table('t', default_cols(a='integer', name='text'))
-        db.create_many('t', ('a', 'name'), [(1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')])
+        db.create_many('t', ('a', 'name'), [
+            (1,'t1'), (2, 't2'), (3, None), (None, 't3'), (5, 't4')]
+        )
     
         field_with_a_le_than_3 = list(qb.table('t').where_many([('a', '<=', 3)]))
         
@@ -203,6 +220,14 @@ class RecordManipulationTest(unittest.TestCase):
         for row in field_with_a_gt_2:
             self.assertTrue(row['a'] > 2)
             self.assertIn(row['b'], ['t4', None])
+
+    def test_where_like_works(self):
+        db.create_table('t', default_cols(a='integer', b='text'))
+        db.create_many('t', ('a', 'b'), [(1,'ttest1'), (2, 'test2'), (3, 't'), (None, 't3'), (5, 't4')])
+    
+        fields_like_test = list(qb.table('t').where('b', 'LIKE', '%test%'))
+        
+        self.assertEqual(len(fields_like_test), 2)
 
     def test_where_many_with_two_conditions(self):
         db.create_table('t', default_cols(a='integer', b='text', c='real'))
@@ -248,6 +273,8 @@ class RecordManipulationTest(unittest.TestCase):
         self.assertEqual(field_with_id_1[0]['name'], 't1')
 
     def test_where_equality_to_non_null_value_doesnt_count_nulls(self):
+        """ Watch out for a bug where Field = Value counted null values too.
+        """
         db.create_table('t', default_cols(a='integer', b='integer'))
         db.create_many('t', ('a', 'b'), ((None, 1), (2, 2)))
 

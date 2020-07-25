@@ -12,6 +12,8 @@ class T():
 
 class TestColumns(unittest.TestCase):
     def test_all_columns_classes_initialize(self):
+        """ Assure the columns classes constructor work
+        """
         t = Text()
         b = Bool()
         i = Integer()
@@ -23,21 +25,3 @@ class TestColumns(unittest.TestCase):
         self.assertIsInstance(i, Integer)
         self.assertIsInstance(f, Float)
         self.assertIsInstance(i_d, Id)
-        
-    def test_rel_prop_creation(self):
-        pass
-
-    def test_id_prop_creation(self):
-        pass
-
-    def test_email_prop_creation(self):
-        pass
-
-    def test_json_prop_creation(self):
-        pass
-
-    def test_date_prop_creation(self):
-        pass
-
-    def test_float_prop_creation(self):
-        pass

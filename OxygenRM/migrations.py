@@ -1,3 +1,8 @@
+""" File for implemeting migrations
+
+    Still incomplete. Will be available in the next revision.
+"""
+
 import argparse
 import os
 import os.path
@@ -116,11 +121,11 @@ def config(**options):
 # Abstract base class for migrations 
 class Migration():
     def call(self):
-        pass
+        ...
 
 def set_from_last_migration():
-    pass
+    ...
 
 class Database():
     def __init__(self, name):
-        pass
+        ...

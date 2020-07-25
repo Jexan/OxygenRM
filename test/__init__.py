@@ -1,3 +1,4 @@
-from OxygenRM import db_config
+import OxygenRM
 
-db_config('sqlite3', ':memory:')
+OxygenRM.db_config('sqlite3', ':memory:')
+OxygenRM.emit_warnings = False

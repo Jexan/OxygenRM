@@ -8,7 +8,7 @@ from collections import namedtuple
 from OxygenRM.internals.columns import ColumnData
 
 VALID_CONNECTORS = ('AND', 'OR')
-VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<', 'IN', 'NOT IN')
+VALID_WHERE_OPERATIONS  = ('=', '!=', 'IS', 'IS NOT', '>=', '>', '<=', '<', 'IN', 'NOT IN', 'LIKE')
 COLUMN_RE = re.compile(
         r"""\ ?(?P<col_name>\w+)\ 
             (?P<col_type>\w+)\ ?

@@ -3,6 +3,7 @@ from OxygenRM.internals.SQLite3DB import *
 internal_db = None
 db = None
 handle_events = False
+emit_warnings = True
 
 # Defines the database driver
 def db_config(driver, db_name):
@@ -32,3 +33,11 @@ def cancel_events():
     global handle_events
 
     handle_events = False
+
+def warn(msg):
+    """ Print a warning, if they're enabled.
+    """
+    if not emit_warnings:
+        return
+    else:
+        print(f'OxigenRM warning: {msg}')

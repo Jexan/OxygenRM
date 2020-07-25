@@ -4,38 +4,38 @@ from OxygenRM.migrations import *
 
 class TestMigrations(unittest.TestCase):
     def test_migration_class_inits(self):
-        pass
+        ...
 
     def test_migration_created_ok(self):
-        pass
+        ...
 
     def test_migration_created_tables_and_cols(self):
-        pass
+        ...
 
     def test_migration_destroy_ok(self):
-        pass
+        ...
 
     def test_migration_destroy_works(self):
-        pass
+        ...
 
     def test_migration_follow_ups(self):
-        pass
+        ...
 
     def test_migration_cli_tool_inits(self):
-        pass
+        ...
 
     def test_migration_cli_creates_migration(self):
-        pass
+        ...
 
     def test_migration_cli_runs_migration(self):
-        pass
+        ...
 
     def test_migration_cli_undoes_migrations(self):
-        pass
+        ...
 
 current_path = os.getcwd()
 
-@unittest.skip("Must find how to test all of this")
+@unittest.skip("Must find a better way to test all of this")
 class TestMigrationHelpers(unittest.TestCase):
     def tearDown(self):
         created_files = []

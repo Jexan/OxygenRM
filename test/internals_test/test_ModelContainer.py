@@ -22,38 +22,48 @@ class TestModelContainer(unittest.TestCase):
         self.mc = ModelContainer(db.all('tests'), Test)
         
     def test_model_initiliaziation(self):
+        """ Test that ModelContainer initialization works correctly.
+        """
         mc = ModelContainer([], Test)
 
         self.assertIsInstance(mc, ModelContainer)
         self.assertEqual(mc._model, Test)
 
     def test_iterable_properties(self):
+        """ Check that the rows in a ModelContainer instance
+            are instances of the model. 
+        """
         for row in self.mc:
             self.assertIsInstance(row, self.mc._model)
 
     def test_model_deletion(self):
+        """ Check deletion of ModelContainer rows.
+        """
         del self.mc[1]
 
         self.assertEqual(2, len(self.mc))
         self.assertEqual('c', self.mc[1].a)
         
     def test_json_conversion(self):
+        """ Check the ModelContainer.to_json() method.
+        """
         json_data = self.mc.to_json()
         expected = '[{"a": "a"}, {"a": "b"}, {"a": "c"}]'
 
         self.assertEqual(json_data, expected)
-
-    def test_csv_conversion(self):
-        pass
     
-    def test_xml_conversion(self):
-        pass
-        
     def test_first(self):
+        """ Test ModelContainer.first()
+        """
+
         first = self.mc.first()
         self.assertEqual(first.a, 'a')
 
     def test_iterator_is_not_shared_behaves_as_expected(self):
+        """ Assure a nasty bug where the ModelContainer used as
+            iterator depletes it, being unable to use in other place, 
+            doesn't happen again.
+        """
         one_list = []
         two_list = []
 
@@ -70,7 +80,7 @@ class TestModelContainer(unittest.TestCase):
         self.assertEqual(len(as_list), 3)
         self.assertIsInstance(as_list, list)
 
-    def test_getting_index_yields_list(self):
+    def test_getting_index_works_as_expected(self):
         item = self.mc[1]
 
         self.assertEqual(item.a, 'b')
@@ -95,16 +105,15 @@ class TestModelContainer(unittest.TestCase):
         self.assertEqual(['a', 'b', 'c'], list(aes))
     
     pretty_model_container = 'Test:\n\t1:\n\t\ta: a\n\t2:\n\t\ta: b\n\t3:\n\t\ta: c\n'
-    def test_model_pretty(self):
+    def test_model_container_pretty(self):
         pretty_str = self.mc.pretty()
         self.assertEqual(pretty_str, self.pretty_model_container)
 
-    def test_str_repr_aliases_of_pretty(self):
+    def test_str_and_repr_are_aliases_of_pretty(self):
         self.assertEqual(str(self.mc), self.pretty_model_container)
         self.assertEqual(self.mc.__repr__(), self.pretty_model_container)
 
-    # FOR SOME REASON THIS TEST FAILED IF WE ADDED THE WORD 'DICT' TO IT
-    def test_to_dict_container(self):
+    def test_to_dict(self):
         cont_as_dict = list(self.mc.to_dict())
 
         self.assertEqual(len(cont_as_dict), 3)

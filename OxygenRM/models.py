@@ -292,7 +292,7 @@ class Model(metaclass=MetaModel):
             else:
                 if self._dumb:
                     # If the model has no primary key, then do a "where_many" with all fields and hope for the best 
-                    print(f"Warning: Updating model {self.table_name} without primary key is error prone.")
+                    O.warn(f"Updating model {self.table_name} without primary key is error prone.")
                     self.__class__.where_many(self._convert_orig_values_to_conditions()).update(values_for_db)
                 else:
                     self.__class__.where(self.id_key, '=', self.get_id()).update(values_for_db)
@@ -327,7 +327,7 @@ class Model(metaclass=MetaModel):
             raise Exception('Can not destroy model that doesn\'t exist in the database')
 
         if self._dumb:
-            print(f"Warning: Deleting {self.table_name} without primary key is error prone")
+            O.warn("Deleting {self.table_name} without primary key is error prone")
             self.__class__.where_many(self._convert_orig_values_to_conditions()).delete()
         else:
             self.destroy(self.get_id())

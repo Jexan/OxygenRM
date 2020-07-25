@@ -5,7 +5,6 @@ from OxygenRM.models import Model
 import OxygenRM.internals.columns as c
 import OxygenRM.internals.fields as f
 
-# db_config('sqlite3', ':memory:')
 
 class Test(Model):
     id = f.Id()
