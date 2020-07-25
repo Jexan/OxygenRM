@@ -8,3 +8,6 @@ OxygenRM Spec.py
 *.sublime*
 
 htmlcov
+.coverage
+TODO.txt
+ForNextReadMe.md
